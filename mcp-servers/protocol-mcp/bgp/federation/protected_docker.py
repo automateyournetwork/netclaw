@@ -70,7 +70,10 @@ def validate_runtime_fields(config):
         if 'hosted' in config:
             try: _hosted.validate_profile(config['hosted'])
             except _hosted.HostedRefused as exc: raise RuntimeRefused(exc.code) from None
-            if config['mcp'].get('kind') != 'subnet_summary': raise RuntimeRefused('hosted_native_summary_required')
+            # Hosted runs the native summary calculator or the exact reviewed NetBox read; every other binding
+            # (origin, credential file, source closure, schema and selection hashes) is still enforced by
+            # validate_mcp_binding below. Ollama stays calculator-only.
+            if config['mcp'].get('kind') not in ('subnet_summary', 'netbox'): raise RuntimeRefused('hosted_mcp_kind_refused')
         if 'ollama' in config:
             try:
                 _ollama.validate_profile(config['ollama'])
@@ -175,7 +178,7 @@ def runtime_profile_revision(config):
         local = config['hosted']
         if hashlib.sha256(_public_bytes(Path(_hosted.__file__))).hexdigest() != _HOSTED_SOURCE_PIN:
             raise RuntimeRefused('loaded_runtime_source_changed')
-        if (profile.get('provider') != _hosted.PROVIDER or profile.get('model') != _hosted.MODEL
+        if (profile.get('provider') != _hosted.PROVIDER or profile.get('model') != local['model']
                 or profile.get('profile_id') != _hosted.profile_id(local)
                 or profile.get('runtime_kind') != 'openclaw' or profile.get('runtime_version') != _QUALIFIED_HARNESSES['openclaw']):
             raise RuntimeRefused('unqualified_hosted_execution_profile')

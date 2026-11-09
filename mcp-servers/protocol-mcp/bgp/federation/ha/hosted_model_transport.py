@@ -12,7 +12,9 @@ specs/182-multi-region-ha-borders/model-transport.md and are NOT closed here.
 import asyncio
 from contextlib import suppress
 import json
+from pathlib import Path
 import re
+import sqlite3
 import time
 
 from ..protected_hosted import HostedRefused, validate_profile
@@ -24,6 +26,12 @@ MAX_REQUEST = 13312
 MAX_RESPONSE = 1048576
 MAX_HEADER = 16384
 CLOCK_ALLOWANCE_MS = 250
+# Freshness window of the hosted handoff. Unlike the Ollama helper (a cross-clock helper inside the model container
+# with a hard 3000 ms budget, so `admission_ms - elapsed` must be <= 3000), the host and the guard share this
+# process's clock domain: the only requirements are CLOCK_ALLOWANCE_MS < admission_ms - elapsed <= the manifest
+# maximum (100..10000 ms). So a WAN admission window such as 4500 ms accepts any member->Border->quorum elapsed time
+# in [0, admission_ms - 250), not the 2.75 s wide band the Ollama path accepts (live finding, live-evidence.md).
+MAX_REMAINING_MS = 10000
 _GUARD_URL = re.compile(r'http://127\.0\.0\.1:([1-9][0-9]{0,4})')
 _COUNTED = re.compile(r'(?m)^(?:.*?\s)?POST /v1/chat/completions(?:[\s?]|$)')
 
@@ -100,7 +108,7 @@ async def ha_hosted_model_forward(executor, payload, request, guard_url):
         raise RuntimeRefused('model_guard_unavailable') from None
     try:
         remaining = permit.handoff('model')
-        check(type(remaining) is int and CLOCK_ALLOWANCE_MS < remaining <= 10000, 'admission_expired', 403)
+        check(type(remaining) is int and CLOCK_ALLOWANCE_MS < remaining <= MAX_REMAINING_MS, 'admission_expired', 403)
         started = time.monotonic()
         try:
             writer.write(frame)
@@ -131,3 +139,25 @@ def count_guard_requests(log):
     """
     text = log.decode('utf-8', errors='replace') if isinstance(log, (bytes, bytearray)) else str(log)
     return len(_COUNTED.findall(text))
+
+
+def read_provider_fence(operation_root):
+    """Independent call counter from the guard's own durable provider fence (read-only, harness side).
+
+    protected-guard.py keeps `<operation_root>/guard/provider.sqlite` (ProviderFence): one `provider_request` row
+    per distinct upstream request with its ordinal, state and upstream attempt count, written by the guard process
+    and not by the Border/member process under test. Returns counts only; request/response bodies are never read.
+    """
+    path = Path(operation_root) / 'guard' / 'provider.sqlite'
+    try:
+        db = sqlite3.connect(path.as_uri() + '?mode=ro', uri=True, timeout=5)
+    except sqlite3.Error:
+        raise RuntimeRefused('provider_fence_unavailable') from None
+    try:
+        rows = db.execute('SELECT ordinal, state, upstream_attempt_count FROM provider_request ORDER BY ordinal').fetchall()
+    except sqlite3.Error:
+        raise RuntimeRefused('provider_fence_unreadable') from None
+    finally:
+        db.close()
+    return {'requests': len(rows), 'upstream_attempts': sum(int(row[2]) for row in rows),
+            'states': [row[1] for row in rows], 'ordinals': [row[0] for row in rows]}

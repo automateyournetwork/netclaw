@@ -18,6 +18,13 @@ Usage (all take --root; `identity` creates it fresh, 0700):
   (owner runs the printed `qualify.py prepare` to start the confined model namespace)
   r09_member.py materialize --root R         home, ha-config, profile, catalog, schema-3 contract
   r09_member.py validate --root R            the production role validator + closure import check
+NetBox flavor (hosted Sonnet via the DefenseClaw guard + the exact reviewed NetBox read; spec 182):
+  r09_member.py identity --root R --flavor netbox      (everything after reads the flavor from state.json)
+  r09_member.py freeze / python-env --root R           (unchanged)
+  r09_member.py netbox-env --root R [--build --yes-network | --env VENV]   immutable fastmcp<3 env for the NetBox MCP
+  NETBOX_TOKEN=... ANTHROPIC_API_KEY=... r09_member.py artifacts --root R [--netbox-url URL]   (secrets from the
+        environment only, written 0600 to guard.env / the credential file, never printed, logged or stored in state)
+  r09_member.py materialize / validate --root R        (no model namespace and no qualify.py for this flavor)
 Files whose raw bytes the launcher pins (ha-config, profile, manifests, contract) are written in canonical
 JSON and digested over those exact bytes. All *_file paths are absolute, canonical, symlink-free.
 """
@@ -56,6 +63,19 @@ TOOL_LIMITS = {'inference_timeout_ms': 60000, 'tool_timeout_ms': 30000, 'max_inf
                'max_tool_calls': 1, 'max_output_bytes': 262144}
 GUARD_ENV_VARIABLE = 'DEFENSECLAW_GATEWAY_TOKEN'
 GUARD_TOKEN_ENV = 'NETCLAW_R09_GUARD_TOKEN'
+FLAVORS = ('ollama', 'netbox')
+# NetBox flavor. The MCP server pins fastmcp<3 (mcp 1.x), so it needs its own immutable env, separate from the
+# member env that runs mcp 2.x. Tool arguments are the single exact reviewed read; id 27 exists on demo.netbox.dev.
+NETBOX_MCP_REQUIREMENTS = ['fastmcp>=2.14.0,<3', 'requests>=2.31.0', 'httpx>=0.28.1', 'pydantic>=2.0',
+                           'pydantic-settings>=2.0']
+NETBOX_FIELDS = ['id', 'name', 'status', 'site', 'device_type', 'last_updated']
+NETBOX_ARGUMENTS = {'object_type': 'dcim.device', 'object_id': 27, 'fields': NETBOX_FIELDS, 'brief': False}
+HOSTED_MODEL = 'claude-sonnet-4-6'  # the model the existing guard image pins; see protected_hosted.GUARD_IMAGE_MODEL
+HOSTED_LIMITS = {'max_output_tokens': 1024, 'call_timeout_seconds': 60, 'task_timeout_seconds': 180}
+PROVIDER_KEY_ENV = 'ANTHROPIC_API_KEY'
+NETBOX_TOKEN_ENV = 'NETBOX_TOKEN'
+NETBOX_URL_ENV = 'NETBOX_URL'
+HARNESS_VERSION = '2026.7.1-2'
 
 
 class MemberRefused(SystemExit):
@@ -105,6 +125,51 @@ def load_module(name, path):
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+def secret_from_environment(name, environ=None):
+    """A credential value from the process environment only. Never printed, logged or stored; refusals name the
+    variable, never the value. The value is written once to a 0600 create-only file by the caller."""
+    value = (os.environ if environ is None else environ).get(name)
+    need(isinstance(value, str) and value != '', 'secret_missing:' + name)
+    need(value.isascii() and value.strip() == value and '\n' not in value and '\r' not in value
+         and 8 <= len(value) <= 4096 and all(32 < ord(ch) < 127 for ch in value), 'secret_shape:' + name)
+    return value
+
+
+def write_hosted_guard_env(path, provider_key, token):
+    """guard.env exactly as protected-guard.py (hosted mode) loads it: the two reviewed names, distinct values."""
+    need(provider_key != token, 'distinct_guard_credentials_required')
+    return write_private(path, (PROVIDER_KEY_ENV + '=' + provider_key + '\n' + GUARD_ENV_VARIABLE + '=' + token + '\n').encode())
+
+
+def hosted_profile(model=HOSTED_MODEL):
+    return {'schema_version': 1, 'provider': 'anthropic', 'model': model, 'egress_host': 'api.anthropic.com',
+            **HOSTED_LIMITS}
+
+
+def hosted_guard_config(raw_config, model):
+    """Derive the hosted guard configuration from the pinned public R05 DefenseClaw config.
+
+    protected-guard.py (hosted mode) demands: every `base_url` is the loopback provider fence, every `api_key_env` is
+    DEFENSECLAW_LLM_KEY, every `model:` is anthropic/<pinned model>, `data_dir` is /guard, no inline key and
+    `forward_custom_headers` false. The real key is never in this file: it reaches only guard.env.
+    Not exercised against the real DefenseClaw gateway here: a rejected config fails at guard start, before any call."""
+    try:
+        import yaml
+    except ImportError:
+        raise MemberRefused('refused:pyyaml_required_for_hosted_guard_config') from None
+    config = yaml.safe_load(raw_config)
+    need(isinstance(config, dict) and isinstance(config.get('guardrail'), dict) and isinstance(config.get('llm'), dict),
+         'guard_config_shape')
+    route = {'api_key_env': 'DEFENSECLAW_LLM_KEY', 'base_url': 'http://127.0.0.1:18888',
+             'forward_custom_headers': False, 'model': 'anthropic/' + model}
+    config['llm'] = dict(route)
+    config['guardrail']['llm'] = dict(route)
+    config['guardrail']['model'] = 'anthropic/' + model
+    config['guardrail']['model_name'] = model
+    need(config.get('data_dir') == '/guard', 'guard_data_dir')
+    return yaml.safe_dump(config, sort_keys=True, default_flow_style=False).encode()
 
 
 _ROLE = []
@@ -184,7 +249,10 @@ def cmd_identity(args):
     certificate, key = create_self_signed('r09/member-' + suffix, days=args.days)
     write_private(identity / 'member.crt', certificate.encode())
     write_private(identity / 'member.key', key.encode())
-    binding = {'installation_id': str(uuid.uuid4()), 'member_id': 'nc182-r09/mac-subnet-' + suffix,
+    flavor = getattr(args, 'flavor', 'ollama')
+    need(flavor in FLAVORS, 'flavor_refused')
+    binding = {'installation_id': str(uuid.uuid4()),
+               'member_id': ('nc182-r09/netbox-' if flavor == 'netbox' else 'nc182-r09/mac-subnet-') + suffix,
                'key_id': c.key_id(certificate), 'enrollment_generation': str(uuid.uuid4())}
     c.validate_binding(binding, 'member')
     need(all(binding['installation_id'] != n['installation_id'] and binding['key_id'] != n['key_id']
@@ -194,8 +262,9 @@ def cmd_identity(args):
     dial = [{'node': n['identity'], 'host': n['endpoints']['in2n']['host'], 'port': n['endpoints']['in2n']['port'],
              'server_name': n['endpoints']['in2n']['server_name']} for n in verified.nodes]
     save_state(root, {'schema_version': 1, 'name': name, 'deployment': str(deployment), 'binding': binding,
-                      'cluster_id': verified.cluster_id, 'generation': verified.generation, 'steps': ['identity']})
-    return {'root': str(root), 'member': binding, 'enrollment_packet': str(identity / 'member.json'),
+                      'cluster_id': verified.cluster_id, 'generation': verified.generation, 'steps': ['identity'],
+                      'flavor': flavor})
+    return {'root': str(root), 'member': binding, 'flavor': flavor, 'enrollment_packet': str(identity / 'member.json'),
             'outbound_dial': dial, 'anchor_key_id': c.key_id(anchor), 'name': name}
 
 
@@ -243,12 +312,12 @@ def verify_env(python, env, manifest_file, manifest_sha, python_sha):
     return cfg
 
 
-def build_env(root):
+def build_env(root, requirements=None, label='python'):
     """Network step (uv/pip). Immutable macOS arm64 3.12 env recipe used by R04A: a read-only copy of the
     interpreter, a venv whose bin/python links to it, every file hashed, nothing writable."""
     base = Path('/opt/homebrew/opt/python@3.12/bin/python3.12').resolve()
     need(base.exists(), 'python312_missing:brew install python@3.12')
-    work = private_dir(Path(root) / 'python')
+    work = private_dir(Path(root) / label)
     native = private_dir(work / 'native')
     target = native / 'python3.12'
     shutil.copyfile(base, target)
@@ -257,7 +326,7 @@ def build_env(root):
     subprocess.run([str(base), '-m', 'venv', '--without-pip', str(venv)], check=True)
     uv = shutil.which('uv')
     need(uv, 'uv_missing')
-    subprocess.run([uv, 'pip', 'install', '--python', str(venv / 'bin/python'), *MEMBER_REQUIREMENTS], check=True)
+    subprocess.run([uv, 'pip', 'install', '--python', str(venv / 'bin/python'), *(requirements or MEMBER_REQUIREMENTS)], check=True)
     for name in ('python', 'python3', 'python3.12'):
         link = venv / 'bin' / name
         if link.is_symlink() or link.exists():
@@ -298,9 +367,148 @@ def cmd_python_env(args):
     return record
 
 
+# ------------------------------------------------------------------------------------------ netbox env
+def cmd_netbox_env(args):
+    """Immutable Python env for the NetBox MCP server (fastmcp<3), recorded for the artifacts step."""
+    root, state = load_state(args.root)
+    need(state.get('flavor') == 'netbox', 'netbox_flavor_required')
+    need(not (root / 'netbox-env.json').exists(), 'netbox_env_already_recorded')
+    if args.build:
+        need(args.yes_network, 'build_needs_--yes-network')
+        venv, _ = build_env(root, NETBOX_MCP_REQUIREMENTS, 'netbox-python')
+    else:
+        need(args.env, 'netbox_env_or_build_required')
+        venv = Path(args.env).resolve()
+    python = venv / 'bin/python'
+    need(python.exists() and python.parent.resolve() == python.parent, 'netbox_env_python_missing')
+    record = {'python': str(python), 'environment': str(venv)}
+    write_private(root / 'netbox-env.json', record)
+    state['steps'].append('netbox-env')
+    save_state(root, state)
+    return record
+
+
+_SCHEMA_LISTING = """import asyncio, json, sys
+from mcp import ClientSession, StdioServerParameters
+from mcp.client.stdio import stdio_client
+python, home, source, policy, origin = sys.argv[1:6]
+async def main():
+    env = {'PATH': '/usr/bin:/bin', 'HOME': home, 'PYTHONPATH': source, 'PYTHONDONTWRITEBYTECODE': '1',
+           'PYTHON_DOTENV_DISABLED': '1', 'LOG_LEVEL': 'ERROR', 'TRANSPORT': 'stdio', 'VERIFY_SSL': 'true',
+           'NETBOX_URL': origin, 'NETBOX_TOKEN': 'nbt_schemalisting.placeholder', 'NETCLAW_NETBOX_POLICY': policy}
+    params = StdioServerParameters(command=python, args=['-B', '-m', 'netbox_mcp_server.server', '--transport', 'stdio'],
+                                   env=env, cwd=home)
+    with open('/dev/null', 'w') as errors:
+        async with stdio_client(params, errlog=errors) as (reader, writer):
+            async with ClientSession(reader, writer) as session:
+                await session.initialize()
+                listing = await session.list_tools()
+                tools = [t for t in listing.tools if t.name == 'netbox_get_object_by_id']
+                assert len(tools) == 1
+                print(json.dumps(tools[0].inputSchema, sort_keys=True))
+asyncio.run(main())
+"""
+
+
+def list_netbox_schema(python, source_root, scratch, origin):
+    """Actual tools/list from the real server process. tools/list contacts no NetBox: the token is a placeholder
+    and the policy file only names the one URL a later real call would be allowed to read."""
+    scratch = private_dir(scratch)
+    policy = scratch / 'http-policy.json'
+    write_private(policy, {'schemaVersion': 1, 'url': origin + '/api/dcim/devices/27/', 'params': {'fields': ','.join(NETBOX_FIELDS)}})
+    done = subprocess.run([python, '-B', '-c', _SCHEMA_LISTING, python, str(scratch), str(Path(source_root) / 'src'),
+                           str(policy), origin], capture_output=True, text=True, timeout=120, cwd=str(scratch),
+                          env={'PATH': '/usr/bin:/bin', 'HOME': str(scratch)})
+    need(done.returncode == 0 and done.stdout.strip(), 'netbox_schema_listing_failed:' + done.stderr.strip()[-200:])
+    schema = json.loads(done.stdout)
+    need(isinstance(schema, dict) and schema.get('type') == 'object', 'netbox_schema_shape')
+    return schema
+
+
+def artifacts_netbox(root, state, args):
+    for step in ('freeze', 'python-env', 'netbox-env'):
+        need(step in state['steps'], step + '_first')
+    use_source(root)
+    from bgp.federation import protected_hosted as hosted
+    from bgp.federation import protected_mcp as mcp_source  # import before the profile script: keeps one source closure
+    template = json.loads(Path(args.template or R05 / 'runtime-template.json').read_text())
+    runtime = copy.deepcopy(template['runtime'])
+    origin = (args.netbox_url or os.environ.get(NETBOX_URL_ENV) or '').rstrip('/')
+    need(origin, 'netbox_url_required:' + NETBOX_URL_ENV)
+    mcp_source.origin(origin)  # exact https origin or refused
+    model = args.hosted_model
+    need(model in hosted.ALLOWED_MODELS, 'hosted_model_refused')
+    need(model == hosted.GUARD_IMAGE_MODEL or args.guard_image, 'model_needs_rebuilt_guard_image:pass --guard-image sha256:<new digest>')
+    if args.guard_image:
+        need(re.fullmatch('sha256:[0-9a-f]{64}', args.guard_image), 'guard_image_digest_shape')
+        runtime['guard']['image'] = args.guard_image
+    hosted.validate_profile(hosted_profile(model))
+    provider_key = secret_from_environment(PROVIDER_KEY_ENV)
+    netbox_token = secret_from_environment(NETBOX_TOKEN_ENV)
+    need(provider_key != netbox_token and not provider_key.startswith('nbt_'), 'provider_key_shape')
+    env_python = json.loads(read_private(root / 'netbox-env.json'))
+    artifacts = private_dir(root / 'artifacts')
+    # Guard: derived public config pinned by hash; secrets only in guard.env (read-only mount, guard process only).
+    guard_raw = hosted_guard_config(Path(runtime['guard']['config_file']).read_bytes(), model)
+    need(provider_key.encode() not in guard_raw, 'provider_key_in_guard_config')
+    guard_sha = write_private(artifacts / 'guard-config.yaml', guard_raw)
+    os.chmod(artifacts / 'guard-config.yaml', 0o400)
+    token = secrets.token_urlsafe(32)
+    need(re.fullmatch('[A-Za-z0-9_-]{43}', token) and token != provider_key, 'guard_token_shape')
+    write_hosted_guard_env(artifacts / 'guard.env', provider_key, token)
+    write_private(artifacts / 'guard-capability', token.encode())
+    # NetBox MCP: reviewed upstream package + the managed HTTP compatibility patch, frozen read-only.
+    native = private_dir(artifacts / 'native-netbox')
+    package = private_dir(native / 'src/netbox_mcp_server')
+    upstream = REPO / 'mcp-servers/netbox-mcp-server/src/netbox_mcp_server'
+    for path in sorted(upstream.glob('*.py')):
+        shutil.copyfile(path, package / path.name)
+    compat = load_module('r09_netbox_compat', REPO / 'scripts/netbox-compat.py')
+    compat.apply(str(native))  # refuses any unreviewed netbox_client.py; copies lib/netbox_http.py as netclaw_http.py
+    for directory, dirs, names in os.walk(native):
+        for name in names:
+            os.chmod(Path(directory) / name, 0o400)
+    for directory, _, _ in os.walk(native, topdown=False):
+        os.chmod(directory, 0o500)
+    skill_dir = private_dir(artifacts / 'netbox-reconcile')
+    skill = (REPO / 'workspace/skills/netbox-reconcile/SKILL.md').read_bytes()
+    write_private(skill_dir / 'SKILL.md', skill)
+    os.chmod(skill_dir / 'SKILL.md', 0o400)
+    credential = artifacts / 'netbox-credential'
+    write_private(credential, ('NETBOX_TOKEN=' + netbox_token + '\n').encode())
+    schema = list_netbox_schema(env_python['python'], native, artifacts / 'schema-listing', origin)
+    write_private(artifacts / 'netbox-input-schema.json', schema)
+    profile_script = load_module('r09_mcp_profile', REPO / 'scripts/protected-mcp-profile.py')
+    binding = profile_script.materialize(kind='netbox', python=env_python['python'], source=str(native), skill=str(skill_dir / 'SKILL.md'),
+                                         arguments=NETBOX_ARGUMENTS, input_schema=schema, output=artifacts / 'mcp-netbox.json',
+                                         netbox_origin=origin, credential_file=str(credential))
+    mcp_source.validate_binding(binding, arguments=NETBOX_ARGUMENTS)  # full file/closure/env/credential validation now
+    home = root / 'home'
+    runtime.pop('ollama', None)
+    runtime.update(state_dir=str(home / 'netclaw-federation/runtime'), guard_token_env=GUARD_TOKEN_ENV,
+                   hosted=hosted_profile(model), mcp=binding)
+    runtime['guard'].update(config_file=str(artifacts / 'guard-config.yaml'), env_file=str(artifacts / 'guard.env'),
+                            config_sha256=guard_sha)
+    runtime['model_profile'] = {'provider': 'anthropic', 'model': model, 'runtime_kind': 'openclaw',
+                                'runtime_version': HARNESS_VERSION, 'profile_id': hosted.profile_id(hosted_profile(model)),
+                                'guard_policy_sha256': '0' * 64, 'profile_revision': '0' * 64}
+    write_private(root / 'runtime-template.json', runtime)
+    shutil.rmtree(artifacts / 'schema-listing', ignore_errors=True)
+    state['hosted_model'] = model
+    state['netbox_origin'] = origin
+    state['steps'].append('artifacts')
+    save_state(root, state)
+    return {'artifacts': str(artifacts), 'netbox_origin': origin, 'hosted_model': model,
+            'guard_config_sha256': guard_sha, 'selection_sha256': binding['selection_sha256'],
+            'secrets': 'written 0600 to artifacts/guard.env and artifacts/netbox-credential; not printed or stored in state',
+            'model_namespace': 'none (hosted flavor): do not run qualify.py'}
+
+
 # ---------------------------------------------------------------------------------------------- artifacts
 def cmd_artifacts(args):
     root, state = load_state(args.root)
+    if state.get('flavor') == 'netbox':
+        return artifacts_netbox(root, state, args)
     need('freeze' in state['steps'], 'freeze_first')
     use_source(root)
     from bgp.federation import protected_ollama as model
@@ -359,9 +567,11 @@ def cmd_artifacts(args):
 # -------------------------------------------------------------------------------------------- materialize
 def cmd_materialize(args):
     root, state = load_state(args.root)
-    for step in ('identity', 'freeze', 'python-env', 'artifacts'):
+    netbox = state.get('flavor') == 'netbox'
+    for step in ('identity', 'freeze', 'python-env', 'artifacts') + (('netbox-env',) if netbox else ()):
         need(step in state['steps'], step + '_first')
-    need((root / 'model/profile.json').exists(), 'model_profile_missing:run the qualify.py prepare command first')
+    if not netbox:
+        need((root / 'model/profile.json').exists(), 'model_profile_missing:run the qualify.py prepare command first')
     need(not (root / 'home').exists(), 'home_already_materialized')
     use_source(root)
     from bgp.federation import protected_contract as c
@@ -374,13 +584,16 @@ def cmd_materialize(args):
     manifest = verify_manifest(read_private(cluster / 'manifest.json'), anchor, expected_key_id=c.key_id(anchor))
     binding = state['binding']
     runtime = json.loads(read_private(root / 'runtime-template.json'))
-    runtime['ollama'] = json.loads(read_private(root / 'model/profile.json'))
+    if not netbox:
+        runtime['ollama'] = json.loads(read_private(root / 'model/profile.json'))
     bindings = revision_bindings(runtime)
     runtime['model_profile'].update({k: bindings[k] for k in ('guard_policy_sha256', 'profile_revision')})
     validate_runtime_fields(runtime)
-    arguments = {'cidr': '192.0.2.0/26'}
-    tool = {'tool': 'subnet_calculator', 'tool_schema_sha256': bindings['tool_schema_sha256'], 'arguments': arguments,
-            'arguments_sha256': sha(canonical(arguments)), 'device_ref': '192.0.2.0/26',
+    arguments = dict(NETBOX_ARGUMENTS) if netbox else {'cidr': '192.0.2.0/26'}
+    tool = {'tool': 'netbox_get_object_by_id' if netbox else 'subnet_calculator',
+            'tool_schema_sha256': bindings['tool_schema_sha256'], 'arguments': arguments,
+            'arguments_sha256': sha(canonical(arguments)),
+            'device_ref': 'dcim.device:%d' % arguments['object_id'] if netbox else '192.0.2.0/26',
             'inventory_revision': runtime['mcp']['selection_sha256'], 'endpoint_sha256': runtime['mcp']['endpoint_sha256'],
             'limits': dict(TOOL_LIMITS)}
     catalog = {'member': binding, 'model_profiles': [runtime['model_profile']], 'tools': [tool]}
@@ -419,9 +632,10 @@ def cmd_materialize(args):
                 'source_manifest': str(root / 'source-manifest.json'),
                 'source_manifest_sha256': state['source_manifest_sha256'], 'profile_sha256': profile_sha,
                 'origin': None, 'guard_token_file': str(federation / 'guard-capability'),
-                'environment': {'NETCLAW_LOCAL_AS': '65189', 'NETCLAW_ROUTER_ID': '127.0.0.9',
-                                'N2N_DISPLAY_NAME': 'R09 Mac member', 'BGP_API_PORT': '18189',
-                                'N2N_INVENTORY_REFRESH_S': '0'}}
+                'environment': {'NETCLAW_LOCAL_AS': '65190' if netbox else '65189',
+                                'NETCLAW_ROUTER_ID': '127.0.0.10' if netbox else '127.0.0.9',
+                                'N2N_DISPLAY_NAME': 'R09 NetBox member' if netbox else 'R09 Mac member',
+                                'BGP_API_PORT': '18190' if netbox else '18189', 'N2N_INVENTORY_REFRESH_S': '0'}}
     write_private(root / 'contract.json', contract)
     state['steps'].append('materialize')
     save_state(root, state)
@@ -444,16 +658,29 @@ def cmd_validate(args):
         result['role_validate'] = 'refused:' + str(exc)
     if not args.skip_import_check and result['role_validate'] == 'valid':
         cfg = json.loads(read_private(contract))
-        code = ("import sys; sys.path.insert(0, %r);"
-                "import bgp.federation.ha.factory, bgp.federation.ha.member, bgp.federation.protected_docker, "
-                "bgp.federation.protected_ollama, bgp.federation.protected_mcp; print('closure-ok')"
-                % str(root / 'source/mcp-servers/protocol-mcp'))
+        modules = ('bgp.federation.ha.factory, bgp.federation.ha.member, bgp.federation.protected_docker, '
+                   'bgp.federation.protected_hosted, bgp.federation.ha.hosted_model_transport, bgp.federation.protected_mcp'
+                   if state.get('flavor') == 'netbox' else
+                   'bgp.federation.ha.factory, bgp.federation.ha.member, bgp.federation.protected_docker, '
+                   'bgp.federation.protected_ollama, bgp.federation.protected_mcp')
+        code = ("import sys; sys.path.insert(0, %r); import %s; print('closure-ok')"
+                % (str(root / 'source/mcp-servers/protocol-mcp'), modules))
         done = subprocess.run([cfg['python'], '-I', '-B', '-c', code], capture_output=True, text=True, timeout=120)
         result['closure_import'] = 'ok' if done.stdout.strip() == 'closure-ok' else 'failed:' + done.stderr.strip()[-400:]
     return result
 
 
-def cmd_plan(_):
+def cmd_plan(args):
+    if getattr(args, 'flavor', 'ollama') == 'netbox':
+        return {'order': [
+            {'who': 'builder', 'step': 'identity --flavor netbox, freeze, python-env (offline)'},
+            {'who': 'owner', 'step': 'netbox-env --build --yes-network (uv installs fastmcp<3 etc. into an immutable env) or --env <prepared venv>'},
+            {'who': 'owner', 'step': 'source ~/.openclaw/.env (exports NETBOX_URL, NETBOX_TOKEN, ANTHROPIC_API_KEY into this shell only), then '
+                                     'artifacts: writes guard.env and the NetBox credential file 0600; no value is printed or stored'},
+            {'who': 'builder', 'step': 'materialize, validate (no qualify.py and no model namespace for this flavor)'},
+            {'who': 'parent', 'step': 'ENROLL: stop 3 Borders, wait 15 s, one-shot enroll_member with identity/member.json, restart Borders'},
+            {'who': 'owner', 'step': 'start the member with the production launcher (same command as the calculator member)'},
+            {'who': 'parent', 'step': 'verify 3 attachments, then prepare/approve netbox_get_object_by_id dcim.device 27 from the HUD or VS Code'}]}
     return {'order': [
         {'who': 'builder', 'step': 'identity, freeze, python-env, artifacts (this script, offline)'},
         {'who': 'owner', 'step': 'run the labs/ollama/qualify.py prepare command printed by `artifacts` (Docker; measures confinement)'},
@@ -468,23 +695,30 @@ def cmd_plan(_):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = parser.add_subparsers(dest='action', required=True)
-    sub.add_parser('plan')
-    for name in ('identity', 'freeze', 'python-env', 'artifacts', 'materialize', 'validate'):
+    plan = sub.add_parser('plan')
+    plan.add_argument('--flavor', choices=FLAVORS, default='ollama')
+    for name in ('identity', 'freeze', 'python-env', 'netbox-env', 'artifacts', 'materialize', 'validate'):
         p = sub.add_parser(name)
         p.add_argument('--root', required=True)
         if name == 'identity':
             p.add_argument('--deployment', default=str(DEFAULT_DEPLOYMENT))
             p.add_argument('--days', type=int, default=7)
+            p.add_argument('--flavor', choices=FLAVORS, default='ollama')
+        if name == 'netbox-env':
+            p.add_argument('--env'); p.add_argument('--build', action='store_true'); p.add_argument('--yes-network', action='store_true')
         if name == 'python-env':
             p.add_argument('--env'); p.add_argument('--env-manifest')
             p.add_argument('--build', action='store_true'); p.add_argument('--yes-network', action='store_true')
         if name == 'artifacts':
             p.add_argument('--template')
+            p.add_argument('--netbox-url', help='https origin (default: $NETBOX_URL); NetBox flavor only')
+            p.add_argument('--hosted-model', default=HOSTED_MODEL, help='NetBox flavor; default is the model the existing guard image pins')
+            p.add_argument('--guard-image', help='sha256 digest of a rebuilt guard image (required for any other model)')
         if name == 'validate':
             p.add_argument('--skip-import-check', action='store_true')
     args = parser.parse_args(argv)
     command = {'plan': cmd_plan, 'identity': cmd_identity, 'freeze': cmd_freeze, 'python-env': cmd_python_env,
-               'artifacts': cmd_artifacts, 'materialize': cmd_materialize, 'validate': cmd_validate}[args.action]
+               'netbox-env': cmd_netbox_env, 'artifacts': cmd_artifacts, 'materialize': cmd_materialize, 'validate': cmd_validate}[args.action]
     print(json.dumps(command(args), indent=2, sort_keys=True))
 
 

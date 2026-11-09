@@ -225,3 +225,217 @@ def test_full_offline_pipeline_validates_with_production_validator(tmp_path, dep
         assert len(token) == 43 and (root / 'artifacts/guard.env').read_text() == f'{m.GUARD_ENV_VARIABLE}={token}\n'
     finally:
         unfreeze(root)
+
+
+# ======================================================================================= NetBox flavor (spec 182)
+import importlib.util  # noqa: E402
+
+FAKE_PROVIDER_KEY = 'sk-ant-api03-FIXTURE-not-a-real-key-0000000000'
+FAKE_NETBOX_TOKEN = 'nbt_fixture.tokenvalue0001'
+OLLAMA_GUARD_CONFIG = """config_version: 9
+data_dir: /guard
+deployment_mode: server
+gateway:
+  api_bind: 127.0.0.1
+  api_port: 18970
+guardrail:
+  allow_empty_providers: false
+  allow_unknown_llm_domains: false
+  connector: openclaw
+  enabled: true
+  host: 0.0.0.0
+  llm:
+    forward_custom_headers: false
+    model: ollama/qwen3:0.6b
+  mode: action
+  model: ollama/qwen3:0.6b
+  model_name: qwen3:0.6b
+  port: 4000
+llm:
+  forward_custom_headers: false
+  model: ollama/qwen3:0.6b
+"""
+
+
+def guard_module():
+    sys.path.insert(0, str(REPO / 'scripts/lib'))
+    spec = importlib.util.spec_from_file_location('r09_test_protected_guard', REPO / 'scripts/protected-guard.py')
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_secret_from_environment_names_the_variable_and_never_the_value():
+    assert m.secret_from_environment('K', {'K': 'abcdefgh12'}) == 'abcdefgh12'
+    for value in (None, '', 'short', 'has space1', 'new\nline1234', ' lead12345', 'é' * 12, 'x' * 5000):
+        with pytest.raises(m.MemberRefused) as caught:
+            m.secret_from_environment('SECRET_NAME', {'SECRET_NAME': value} if value is not None else {})
+        assert 'SECRET_NAME' in str(caught.value) and (value is None or value not in str(caught.value) or value == '')
+
+
+def test_hosted_guard_config_satisfies_the_guard_runners_own_verifier(tmp_path):
+    pytest.importorskip('yaml')
+    guard = guard_module()
+    from protected_provider import MODEL as guard_model
+    derived = m.hosted_guard_config(OLLAMA_GUARD_CONFIG.encode(), guard_model)
+    text = derived.decode()
+    assert 'ollama' not in text and 'qwen' not in text and FAKE_PROVIDER_KEY not in text
+    # The guard image pins this model; the builder default must equal it.
+    assert m.HOSTED_MODEL == guard_model
+    home = tmp_path.resolve() / 'guardhome'
+    home.mkdir(mode=0o700)
+    raw = text.replace('data_dir: /guard', 'data_dir: ' + str(home)).encode()
+    m.write_private(home / 'config.yaml', raw)
+    assert guard.verify_config(home, m.sha(raw), FAKE_PROVIDER_KEY) == m.sha(raw)
+    # Any other model, an inline key or a missing fence is refused by the same verifier.
+    for broken in (raw.replace(b'base_url: http://127.0.0.1:18888', b'base_url: https://api.anthropic.com'),
+                   raw.replace(b'api_key_env: DEFENSECLAW_LLM_KEY', b'api_key_env: ANTHROPIC_API_KEY'),
+                   raw.replace(b'anthropic/' + guard_model.encode(), b'anthropic/claude-sonnet-5-5')):
+        other = tmp_path / 'other'
+        other.mkdir(mode=0o700, exist_ok=True)
+        (other / 'config.yaml').unlink(missing_ok=True)
+        m.write_private(other / 'config.yaml', broken)
+        with pytest.raises(Exception):
+            guard.verify_config(other, m.sha(broken), FAKE_PROVIDER_KEY)
+
+
+def test_hosted_guard_env_matches_the_guard_loader_and_stays_private(tmp_path):
+    guard = guard_module()
+    home = tmp_path.resolve()
+    token = 'T' * 43
+    m.write_hosted_guard_env(home / 'guard.env', FAKE_PROVIDER_KEY, token)
+    assert stat.S_IMODE((home / 'guard.env').stat().st_mode) == 0o600
+    assert guard.load_guard_env(home, local=False) == {'ANTHROPIC_API_KEY': FAKE_PROVIDER_KEY, 'DEFENSECLAW_GATEWAY_TOKEN': token}
+    with pytest.raises(m.MemberRefused, match='distinct_guard_credentials_required'):
+        m.write_hosted_guard_env(home / 'other.env', token, token)
+
+
+def test_member_identity_flavor_is_recorded_and_default_is_unchanged(tmp_path, deployment):
+    plain = tmp_path.resolve() / 'plain'
+    box = tmp_path.resolve() / 'box'
+    a = m.cmd_identity(types.SimpleNamespace(root=str(plain), deployment=str(deployment), days=7))
+    b = m.cmd_identity(types.SimpleNamespace(root=str(box), deployment=str(deployment), days=7, flavor='netbox'))
+    try:
+        assert a['flavor'] == 'ollama' and a['member']['member_id'].startswith('nc182-r09/mac-subnet-')
+        assert b['flavor'] == 'netbox' and b['member']['member_id'].startswith('nc182-r09/netbox-')
+        assert json.loads((box / 'state.json').read_text())['flavor'] == 'netbox'
+        with pytest.raises(m.MemberRefused, match='flavor_refused'):
+            m.cmd_identity(types.SimpleNamespace(root=str(tmp_path.resolve() / 'x'), deployment=str(deployment), days=7, flavor='cml'))
+    finally:
+        unfreeze(plain); unfreeze(box)
+
+
+def test_netbox_steps_refuse_the_calculator_flavor_and_missing_prerequisites(tmp_path, deployment):
+    root = tmp_path.resolve() / 'plain'
+    m.cmd_identity(types.SimpleNamespace(root=str(root), deployment=str(deployment), days=7))
+    try:
+        with pytest.raises(m.MemberRefused, match='netbox_flavor_required'):
+            m.cmd_netbox_env(types.SimpleNamespace(root=str(root), env=None, build=False, yes_network=False))
+    finally:
+        unfreeze(root)
+    box = tmp_path.resolve() / 'box'
+    m.cmd_identity(types.SimpleNamespace(root=str(box), deployment=str(deployment), days=7, flavor='netbox'))
+    try:
+        with pytest.raises(m.MemberRefused, match='netbox_env_or_build_required'):
+            m.cmd_netbox_env(types.SimpleNamespace(root=str(box), env=None, build=False, yes_network=False))
+        with pytest.raises(m.MemberRefused, match='build_needs_--yes-network'):
+            m.cmd_netbox_env(types.SimpleNamespace(root=str(box), env=None, build=True, yes_network=False))
+        with pytest.raises(m.MemberRefused, match='freeze_first|python-env_first'):
+            m.cmd_artifacts(types.SimpleNamespace(root=str(box), template=None, netbox_url=None, hosted_model=m.HOSTED_MODEL, guard_image=None))
+    finally:
+        unfreeze(box)
+
+
+def fake_netbox_env(base):
+    """A tiny immutable venv shaped like the real one (pyvenv.cfg, bin/python -> real interpreter, one module)."""
+    venv = base / 'nbvenv'
+    (venv / 'bin').mkdir(parents=True)
+    (venv / 'lib').mkdir()
+    (venv / 'pyvenv.cfg').write_text('home = /usr/bin\ninclude-system-site-packages = false\n')
+    (venv / 'lib/marker.py').write_text('X = 1\n')
+    (venv / 'bin/python').symlink_to(Path(sys.executable).resolve())
+    for name in ('python3', 'python3.12'):
+        (venv / 'bin' / name).symlink_to('python')
+    for directory, _, names in os.walk(venv, topdown=False):
+        for name in names:
+            p = Path(directory) / name
+            if not p.is_symlink():
+                os.chmod(p, 0o400)
+        os.chmod(directory, 0o500)
+    return venv
+
+
+@local_only
+def test_netbox_flavor_full_offline_pipeline_validates_and_keeps_secrets_in_two_files(tmp_path, deployment, monkeypatch):
+    pytest.importorskip('yaml')
+    root = tmp_path.resolve() / 'member'
+    monkeypatch.setenv('NETBOX_TOKEN', FAKE_NETBOX_TOKEN)
+    monkeypatch.setenv('ANTHROPIC_API_KEY', FAKE_PROVIDER_KEY)
+    monkeypatch.setenv('NETBOX_URL', 'https://demo.netbox.dev')
+    m.cmd_identity(types.SimpleNamespace(root=str(root), deployment=str(deployment), days=7, flavor='netbox'))
+    nb_env = fake_netbox_env(tmp_path.resolve())
+    try:
+        m.cmd_freeze(types.SimpleNamespace(root=str(root)))
+        m.cmd_python_env(types.SimpleNamespace(root=str(root), env=None, env_manifest=None, build=False, yes_network=False))
+        m.cmd_netbox_env(types.SimpleNamespace(root=str(root), env=str(nb_env), build=False, yes_network=False))
+        monkeypatch.setattr(m, 'list_netbox_schema', lambda *a, **k: {'type': 'object', 'properties': {'object_type': {'type': 'string'}}})
+        artifacts = m.cmd_artifacts(types.SimpleNamespace(root=str(root), template=None, netbox_url=None,
+                                                          hosted_model=m.HOSTED_MODEL, guard_image=None))
+        assert artifacts['hosted_model'] == m.HOSTED_MODEL and 'qualify' in artifacts['model_namespace']
+        for secret in (FAKE_PROVIDER_KEY, FAKE_NETBOX_TOKEN):
+            assert secret not in json.dumps(artifacts)
+        m.cmd_materialize(types.SimpleNamespace(root=str(root)))
+        result = m.cmd_validate(types.SimpleNamespace(root=str(root), skip_import_check=False))
+        assert result['role_validate'] == 'valid' and result['control_only'] is False and result['closure_import'] == 'ok'
+        federation = root / 'home/netclaw-federation'
+        profile = json.loads((federation / 'protected-profile.json').read_text())
+        runtime = profile['runtime']
+        assert 'ollama' not in runtime and runtime['hosted']['model'] == m.HOSTED_MODEL and runtime['mcp']['kind'] == 'netbox'
+        assert runtime['model_profile']['provider'] == 'anthropic' and runtime['mcp']['origin'] == 'https://demo.netbox.dev'
+        tool = profile['catalog']['tools'][0]
+        assert tool['tool'] == 'netbox_get_object_by_id' and tool['arguments'] == m.NETBOX_ARGUMENTS
+        assert tool['endpoint_sha256'] == runtime['mcp']['endpoint_sha256'] and tool['inventory_revision'] == runtime['mcp']['selection_sha256']
+        from bgp.federation import protected_contract as c
+        c.validate_catalog_entry(profile['catalog'])
+        # Credentials live in exactly two private files; nowhere else under the member root.
+        holders = set()
+        for path in root.rglob('*'):
+            if path.is_file() and not path.is_symlink():
+                data = path.read_bytes()
+                if FAKE_PROVIDER_KEY.encode() in data or FAKE_NETBOX_TOKEN.encode() in data:
+                    holders.add(str(path.relative_to(root)))
+                    assert stat.S_IMODE(path.stat().st_mode) == 0o600
+        assert holders == {'artifacts/guard.env', 'artifacts/netbox-credential'}
+        assert (root / 'artifacts/netbox-credential').read_text() == 'NETBOX_TOKEN=' + FAKE_NETBOX_TOKEN + '\n'
+        contract = json.loads((root / 'contract.json').read_text())
+        assert contract['environment']['BGP_API_PORT'] == '18190' and contract['control_only'] is False
+        assert not (root / 'model').exists()
+    finally:
+        unfreeze(root)
+        unfreeze(nb_env)
+
+
+@local_only
+def test_netbox_artifacts_refuse_a_model_the_guard_image_does_not_pin(tmp_path, deployment, monkeypatch):
+    root = tmp_path.resolve() / 'member'
+    monkeypatch.setenv('NETBOX_TOKEN', FAKE_NETBOX_TOKEN)
+    monkeypatch.setenv('ANTHROPIC_API_KEY', FAKE_PROVIDER_KEY)
+    m.cmd_identity(types.SimpleNamespace(root=str(root), deployment=str(deployment), days=7, flavor='netbox'))
+    nb_env = fake_netbox_env(tmp_path.resolve())
+    try:
+        m.cmd_freeze(types.SimpleNamespace(root=str(root)))
+        m.cmd_python_env(types.SimpleNamespace(root=str(root), env=None, env_manifest=None, build=False, yes_network=False))
+        m.cmd_netbox_env(types.SimpleNamespace(root=str(root), env=str(nb_env), build=False, yes_network=False))
+        with pytest.raises(m.MemberRefused, match='model_needs_rebuilt_guard_image'):
+            m.cmd_artifacts(types.SimpleNamespace(root=str(root), template=None, netbox_url='https://demo.netbox.dev',
+                                                  hosted_model='claude-sonnet-5-5', guard_image=None))
+        with pytest.raises(m.MemberRefused, match='hosted_model_refused'):
+            m.cmd_artifacts(types.SimpleNamespace(root=str(root), template=None, netbox_url='https://demo.netbox.dev',
+                                                  hosted_model='claude-opus-5-5', guard_image=None))
+        with pytest.raises(Exception):
+            m.cmd_artifacts(types.SimpleNamespace(root=str(root), template=None, netbox_url='http://demo.netbox.dev',
+                                                  hosted_model=m.HOSTED_MODEL, guard_image=None))
+        assert not (root / 'artifacts/guard.env').exists()  # refusals happen before any secret is written
+    finally:
+        unfreeze(root)
+        unfreeze(nb_env)

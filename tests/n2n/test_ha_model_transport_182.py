@@ -46,7 +46,7 @@ def test_valid_profile_and_stable_binding():
 
 
 @pytest.mark.parametrize('value', [
-    bad(model='claude-sonnet-4-6'), bad(model='claude-opus-5-5'), bad(provider='openai'),
+    bad(model='claude-opus-5-5'), bad(model='claude-sonnet-4-5'), bad(provider='openai'),
     bad(egress_host='example.com'), bad(egress_host='api.anthropic.com.evil.test'),
     bad(max_output_tokens=0), bad(max_output_tokens=100000), bad(max_output_tokens=True),
     bad(call_timeout_seconds=0), bad(call_timeout_seconds=121), bad(call_timeout_seconds='60'),
@@ -95,7 +95,7 @@ def test_runtime_fields_accept_hosted_and_refuse_ambiguous_runtimes(monkeypatch)
         docker.validate_runtime_fields(runtime(hosted=GOOD, ollama={'x': 1}))
     with pytest.raises(RuntimeRefused):
         docker.validate_runtime_fields(runtime(hosted=dict(GOOD, model='other')))
-    with pytest.raises(RuntimeRefused, match='hosted_native_summary_required'):
+    with pytest.raises(RuntimeRefused, match='hosted_mcp_kind_refused'):
         docker.validate_runtime_fields(dict(runtime(hosted=GOOD), mcp={'kind': 'pyats'}))
 
 
