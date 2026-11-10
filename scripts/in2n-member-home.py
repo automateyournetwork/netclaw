@@ -38,6 +38,120 @@ def _profiles():
     return m
 
 
+RUNTIME_PATH_KEYS = ("NETCLAW_RUNTIME_ROOT", "NETCLAW_RUNTIME_ENV")
+
+
+def _launched_component(entry):
+    """The component a scripts/component-launch.py entry starts, else None."""
+    args = [str(a) for a in (entry.get("args") or [])] if isinstance(entry, dict) else []
+    for i, arg in enumerate(args[:-1]):
+        if Path(arg).name == "component-launch.py":
+            return args[i + 1]
+    return None
+
+
+def scoped_mcp_servers(servers, member, prof=None, home=None, member_env=None, border_root=None):
+    """The Border's mcp.servers entries a member of profile `member` keeps: its
+    MCP_SERVERS list plus memory-mcp. Servers the Border lacks are skipped.
+
+    With `home`, an entry that selects a runtime (NETCLAW_RUNTIME_ROOT/ENV, which
+    install-mcp-config.py writes for scripts/component-launch.py entries) is
+    rewritten to the member's own: component-launch.py loads every key of
+    NETCLAW_RUNTIME_ENV, so the Border's would hand the member the whole Border .env.
+    pyATS keeps the Border's pyats-venv (an executable, like GAIT_VENV), from the
+    entry's own NETCLAW_RUNTIME_ROOT or else `border_root`. Its change root follows
+    the member's runtime root (<home>/netclaw-changes); see spec 182 research.md."""
+    kept = copy.deepcopy((prof or _profiles()).member_servers(member, servers))
+    if home is None:
+        return kept
+    home = Path(home)
+    for entry in kept.values():
+        if not isinstance(entry, dict):
+            continue
+        env = entry.get("env") if isinstance(entry.get("env"), dict) else None
+        component = _launched_component(entry)
+        if component is None and not (env and any(k in env for k in RUNTIME_PATH_KEYS)):
+            continue
+        env = entry.setdefault("env", {}) if env is None else env
+        root = env.get("NETCLAW_RUNTIME_ROOT") or border_root
+        if component == "pyats" and root and "PYATS_VENV" not in env:
+            env["PYATS_VENV"] = str(Path(root).parent / "pyats-venv")
+        env["NETCLAW_RUNTIME_ROOT"] = str(home / "python-runtimes")
+        env["NETCLAW_RUNTIME_ENV"] = str(_member_path(member_env) if member_env else home / ".env")
+    return kept
+
+
+def copy_runtime_records(servers, home, border_root):
+    """Give the member the interpreter records its component-launch entries need
+    (paths to the Border's installed interpreters; shared executables, no config)."""
+    copied = []
+    for entry in servers.values():
+        component = _launched_component(entry)
+        if not component or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,63}", component):
+            continue
+        source = Path(border_root) / "records" / component
+        if source.is_file() and not source.is_symlink():
+            records = private_dir(private_dir(Path(home) / "python-runtimes") / "records")
+            target = records / component
+            if target.is_symlink():
+                raise ValueError("member runtime record must not be a symlink: " + str(target))
+            fd = os.open(target, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | os.O_NOFOLLOW, 0o600)
+            os.fchmod(fd, 0o600)
+            with os.fdopen(fd, "w") as stream:
+                stream.write(source.read_text())
+            copied.append(component)
+    return copied
+
+
+def member_home_command(risk, member, member_env):
+    """The exact provisioning command for a staged member (printed by in2n-migrate.py)."""
+    import shlex
+    return " ".join(shlex.quote(x) for x in (
+        "python3", str(Path(REPO) / "scripts/in2n-member-home.py"), "--runtime", "openclaw",
+        "--risk", risk, "--member", member, "--member-env", str(member_env)))
+
+
+def _member_path(value):
+    """Absolute, with `..` collapsed lexically; symlinks are NOT followed, so a
+    symlinked member env file is still seen (and refused) as one."""
+    return Path(os.path.abspath(os.path.expanduser(str(value))))
+
+
+def _same_path(a, b):
+    """True when a and b name the same file or directory (samefile, else resolved paths)."""
+    try:
+        return os.path.samefile(a, b)
+    except OSError:
+        return Path(a).expanduser().resolve() == Path(b).expanduser().resolve()
+
+
+def _refuse_border_home(home, border_homes):
+    """A member home must never be the Border's own home."""
+    for border in border_homes:
+        if _same_path(home, border):
+            raise SystemExit(f"error: member home {home} is the Border's home ({border}); "
+                             "choose a separate --home for the member.")
+
+
+def _require_member_env(servers, home, member_env, member, border_envs=()):
+    """Fail closed: a server that loads NETCLAW_RUNTIME_ENV must have the member's own
+    file: present, a regular file, not a symlink, and never the Border's .env."""
+    loaders = sorted(k for k, e in servers.items()
+                     if isinstance(e, dict) and isinstance(e.get("env"), dict) and e["env"].get("NETCLAW_RUNTIME_ENV"))
+    target = _member_path(member_env) if member_env else Path(home) / ".env"
+    if not loaders:
+        return
+    hint = (f"Pass --member-env with this member's private .env, e.g. the slice in2n-migrate.py "
+            f"staged as <staging>/members/{member}/.env; in2n-migrate.py prints the exact command.")
+    if target.is_symlink() or not target.is_file():
+        raise SystemExit(f"error: {', '.join(loaders)} load their settings from {target}, which does "
+                         f"not exist (or is not a regular file). {hint}")
+    for border_env in border_envs:
+        if _same_path(target, border_env):
+            raise SystemExit(f"error: {', '.join(loaders)} would load {target}, the Border's .env "
+                             f"({border_env}); component-launch.py loads every key of it. {hint}")
+
+
 def _anthropic_key(env_path):
     try:
         for line in open(os.path.expanduser(env_path)):
@@ -290,6 +404,9 @@ def main():
     ap.add_argument("--anthropic-key-from", "--provider-env", dest="anthropic_key_from", default=None,
                     help="provider credential env file (Convergence: explicit selected-provider references only)")
     ap.add_argument("--border-config", default=None)
+    ap.add_argument("--member-env", default=None,
+                    help="the member's private .env that component-launched servers load "
+                         "(default: <home>/.env; never the Border's)")
     args = ap.parse_args()
 
     runtime=selected()
@@ -315,13 +432,23 @@ def main():
     prof = _profiles()
     name = args.member
     model = args.model or prof.model_tier(name)
-    keep = set(prof.MCP_SERVERS.get(name, [])) | {"memory-mcp"}
     border = json.load(open(args.border_config))
     m = copy.deepcopy(border)
 
-    # 1. scope MCP servers
-    all_servers = border.get("mcp", {}).get("servers", {})
-    m.setdefault("mcp", {})["servers"] = {k: v for k, v in all_servers.items() if k in keep}
+    # 1. scope MCP servers; runtime paths point at the member's home, never the Border's
+    mh = str(_member_path(args.home or f"{HOME}/.openclaw-{args.risk}-{name}"))
+    require_standalone_home(mh)
+    border_home = Path(args.border_config).expanduser().resolve().parent
+    _refuse_border_home(mh, {runtime.home, border_home})
+    border_servers = m["mcp"].get("servers", {})
+    border_roots = {e["env"]["NETCLAW_RUNTIME_ROOT"] for e in prof.member_servers(name, border_servers).values()
+                    if isinstance(e, dict) and isinstance(e.get("env"), dict) and e["env"].get("NETCLAW_RUNTIME_ROOT")}
+    border_root = (border_roots.pop() if len(border_roots) == 1 else
+                   str(Path(args.border_config).expanduser().resolve().parent/'python-runtimes'))
+    m.setdefault("mcp", {})["servers"] = scoped_mcp_servers(
+        border_servers, name, prof, home=mh, member_env=args.member_env, border_root=border_root)
+    _require_member_env(m["mcp"]["servers"], mh, args.member_env, name,
+                        border_envs=(runtime.env_file, border_home / ".env"))
 
     # 2. strip comms plugins/channels that break --local; keep defenseclaw (guardrails)
     pl = m.get("plugins", {})
@@ -347,10 +474,9 @@ def main():
     allow.setdefault(f"anthropic/{model}", {"alias": "member"})
 
     # 4. write the scoped home + share the workspace (identity/skills) via symlink
-    mh = str(Path(args.home or f"{HOME}/.openclaw-{args.risk}-{name}").expanduser().absolute())
-    require_standalone_home(mh)
     private_dir(mh)
     if (Path(mh)/'openclaw.json').exists():raise ValueError('member already provisioned; existing config is preserved')
+    copy_runtime_records(m["mcp"]["servers"], mh, border_root)
     json.dump(m, open(f"{mh}/openclaw.json", "w"), indent=2)
     os.chmod(f"{mh}/openclaw.json", 0o600)
     _mirror_security_mode(Path(args.border_config).expanduser().resolve().parent, Path(mh))

@@ -97,6 +97,23 @@ def main():
     prof.ENV_FILE = args.live_env
     offered = prof.profiles()                      # env-gated: only configured members
     live_env = _read_env(args.live_env)
+    # The Border template members are scoped from (in2n-member-home.py's default):
+    # its kept servers' ${VAR}s join each member's env slice.
+    border_servers, problem = {}, None
+    try:
+        border_servers = (json.loads(Path(runtime.config).read_text()).get("mcp") or {}).get("servers")
+        if not isinstance(border_servers, dict):
+            border_servers, problem = {}, "has no mcp.servers"
+    except OSError as error:
+        problem = "could not be read (" + type(error).__name__ + ")"
+    except ValueError:
+        problem = "is not valid JSON"
+    if problem:
+        mapped = sorted({s for name in offered if name != "convergence"
+                         for s in prof.MCP_SERVERS.get(name, [])})
+        print(f"WARNING: Border config {runtime.config} {problem}; member env slices use key "
+              "prefixes only, so these mapped servers may start without variables they "
+              "reference: " + (", ".join(mapped) or "(none)"), file=sys.stderr)
     hot = {h.strip() for h in args.hot.split(",") if h.strip()}
     staging = os.path.abspath(args.staging)
     members_dir = os.path.join(staging, "members")
@@ -121,11 +138,12 @@ def main():
             runner.write_text('#!/usr/bin/env bash\nset -euo pipefail\nexport N2N_MEMBER_ENV_FILE='+shlex.quote(str(envfile))+
                 '\nexec '+shlex.quote(python)+' '+shlex.quote(str(Path(REPO)/'scripts/in2n-member.py'))+' --idle-exit '+str(idle)+'\n')
             runner.chmod(0o700)
+            # provision_convergence writes this member's .env itself; count what it wrote.
             summary.append((name, member_id, 'always-on' if always_on else 'on-demand', len(info['skills']),
-                            len(prof.env_slice_keys(name, set(live_env)))))
+                            len(_read_env(envfile))))
             continue
         # least-privilege env slice (KEYS only listed here; VALUES copied verbatim)
-        slice_keys = prof.env_slice_keys(name, set(live_env.keys()))
+        slice_keys = prof.env_slice_keys(name, set(live_env.keys()), border_servers)
         env_lines = [live_env[k] for k in slice_keys]
         # iN2N member config
         member_cfg = [
@@ -152,12 +170,14 @@ def main():
             "# ANTHROPIC_API_KEY / OPENAI_API_KEY / OLLAMA_HOST as needed for the model above",
             "# N2N_ENROLLMENT_TOKEN=<paste from: netclaw risk add …>   # first run only",
         ]
-        with open(os.path.join(mdir, ".env"), "w") as fh:
+        env_path = os.path.join(mdir, ".env")
+        fd = os.open(env_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | os.O_NOFOLLOW, 0o600)
+        os.fchmod(fd, 0o600)  # also when the file already existed
+        with os.fdopen(fd, "w") as fh:
             fh.write("# Least-privilege .env slice for member %s (generated).\n" % member_id)
             fh.write("# Integration + base-floor (memory/gait/humanrail) keys only.\n\n")
             fh.write("\n".join(env_lines) + ("\n\n" if env_lines else "\n"))
             fh.write("\n".join(member_cfg) + "\n")
-        os.chmod(os.path.join(mdir, ".env"), 0o600)
         idle = 0 if always_on else args.idle_exit
         with open(os.path.join(mdir, "run.sh"), "w") as fh:
             fh.write("#!/usr/bin/env bash\n")
@@ -181,7 +201,7 @@ def main():
         ]) + "\n")
 
     _write_runbook(staging, args, summary)
-    _print_summary(staging, summary)
+    _print_summary(staging, summary, args.risk)
 
 
 def _scope_json(skills):
@@ -222,6 +242,14 @@ def _write_runbook(staging, args, summary):
         "cat " + os.path.join(staging, "border.env.additions") + " >> ~/.openclaw/.env",
         "# restart the mesh daemon (however you run it) — role=border starts the iN2N listener",
         "netclaw risk status   # expect role=border, risk=" + args.risk,
+        "```",
+        "",
+        "## 2b. Provision each member's scoped OpenClaw home",
+        "Each member runs from ~/.openclaw-<risk>-<member>, built from the Border's config. Its",
+        "component-launched servers load the staged slice named by --member-env, never the",
+        "Border's .env; the command refuses to run without it.",
+        "```bash",
+        *[command for _name, command in _member_home_commands(staging, args.risk, summary)],
         "```",
         "",
         "## 3. Bring up the HOT SET (always-on) — one at a time, verify each",
@@ -284,12 +312,26 @@ def _write_runbook(staging, args, summary):
         fh.write("\n".join(lines))
 
 
-def _print_summary(staging, summary):
+def _member_home_commands(staging, risk, summary):
+    """Exact in2n-member-home.py command per staged member; --member-env points its
+    component-launched servers at the staged slice, never the Border's .env."""
+    spec = importlib.util.spec_from_file_location('member_home_cmd', Path(REPO)/'scripts/in2n-member-home.py')
+    module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+    return [(name, module.member_home_command(risk, name, os.path.join(staging, 'members', name, '.env')))
+            for name, *_ in summary if name != 'convergence']
+
+
+def _print_summary(staging, summary, risk):
     print(f"Generated iN2N migration scaffold → {staging}  (GENERATE-ONLY, nothing deployed)")
     print(f"  {len(summary)} member scaffolds + border.env.additions + RUNBOOK.md\n")
     print(f"  {'member':16s} {'mode':10s} {'skills':>6s} {'env-keys':>8s}")
     for name, mid, mode, sk, ek in summary:
         print(f"  {name:16s} {mode:10s} {sk:6d} {ek:8d}")
+    commands = _member_home_commands(staging, risk, summary)
+    if commands:
+        print("\n  Provision each member's scoped OpenClaw home (before its first launch):")
+        for _name, command in commands:
+            print("    " + command)
     print(f"\n  Read the runbook:  {os.path.join(staging, 'RUNBOOK.md')}")
     print("  NOTHING has touched your live claw. Review, then run the runbook by hand.")
 

@@ -19,6 +19,7 @@ import json
 import importlib.util
 from pathlib import Path
 import os
+import re
 import sys
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -187,30 +188,125 @@ ENV_PREFIXES = {
 BASE_MEMBER_ENV_PREFIXES = ["MEMPALACE_", "GAIT_", "HUMANRAIL_", "MEMORY_", "MCP_CALL"]
 
 
-def env_slice_keys(profile, env_keys):
+# ${NAME}, and the NAME of ${NAME:-default} / ${NAME-default}. A nested default
+# ${A:-${B}} references both. Only string VALUES are scanned: dict keys (an env
+# block's keys) name what the server sees, not what the runtime resolves. There is no
+# escape: $${A} still contains ${A}, as scripts/lib/mcp_environment.py's BARE reads it.
+_ENV_REF = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)")
+
+# Shared credentials a kept server's ${NAME} never pulls into a member slice: the
+# ServiceNow account (write-capable; fortinet-mcp, claroty-mcp and gnmi-mcp refuse
+# production changes without it, so leaving it out fails closed) and every comms
+# secret (exact keys from config/components/comms.json, plus these prefixes). An
+# operator who wants a member to have one grants it through ENV_PREFIXES.
+DERIVED_DENY_PREFIXES = ("SERVICENOW_", "SLACK_", "DISCORD_", "WEBEX_", "TWILIO_",
+                         "TWITTER_", "MSTEAMS_", "TEAMS_", "TELEGRAM_")
+
+
+def _comms_keys():
+    try:
+        text = Path(REPO, "config/components/comms.json").read_text()
+    except OSError:
+        return frozenset()
+    return frozenset(re.findall(r'"key":\s*"([A-Z][A-Z0-9_]*)"', text))
+
+
+DERIVED_DENY_KEYS = _comms_keys()
+
+
+def derived_ref_allowed(name):
+    return not (name.startswith(DERIVED_DENY_PREFIXES) or name in DERIVED_DENY_KEYS)
+
+
+def member_servers(profile, servers):
+    """The Border mcp.servers entries a generic OpenClaw member of `profile` keeps
+    (scripts/in2n-member-home.py): its MCP_SERVERS list plus memory-mcp. Servers the
+    Border has not registered are skipped."""
+    keep = set(MCP_SERVERS.get(profile, [])) | {"memory-mcp"}
+    return {k: v for k, v in (servers or {}).items() if k in keep}
+
+
+def server_env_refs(entry):
+    """Every NAME referenced as ${NAME} anywhere in one server entry (command, args,
+    env, url, headers, ...)."""
+    found = set()
+    def walk(value):
+        if isinstance(value, str):
+            found.update(_ENV_REF.findall(value))
+        elif isinstance(value, dict):
+            for item in value.values():
+                walk(item)
+        elif isinstance(value, (list, tuple)):
+            for item in value:
+                walk(item)
+    walk(entry)
+    return found
+
+
+def env_slice_keys(profile, env_keys, servers=None):
     """Return the env-key NAMES a member of `profile` should receive (least
-    privilege): its integration prefixes + the base-member prefixes. Values are
-    the caller's concern (never logged)."""
+    privilege): its integration prefixes + the base-member prefixes + every variable
+    its kept MCP servers reference as ${NAME}, except shared credentials
+    (derived_ref_allowed). `servers` is the Border template's mcp.servers map;
+    without it only the prefixes apply. A key no kept server references and no
+    prefix matches (comms secrets, other integrations) is never included. Values
+    are the caller's concern (never logged)."""
     prefixes = tuple(ENV_PREFIXES.get(profile, []) + BASE_MEMBER_ENV_PREFIXES)
-    return sorted(k for k in env_keys if k.startswith(prefixes))
+    refs = set()
+    for entry in member_servers(profile, servers).values():
+        refs |= {name for name in server_env_refs(entry) if derived_ref_allowed(name)}
+    return sorted(k for k in env_keys if k.startswith(prefixes) or k in refs)
 
 
 # Profile → OpenClaw mcp.servers names to keep in a member's scoped config
-# (many integrations are skill-driven with no MCP server → empty list is fine;
-# the member still gets its workspace skills + .env creds). The generic legacy
-# provisioner adds memory-mcp; Convergence uses only the protocol base floor.
+# (scripts/in2n-member-home.py adds memory-mcp; Convergence uses only the
+# protocol base floor). Each list is the set of registered servers whose tools
+# the profile's skills call, from the skill→server binding in
+# config/components/catalog.json and the skills' own "MCP Server" sections
+# (audit: specs/182-member-mcp-mappings/research.md). Every name is registered in
+# config/openclaw.json, except ipfabric-mcp, which scripts/ipfabric-enable.sh has
+# the operator add.
+#
+# Profiles with no entry have no registered server for their skills; those
+# skills launch their server through $MCP_CALL with an env-provided command:
+# eve-ng, containerlab, aci, f5, ise, infoblox, and paloalto's Panorama skill.
+# asa is unmapped pending a decision (see research.md); checkpoint keeps a
+# deliberate subset of the 15 servers its skill composes.
 MCP_SERVERS = {
     "convergence": ["convergence-read-mcp"],
     "subnet": ["subnet-calc-mcp"],
     "equinix": ["equinix-mcp"],
+    # labs + test
+    "cml": ["cml-mcp"], "gns3": ["gns3-mcp"], "pyats": ["pyats-mcp"],
+    # assurance / analysis
     "ipfabric": ["ipfabric-mcp"], "suzieq": ["suzieq-mcp"], "batfish": ["batfish-mcp"],
-    "forward": ["forward-official-mcp"], "gns3": ["gns3-mcp"], "azure": ["azure-network-mcp"],
-    "sdwan": ["prisma-sdwan-mcp"], "splunk": ["splunk-mcp"], "github": ["gitlab-mcp"],
-    "gnmi": ["gnmi-mcp"], "checkpoint": ["chkp-management", "chkp-management-logs",
+    "forward": ["forward-official-mcp"], "gtrace": ["gtrace-mcp"],
+    "packet": ["packet-buddy-mcp", "kubeshark-mcp"],
+    # automation / orchestration
+    "itential": ["itential-mcp"],
+    "aap": ["aap-ansible-mcp", "aap-docs-mcp", "aap-eda-mcp", "aap-lint-mcp"],
+    "nso": ["nso-mcp"], "terraform": ["terraform-mcp"],
+    # vendor platforms
+    "catalyst-center": ["catc-mcp"], "meraki": ["meraki-mcp"], "sdwan": ["prisma-sdwan-mcp"],
+    # security
+    "checkpoint": ["chkp-management", "chkp-management-logs",
         "chkp-policy-insights", "chkp-threat-prevention", "chkp-quantum-gaia"],
-    "viz": ["blender-mcp", "sketchfab-mcp"],
-    # skill-driven (no dedicated MCP server): cml, pyats, aci, catalyst-center,
-    # f5, ise, nso, netbox, infoblox, nmap, gtrace, itential, aap, packet, etc.
+    "paloalto": ["cisco-fmc-mcp"], "fortimanager": ["fortinet-mcp"], "zscaler": ["zscaler-mcp"],
+    "claroty": ["claroty-mcp"], "nmap": ["nmap-mcp"], "nvd": ["nvd-cve-mcp"], "fwrule": ["fwrule-mcp"],
+    # clouds
+    "aws": ["aws-network-mcp", "aws-iam-mcp", "aws-cloudtrail-mcp", "aws-cloudwatch-mcp",
+            "aws-cost-explorer-mcp", "aws-diagram-mcp"],
+    "azure": ["azure-network-mcp"],
+    "gcp": ["gcp-compute-mcp", "gcp-logging-mcp", "gcp-monitoring-mcp", "gcp-resource-manager-mcp"],
+    # source of truth
+    "netbox": ["netbox-mcp"], "nautobot": ["nautobot-mcp"], "infrahub": ["infrahub-mcp"],
+    # devops
+    "github": ["github-mcp"],
+    # utilities
+    "viz": ["blender-mcp", "sketchfab-mcp", "drawio-mcp", "markmap-mcp", "uml-mcp",
+            "unreal-mcp", "aws-diagram-mcp"],
+    # No PROFILE_MATCHERS entry; used by `in2n-member-home.py --member splunk|gnmi`.
+    "splunk": ["splunk-mcp"], "gnmi": ["gnmi-mcp"],
 }
 
 # Model tier per member (interview: Border=Opus; heavy members=Sonnet; trivial=Haiku).
