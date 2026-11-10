@@ -134,6 +134,12 @@
         "category": "NetClaw"
       },
       {
+        "command": "netclaw.showNodePosture",
+        "title": "Show Node Posture",
+        "category": "NetClaw",
+        "enablement": "isWorkspaceTrusted"
+      },
+      {
         "command": "netclaw.disconnect",
         "title": "Disconnect",
         "category": "NetClaw"

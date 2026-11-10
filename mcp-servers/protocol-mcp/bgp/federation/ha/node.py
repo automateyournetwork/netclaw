@@ -7,7 +7,7 @@ from cryptography.hazmat.primitives import serialization
 from .. import exporter_tls
 from ..protected_contract import key_id, exact
 from .channel import attach
-from .config import check, HAError
+from .config import check, HAError, listen_address
 from .operations import OperationLedger, member_key
 from .signatures import sign
 
@@ -15,12 +15,13 @@ FORWARDED = frozenset({'catalog', 'prepare', 'decision', 'status', 'reconcile', 
 
 
 class ClusterNode:
-    def __init__(self, authority, *, private_key, ca_file, cert_file, key_file, dispatch=None):
+    def __init__(self, authority, *, private_key, ca_file, cert_file, key_file, dispatch=None, listen=None):
         check(authority.manifest.anchor_key_id is not None, 'unverified_cluster_manifest', 403)
         self.authority, self.manifest = authority, authority.manifest
         self.node_id, self.private_key = authority.node_id, private_key
         self.ca_file, self.cert_file, self.key_file = ca_file, cert_file, key_file
         self.dispatch, self.edge_dispatch = dispatch, None
+        self.listen = listen  # optional private bind override; None keeps the signed address
         self.local_current = None
         self.ledger = OperationLedger(authority)
         self.channels, self.tasks, self.server = {}, set(), None
@@ -101,7 +102,8 @@ class ClusterNode:
         check(self.server is None and not self.closing, 'cluster_already_started', 409)
         await asyncio.to_thread(self.authority.bootstrap)
         address = self.manifest.node(self.node_id)['endpoints']['cluster']
-        self.server = await exporter_tls.start_server(self._accept, address['host'], address['port'],
+        bind_host, bind_port = listen_address(self.listen, 'cluster', address)
+        self.server = await exporter_tls.start_server(self._accept, bind_host, bind_port,
             cert_file=self.cert_file, key_file=self.key_file, peer_ca_file=self.ca_file, close_clients=True)
         await self.authority.start_renewal()
         for peer in self.manifest.nodes:

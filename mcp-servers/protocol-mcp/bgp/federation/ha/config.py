@@ -2,6 +2,7 @@
 import base64
 import copy
 import hashlib
+import ipaddress
 import os
 from pathlib import Path
 import re
@@ -35,6 +36,35 @@ def bounded_int(value, minimum, maximum):
 def host(value):
     check(isinstance(value, str) and 0 < len(value) <= 253
           and re.fullmatch(r'[A-Za-z0-9._:\-]+', value) is not None)
+
+
+LISTEN_SERVICES = ('cluster', 'in2n')
+
+
+def validate_listen(value):
+    """Optional, default-off bind override from the PRIVATE ha-config (never the signed manifest).
+
+    `{cluster: {host, port}, in2n: {host, port}}`, each entry optional. `host` must be an IP literal (a sandbox
+    loopback address, a private address or 0.0.0.0); names are refused so no resolver is involved. Only the
+    listening socket changes: dialing, TLS server_name, member targets and every signed value stay on the manifest.
+    """
+    check(isinstance(value, dict) and 1 <= len(value) <= len(LISTEN_SERVICES) and set(value) <= set(LISTEN_SERVICES),
+          'invalid_ha_listen')
+    for entry in value.values():
+        check(isinstance(entry, dict) and set(entry) == {'host', 'port'}, 'invalid_ha_listen')
+        check(isinstance(entry['host'], str) and len(entry['host']) <= 45, 'invalid_ha_listen')
+        try:
+            ipaddress.ip_address(entry['host'])
+        except ValueError:
+            raise HAError('invalid_ha_listen') from None
+        check(type(entry['port']) is int and 1 <= entry['port'] <= 65535, 'invalid_ha_listen')
+    return value
+
+
+def listen_address(listen, service, advertised):
+    """(host, port) to bind: the override when configured, else the signed advertised address."""
+    entry = (listen or {}).get(service)
+    return (entry['host'], entry['port']) if entry else (advertised['host'], advertised['port'])
 
 
 def endpoint(value, scheme):

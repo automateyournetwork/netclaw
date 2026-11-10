@@ -8,7 +8,7 @@ import {execFileSync} from 'node:child_process';
 import http from 'node:http';
 import net from 'node:net';
 import {once} from 'node:events';
-import {validateUpgrade,verifyTls,verifySource,loadOwned,parseOrigin,readInput,readIngress,nodeQualified,canonical,createFront,frontCheck,FRONT_LIMITS,frontTimeout} from './hud_ingress_r09.mjs';
+import {validatePosture,readPosture,validateUpgrade,verifyTls,verifySource,loadOwned,parseOrigin,readInput,readIngress,nodeQualified,canonical,createFront,frontCheck,FRONT_LIMITS,frontTimeout} from './hud_ingress_r09.mjs';
 
 const hash=raw=>crypto.createHash('sha256').update(raw).digest('hex');
 const temp=()=>fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'netclaw-r09-ingress-')));
@@ -428,4 +428,143 @@ test('the front serves over TLS 1.3 with the configured identity and refuses old
     assert.equal(await tlsRequest('TLSv1.3'),201);
     await assert.rejects(tlsRequest('TLSv1.2'));
   } finally {front.close();front.closeAllConnections();product.server.close();product.server.closeAllConnections();fs.rmSync(dir,{recursive:true,force:true});}
+});
+
+// ---- spec 183 (R09A): node posture served by the ingress itself ----------------------------------------------------
+const POSTURE={schema_version:1,node:'nne1',region:'northamerica-northeast1',
+  sandbox:{name:'netclaw-node',phase:'Ready',policy_version:3,policy_sha256:'a'.repeat(64),landlock:'hard_requirement'},
+  components:[{name:'border-role',inside_sandbox:true,state:'running'},{name:'hud-ingress',inside_sandbox:true,state:'running'},
+    {name:'etcd-voter',inside_sandbox:false,disposition:'host network; container policy',state:'running'}],
+  guard:{mode:'action',state:'running',fail_closed:true,last_block_ms:null},observed_at_ms:1794300000000};
+const writePosture=(dir,value,{mode=0o600,raw=null}={})=>{const file=path.join(dir,'posture-'+crypto.randomUUID()+'.json');fs.writeFileSync(file,raw??JSON.stringify(value),{mode});fs.chmodSync(file,mode);return file;};
+async function withPosture(file,fn) {
+  const product=await mockProduct(),front=createFront({...config(1),...(file===undefined?{}:{posture_file:file})},product.port);
+  const port=await listening(front);
+  try {await fn({product,port});} finally {front.close();front.closeAllConnections();product.server.close();product.server.closeAllConnections();}
+}
+
+test('posture: a valid private file is served verbatim by the ingress and never proxied',async()=>{
+  const dir=temp();
+  try {
+    const file=writePosture(dir,POSTURE);
+    await withPosture(file,async({product,port})=>{
+      const r=await call(port,{url:'/api/hud/posture'});
+      assert.equal(r.status,200);
+      assert.equal(r.body,JSON.stringify(POSTURE));
+      assert.match(r.headers['content-type'],/^application\/json/);
+      assert.equal(r.headers['cache-control'],'no-store');
+      assert.equal(r.headers['x-content-type-options'],'nosniff');
+      assert.equal(product.seen.length,0,'the product server never sees the posture route');
+      const again=await call(port,{url:'/api/hud/posture',headers:{origin:ORIGIN}});
+      assert.equal(again.status,200,'exact same Origin is allowed like every route');
+    });
+  } finally {fs.rmSync(dir,{recursive:true,force:true});}
+});
+
+test('posture: absent configuration or file is 404 posture_unavailable (not proxied)',async()=>{
+  const dir=temp();
+  try {
+    await withPosture(undefined,async({product,port})=>{
+      const r=await call(port,{url:'/api/hud/posture'});assert.equal(r.status,404);assert.equal(JSON.parse(r.body).code,'posture_unavailable');assert.equal(product.seen.length,0);
+    });
+    await withPosture(path.join(dir,'missing.json'),async({port})=>{
+      const r=await call(port,{url:'/api/hud/posture'});assert.equal(r.status,404);assert.equal(JSON.parse(r.body).code,'posture_unavailable');
+    });
+  } finally {fs.rmSync(dir,{recursive:true,force:true});}
+});
+
+test('posture: malformed, over-wide, secret-looking and enforcement-claiming content is refused and never returned',async()=>{
+  const dir=temp();
+  const clone=()=>JSON.parse(JSON.stringify(POSTURE));
+  const cases={
+    'not json':{raw:'{nope'},
+    'extra top key':{value:{...clone(),extra:1}},
+    'missing guard':(()=>{const v=clone();delete v.guard;return {value:v};})(),
+    'bad policy hash':(()=>{const v=clone();v.sandbox.policy_sha256='zz';return {value:v};})(),
+    'unknown phase':(()=>{const v=clone();v.sandbox.phase='Enforced';return {value:v};})(),
+    'outside component without disposition':(()=>{const v=clone();delete v.components[2].disposition;return {value:v};})(),
+    'inside component with disposition':(()=>{const v=clone();v.components[0].disposition='x';return {value:v};})(),
+    'outside component claims enforced':(()=>{const v=clone();v.components[2].disposition='enforced by OpenShell';return {value:v};})(),
+    'duplicate component':(()=>{const v=clone();v.components[1].name='border-role';return {value:v};})(),
+    'secret-looking value':(()=>{const v=clone();v.node='sk-ant-abc';return {value:v};})(),
+    'secret-looking disposition':(()=>{const v=clone();v.components[2].disposition='api_key in env';return {value:v};})(),
+    'guard mode unknown':(()=>{const v=clone();v.guard.mode='off';return {value:v};})(),
+    'negative observed time':(()=>{const v=clone();v.observed_at_ms=-1;return {value:v};})(),
+    'oversize':{raw:JSON.stringify({...clone(),pad:'x'.repeat(20000)})},
+  };
+  try {
+    for(const [name,spec] of Object.entries(cases)) {
+      const file=writePosture(dir,spec.value,{raw:spec.raw??null});
+      await withPosture(file,async({port})=>{
+        const r=await call(port,{url:'/api/hud/posture'});
+        assert.equal(r.status,503,name);
+        assert.equal(JSON.parse(r.body).code,'posture_invalid',name);
+        assert.ok(!r.body.includes('netclaw-node'),'content is never returned: '+name);
+      });
+    }
+    assert.throws(()=>validatePosture({...POSTURE,extra:1}),/posture_invalid/);
+    assert.equal(validatePosture(POSTURE).node,'nne1');
+    assert.equal(readPosture(writePosture(dir,POSTURE)).status,200);
+  } finally {fs.rmSync(dir,{recursive:true,force:true});}
+});
+
+test('posture: a file that is group/other readable or a symlink is refused',async()=>{
+  const dir=temp();
+  try {
+    await withPosture(writePosture(dir,POSTURE,{mode:0o644}),async({port})=>{
+      const r=await call(port,{url:'/api/hud/posture'});assert.equal(r.status,503);assert.equal(JSON.parse(r.body).code,'posture_invalid');
+    });
+    const real=writePosture(dir,POSTURE),link=path.join(dir,'link.json');fs.symlinkSync(real,link);
+    await withPosture(link,async({port})=>{
+      const r=await call(port,{url:'/api/hud/posture'});assert.equal(r.status,503);
+    });
+  } finally {fs.rmSync(dir,{recursive:true,force:true});}
+});
+
+test('posture: GET only, no query, no body; the same exact Host/Origin front checks apply',async()=>{
+  const dir=temp();
+  try {
+    await withPosture(writePosture(dir,POSTURE),async({product,port})=>{
+      for(const method of ['POST','DELETE']) {
+        const r=await call(port,{method,url:'/api/hud/posture',headers:{origin:ORIGIN},body:method==='POST'?'{}':null});
+        assert.equal(r.status,405,method);assert.equal(JSON.parse(r.body).code,'method_refused');
+      }
+      assert.equal((await call(port,{url:'/api/hud/posture?x=1'})).status,400);
+      assert.equal((await call(port,{method:'GET',url:'/api/hud/posture',headers:{'content-length':'1'},body:'x'})).status,400,'a request body is refused');
+      assert.equal((await call(port,{url:'/api/hud/posture',host:'evil.example.test'})).status,403,'wrong Host');
+      assert.equal((await call(port,{url:'/api/hud/posture',headers:{origin:'https://evil.example.test'}})).status,403,'wrong Origin');
+      assert.equal((await call(port,{url:'/api/hud/posture',headers:{'sec-fetch-site':'cross-site'}})).status,403);
+      await call(port,{url:'/api/hud/posture/extra'});
+      assert.equal(product.seen.filter(s=>s.url==='/api/hud/posture').length,0,'the exact route is never proxied');
+    });
+  } finally {fs.rmSync(dir,{recursive:true,force:true});}
+});
+
+test('posture_file is an optional path field: absent keeps the exact shape; present must be an absolute path; composes with workspace',()=>{
+  const f=frozen();
+  try {
+    const write=value=>{const file=path.join(f.state,'ingress-posture-'+crypto.randomUUID()+'.json');fs.writeFileSync(file,JSON.stringify(value),{mode:0o600});return file;};
+    const file=path.join(f.state,'posture.json');
+    assert.equal(readIngress(write({...f.config,posture_file:file})).posture_file,file);
+    assert.throws(()=>readIngress(write({...f.config,posture_file:'relative.json'})),/invalid_posture_file|absolute_path_required/);
+    assert.throws(()=>readIngress(write({...f.config,posture_file:5})),/invalid_posture_file/);
+    const ws={path:path.join(f.state,'workspace.json'),sha256:'c'.repeat(64)};
+    const both=readIngress(write({...f.config,workspace:ws,posture_file:file}));
+    assert.equal(both.workspace.sha256,'c'.repeat(64));assert.equal(both.posture_file,file);
+    assert.throws(()=>readIngress(write({...f.config,unknown_field:1,posture_file:file})),/ingress_config_invalid/);
+    const input={...f.config};for(const k of ['schema_version','assets','hud','source_manifest','node_sha256'])delete input[k];
+    input.source_manifest_file=f.config.source_manifest.path;input.tls={cert_file:f.config.tls.cert_file,chain_file:null,key_file:f.config.tls.key_file};
+    assert.equal(readInput(write({...input,posture_file:file})).posture_file,file);
+    assert.throws(()=>readInput(write({...input,posture_file:'relative.json'})),/invalid_posture_file|absolute_path_required/);
+  } finally {f.cleanup();}
+});
+
+test('posture_file: loadOwned requires its directory to exist (checked early), but not the file itself',async()=>{
+  const f=frozen();
+  try {
+    // A missing directory is refused by the posture check; an existing directory (file absent) passes it and only fails later on the
+    // missing product tree of this reduced fixture, never with a posture error.
+    await assert.rejects(loadOwned({...f.config,posture_file:path.join(f.state,'nodir','posture.json')},{checkRunning:false}),e=>/ENOENT|posture_directory_required/.test(String(e)));
+    await assert.rejects(loadOwned({...f.config,posture_file:path.join(f.state,'posture.json')},{checkRunning:false}),e=>!/posture/i.test(String(e)));
+  } finally {f.cleanup();}
 });

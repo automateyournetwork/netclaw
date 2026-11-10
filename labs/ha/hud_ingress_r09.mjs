@@ -29,6 +29,13 @@
  *   cluster                      {cluster_id, generation, anchor_key_id}
  *   tls                          {cert_file, chain_file|null, key_file}  (cert_file = leaf or fullchain, EC P-256 key)
  *   state_dir                    private 0700 directory for pins, claims and listening records
+ *   posture_file                 OPTIONAL absolute path of the node posture JSON (spec 183, contracts/node-posture.md). The
+ *                                ingress itself serves it at GET /api/hud/posture (never proxied). Only the path is configured:
+ *                                the content changes at runtime, so it is NOT hash-pinned; it is read per request, must be a
+ *                                regular file owned by the ingress uid with no group/other access, at most 16 KiB, and is
+ *                                validated strictly (exact keys, no secret-looking strings, components outside the sandbox must
+ *                                carry a disposition and never claim to be enforced). Absent file => 404 posture_unavailable;
+ *                                invalid file => 503 posture_invalid (the content is never returned).
  *
  * INGRESS.json (written by prepare) adds the pins: assets{path,sha256}, hud{path,sha256},
  * source_manifest{path,sha256}, node_sha256, tls pins, and drops the *_file spelling.
@@ -68,6 +75,9 @@ export function nodeQualified(version=process.versions.node) {
 
 const INPUT_FIELDS='origin bind port installation_id home source_root source_manifest_file dist edge_ws_port manifest_file anchor_certificate_file anchor_key_id cluster tls state_dir';
 const WORKSPACE_FIELD=' workspace';
+const POSTURE_FIELD=' posture_file';
+/** Optional fields keep the exact-shape check: each is allowed only when present. */
+const withOptional=(base,value)=>base+('workspace' in value?WORKSPACE_FIELD:'')+('posture_file' in value?POSTURE_FIELD:'');
 const INGRESS_FIELDS='schema_version origin bind port installation_id home source_root dist edge_ws_port manifest_file anchor_certificate_file anchor_key_id cluster tls state_dir assets hud source_manifest node_sha256';
 
 /** Origin is `https://<dns-name>` with an optional explicit port only for tests; no userinfo/path. */
@@ -93,7 +103,8 @@ function validateShape(config,keys,tlsKeys,pinKeys) {
 
 export function readInput(file) {
   const input=json(file,64*1024);
-  validateShape(input,'workspace' in input?INPUT_FIELDS+WORKSPACE_FIELD:INPUT_FIELDS,'cert_file chain_file key_file');
+  validateShape(input,withOptional(INPUT_FIELDS,input),'cert_file chain_file key_file');
+  if('posture_file' in input)need(absolute(input.posture_file),'invalid_posture_file');
   if('workspace' in input)need(exact(input.workspace,'path')&&absolute(input.workspace.path),'invalid_workspace_input');
   need(absolute(input.source_manifest_file)&&absolute(input.tls.cert_file)&&absolute(input.tls.key_file)&&(input.tls.chain_file===null||absolute(input.tls.chain_file)),'absolute_path_required');
   return input;
@@ -101,7 +112,8 @@ export function readInput(file) {
 
 export function readIngress(file) {
   const config=json(file,64*1024);
-  validateShape(config,'workspace' in config?INGRESS_FIELDS+WORKSPACE_FIELD:INGRESS_FIELDS,'cert_file cert_sha256 chain_file chain_sha256 key_file key_sha256');
+  validateShape(config,withOptional(INGRESS_FIELDS,config),'cert_file cert_sha256 chain_file chain_sha256 key_file key_sha256');
+  if('posture_file' in config)need(absolute(config.posture_file),'invalid_posture_file');
   need(config.schema_version===1,'ingress_config_invalid');
   for(const [name,value] of [['assets',config.assets],['hud',config.hud],['source_manifest',config.source_manifest],...('workspace' in config?[['workspace',config.workspace]]:[])]) {
     need(exact(value,'path sha256')&&absolute(value.path)&&sha(value.sha256),'invalid_'+name+'_pin');
@@ -171,6 +183,7 @@ function hudConfig(input,assets,workspace=null) {
 export async function loadOwned(config,{checkRunning=true,now=Date.now()}={}) {
   need(nodeQualified(),'qualified_node_required');
   privateDirectory(config.state_dir);
+  if(config.posture_file){const dir=path.dirname(config.posture_file);noSymlink(dir);need(fs.statSync(dir).isDirectory(),'posture_directory_required');}
   need(config.node_sha256===hash(boundedFile(fs.realpathSync(process.execPath),256*1024*1024)),'node_changed');
   verifySource(config,{checkRunning});
   pinned(config.assets.path,config.assets.sha256);
@@ -256,6 +269,54 @@ export function bridgeUpgrade(request,socket,head,row,sockets) {
  * proxies each request over a loopback hop to the in-process product server, with Host rewritten
  * to the configured authority. The product handler is never given a spoofed peer address.
  */
+/** Node posture (spec 183, contracts/node-posture.md): strict, secret-free, never claims enforcement outside the sandbox. */
+const POSTURE_MAX=16*1024;
+const POSTURE_STATES=new Set(['running','starting','stopped','failed','unknown']);
+const POSTURE_PHASES=new Set(['Ready','Provisioning','Starting','Stopped','Error','Unknown']);
+const SECRET_LOOKING=/sk-ant-|nbt_|gd_pat_|ghp_|AKIA[0-9A-Z]{16}|-----BEGIN|api[_-]?key|passw(or)?d|secret|bearer |private[_ -]?key/i;
+const token=(value,max=64)=>typeof value==='string'&&value.length>=1&&value.length<=max&&/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(value);
+const nonNegative=value=>Number.isSafeInteger(value)&&value>=0;
+export function validatePosture(value) {
+  need(exact(value,'schema_version node region sandbox components guard observed_at_ms')&&value.schema_version===1,'posture_invalid');
+  need(token(value.node,32)&&token(value.region,40),'posture_invalid');
+  need(exact(value.sandbox,'name phase policy_version policy_sha256 landlock')&&token(value.sandbox.name)&&POSTURE_PHASES.has(value.sandbox.phase)
+    &&Number.isSafeInteger(value.sandbox.policy_version)&&value.sandbox.policy_version>=1&&sha(value.sandbox.policy_sha256)
+    &&['hard_requirement','best_effort','unavailable'].includes(value.sandbox.landlock),'posture_invalid');
+  need(Array.isArray(value.components)&&value.components.length>=1&&value.components.length<=32,'posture_invalid');
+  const names=new Set();
+  for(const c of value.components) {
+    need(c&&typeof c==='object'&&typeof c.inside_sandbox==='boolean','posture_invalid');
+    need(exact(c,c.inside_sandbox?'name inside_sandbox state':'name inside_sandbox disposition state')&&token(c.name)&&POSTURE_STATES.has(c.state)&&!names.has(c.name),'posture_invalid');
+    names.add(c.name);
+    if(!c.inside_sandbox)need(typeof c.disposition==='string'&&c.disposition.length>=1&&c.disposition.length<=200&&/^[\x20-\x7e]+$/.test(c.disposition)&&!/enforc/i.test(c.disposition),'posture_invalid');
+  }
+  need(exact(value.guard,'mode state fail_closed last_block_ms')&&['observe','action'].includes(value.guard.mode)&&POSTURE_STATES.has(value.guard.state)
+    &&typeof value.guard.fail_closed==='boolean'&&(value.guard.last_block_ms===null||nonNegative(value.guard.last_block_ms)),'posture_invalid');
+  need(nonNegative(value.observed_at_ms),'posture_invalid');
+  const walk=item=>{if(typeof item==='string')need(!SECRET_LOOKING.test(item),'posture_invalid');else if(item&&typeof item==='object')for(const [k,v] of Object.entries(item)){need(!SECRET_LOOKING.test(k),'posture_invalid');walk(v);}};
+  walk(value);
+  return value;
+}
+/** Read and validate the posture file. Returns {status,raw}; the content is returned only when valid. */
+export function readPosture(file) {
+  if(!file||!fs.existsSync(file))return {status:404,code:'posture_unavailable'};
+  try {
+    const raw=boundedFile(file,POSTURE_MAX,true);
+    validatePosture(strictJson(raw.toString('utf8')));
+    return {status:200,raw};
+  } catch {return {status:503,code:'posture_invalid'};}
+}
+function servePosture(req,res,config) {
+  req.resume();
+  if(req.method!=='GET'){refuse(res,405,'method_refused');return;}
+  const length=req.headers['content-length'];
+  if(req.url!=='/api/hud/posture'||req.headers['transfer-encoding']!==undefined||(length!==undefined&&length!=='0')){refuse(res,400,'invalid_argument');return;}
+  const result=readPosture(config.posture_file);
+  if(result.status!==200){refuse(res,result.status,result.code);return;}
+  res.writeHead(200,{'Content-Type':'application/json; charset=utf-8','Content-Length':result.raw.length,'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});
+  res.end(result.raw);
+}
+
 const HOP_BY_HOP=new Set(['connection','keep-alive','proxy-authenticate','proxy-authorization','proxy-connection','te','trailer','transfer-encoding','upgrade']);
 export const FRONT_LIMITS=Object.freeze({body:1024*1024,url:4096,headers:100,requestMs:30000});
 /** Idle timeout of the loopback hop; mirrors the product remoteHudTimeout so long workspace calls are not cut at 30 s.
@@ -289,6 +350,7 @@ export function frontCheck(req,config) {
 export function proxyRequest(req,res,config,upstreamPort) {
   const refused=frontCheck(req,config);
   if(refused){req.resume();refuse(res,refused.status,refused.code);return;}
+  if(String(req.url).split('?')[0]==='/api/hud/posture'){servePosture(req,res,config);return;}
   const headers={};
   for(let i=0;i<req.rawHeaders.length;i+=2){
     const name=req.rawHeaders[i].toLowerCase(),value=req.rawHeaders[i+1];

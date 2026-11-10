@@ -9,21 +9,21 @@
 - [x] T001 Research OpenShell/DefenseClaw hosting and record decisions in `specs/183-openshell-defenseclaw-gcp/research.md`
 - [x] T002 Run experiments E1 (kernel/Landlock), E2a/E2b (TLS exporter in/out of a sandbox), E5 (DefenseClaw amd64), E8-partial on one throwaway VM and tear it down; append results to `research.md`
 - [x] T003 Write `plan.md`, `data-model.md`, `contracts/*`, `quickstart.md`
-- [ ] T004 [P] Write `specs/183-openshell-defenseclaw-gcp/cost-model.md`: line items for 2 Border VMs + 1 witness (Ubuntu 24.04 e2-standard-2 vs e2-medium), disks, static IPs, egress; confirm prices with `gcloud` pricing data, not memory
+- [x] T004 [P] Write `specs/183-openshell-defenseclaw-gcp/cost-model.md`: line items for 2 Border VMs + 1 witness (Ubuntu 24.04 e2-standard-2 vs e2-medium), disks, static IPs, egress; confirm prices with `gcloud` pricing data, not memory
 
 ## Phase 2: Foundational code (blocks all stories)
 
-- [ ] T005 Add the optional, default-off `listen` block (bind address/port separate from the signed advertised endpoint) to the private HA config: `mcp-servers/protocol-mcp/bgp/federation/ha/config.py`, `ha/factory.py` (iN2N attach listener), `ha/node.py` (cluster listener)
-- [ ] T006 Accept the optional `listen` block in the role launcher's exact-field check: `scripts/lib/protected_role.py`
-- [ ] T007 [P] Tests for T005/T006 (default-off identical behavior; listener binds the override; peers still dial the manifest address; malformed block refused): `tests/n2n/test_ha_bind_183.py`
-- [ ] T008 [P] Policy generator and validator enforcing `contracts/sandbox-policy.md` (default deny, tcp peers with `tls: skip` and no L7 fields, Anthropic via provider injection, no metadata server, hard_requirement Landlock): `labs/ha/r09a_policy.py`
-- [ ] T009 [P] Tests for the generator and its refusals: `tests/n2n/test_ha_sandbox_183.py`
-- [ ] T010 [P] Node image build context generator (root-owned frozen source and Python 3.12 env, Node 24, pinned OpenClaw 2026.7.1-2, DefenseClaw 1.0.4 checksum-verified, `sandbox` user, private state dir owned by it): `labs/ha/r09a_image.py`
-- [ ] T011 [P] DefenseClaw node sidecar tooling: config derived byte-for-byte from the qualified R04A Anthropic file, `mode: action`, `hook_fail_mode: closed`, audit path and export: `labs/ha/r09a_defenseclaw.py`
-- [ ] T012 [P] VM bootstrap for Ubuntu 24.04 (Docker >= 28, OpenShell 0.1.7, DefenseClaw 1.0.4, `docker` group, linger, `OPENSHELL_COMPUTE_DRIVER=docker`, metadata-server iptables rule, etcd container): `scripts/ha-r09a-vm-bootstrap.sh`
-- [ ] T013 Node deploy driver: build image, create `netclaw-node` sandbox with generated policy and provider, start host forwards (7443, 7444, 8443 with host 443 redirect), start sidecar; idempotent; label-owned: `scripts/ha-r09a-deploy.sh`
-- [ ] T014 Posture endpoint `GET /api/hud/posture` in the R09 ingress (read-only, no secrets, components outside the sandbox listed with disposition): `labs/ha/hud_ingress_r09.mjs` and test `labs/ha/hud_ingress_r09.test.mjs`
-- [ ] T015 [P] Negative isolation suite driver implementing the cases of FR-013 with expected refusal and record: `labs/ha/r09a_negative.py`
+- [x] T005 Add the optional, default-off `listen` block (bind address/port separate from the signed advertised endpoint) to the private HA config: `mcp-servers/protocol-mcp/bgp/federation/ha/config.py`, `ha/factory.py` (iN2N attach listener), `ha/node.py` (cluster listener)
+- [x] T006 Accept the optional `listen` block in the role launcher's exact-field check: `scripts/lib/protected_role.py`
+- [x] T007 [P] Tests for T005/T006 (default-off identical behavior; listener binds the override; peers still dial the manifest address; malformed block refused): `tests/n2n/test_ha_bind_183.py`
+- [x] T008 [P] Policy generator and validator enforcing `contracts/sandbox-policy.md` (default deny, tcp peers with `tls: skip` and no L7 fields, Anthropic via provider injection, no metadata server, hard_requirement Landlock): `labs/ha/r09a_policy.py`
+- [x] T009 [P] Tests for the generator and its refusals: `tests/n2n/test_ha_sandbox_183.py`
+- [x] T010 [P] Node image build context generator (root-owned frozen source and Python 3.12 env, Node 24, pinned OpenClaw 2026.7.1-2, DefenseClaw 1.0.4 checksum-verified, `sandbox` user, private state dir owned by it): `labs/ha/r09a_image.py`
+- [x] T011 [P] DefenseClaw node sidecar tooling: config derived byte-for-byte from the qualified R04A Anthropic file, `mode: action`, `hook_fail_mode: closed`, audit path and export: `labs/ha/r09a_defenseclaw.py`
+- [x] T012 [P] VM bootstrap for Ubuntu 24.04 (Docker >= 28, OpenShell 0.1.7, DefenseClaw 1.0.4, `docker` group, linger, `OPENSHELL_COMPUTE_DRIVER=docker`, metadata-server iptables rule, etcd container): `scripts/ha-r09a-vm-bootstrap.sh`
+- [x] T013 Node deploy driver: build image, create `netclaw-node` sandbox with generated policy and provider, start host forwards (7443, 7444, 8443 with host 443 redirect), start sidecar; idempotent; label-owned: `scripts/ha-r09a-deploy.sh`
+- [x] T014 Posture endpoint `GET /api/hud/posture` in the R09 ingress (read-only, no secrets, components outside the sandbox listed with disposition): `labs/ha/hud_ingress_r09.mjs` and test `labs/ha/hud_ingress_r09.test.mjs`
+- [x] T015 [P] Negative isolation suite driver implementing the cases of FR-013 with expected refusal and record: `labs/ha/r09a_negative.py`
 
 ## Phase 3: User Story 1 - Components run inside OpenShell (P1)
 
