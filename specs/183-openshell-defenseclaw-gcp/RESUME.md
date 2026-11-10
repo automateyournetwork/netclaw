@@ -1,4 +1,4 @@
-# R09A (spec 183) resume pickup, written 2026-11-10
+# R09A (spec 183) resume pickup, updated 2026-11-10 (session 2)
 
 Owner instruction: drive R09A to 100%, then TEAR EVERYTHING DOWN automatically after evidence is committed (G1 approved: e2-standard-2, ~$0.20/h).
 Standing rules: no publish/push-live/announce without owner approval; owner reviews qualified-code changes (list in PR); remove only exactly-owned resources (GCP label `netclaw-spec=183`, prefix `nc183-`); never touch equinix-*, pyats-mcp, gateway5, drawio-mcp; secrets only in `~/.openclaw/.env` (Anthropic key in `~/netclaw/.env`), never printed/committed; never read exit codes through pipes; python3.10 for pytest; use `bash`, not zsh, for loops.
@@ -22,3 +22,11 @@ Spec/plan/research/tasks T001-T015; offline tooling; two sandboxed Borders form 
 6. Docs (DEFENSECLAW.md, N2N-RISK.md), roadmap brief outcome, qualified-code change list, cost vs estimate, `verification.md`, memory/GAIT (T039-T043); commit evidence.
 7. Then AUTOMATIC TEARDOWN of exactly owned resources: 3 VMs + disks, 2 static IPs, 3 firewalls, network/subnet, both DNS record sets, local `~/.local/share/netclaw/r09a*` dirs, stray Docker objects labeled netclaw.spec. Verify nothing labeled netclaw-spec=183 remains. Open the 183 PR (stacked on #340). No publish.
 8. Afterwards R09B survey (brief only), then Azure (R10).
+
+## Session 2 progress (T023-T026 core proven; update, supersedes the "Remaining" item 1 above)
+- Provider: OpenShell profile `anthropic` (endpointless, `auth_style: header`, `header_name: x-api-key`) + provider `nc183-anthropic` on BOTH VMs. The policy endpoint carries `credential_binding: {provider: nc183-anthropic}`; the sandbox sees only the placeholder `ANTHROPIC_API_KEY=openshell:resolve:...` (entrypoint env only, not `exec`). Only `/usr/local/bin/defenseclaw-gateway` may reach api.anthropic.com (no bypass).
+- Image `nc183-node:4` (dc-home perms fixed). Policy v8 (`policy/v8-nne1|nne2`, protocol `rest`, guard-only egress). Recreate: `/tmp/recreate2.sh <node-ip> <policy-sha>` on each VM (uses `~/stage/nc182`, `/tmp/policy.yaml`, forwards via `-d`, redirect output to files: a pipe on `forward start -d` hangs). Then upload `~/stage/guard-config.yaml` to `/sandbox/`, and run `labs/ha/r09a_guard_up.sh` through the runner hook: upload it to `/sandbox/nc182/CTL/run-script` (lab-only hook; log `/sandbox/nc182/logs/script.log`).
+- Node guard config = qualified R04A file + 3 deviations (`labs/ha/r09a_defenseclaw.py render_node_config`).
+- Verified on A and B: benign OpenClaw turn returns `ok` through DefenseClaw; prompt-extraction prompt blocked (`[DefenseClaw] This request was blocked ... TRUST-PROMPT-EXTRACT`), alert recorded; on A sidecar stopped -> ECONNREFUSED, no new NET:OPEN/HTTP:POST to Anthropic in `openshell logs`.
+- Still open: tool-call block, scan-before-enable, enrollment window + real operation, T028-T045, final teardown.
+- Commit b2631b95 plus later commits on branch 183-openshell-defenseclaw-gcp.
