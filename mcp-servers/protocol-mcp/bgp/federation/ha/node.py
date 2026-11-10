@@ -134,7 +134,9 @@ class ClusterNode:
             return await self.handlers[method](None, params)
         channel = self.channels.get(leader['node_id'])
         check(channel is not None and channel.authenticated, 'leader_transport_unavailable', 503)
-        return await channel.call(method, params, timeout=5)
+        # 15 s (was 5): a far follower (Singapore) forwarding to the leader needs the leader's own work (catalog of several members,
+        # etcd reads) plus WAN round trips; 5 s made every request through it fail. Still send-once; a lost reply never picks a new leader.
+        return await channel.call(method, params, timeout=15)
 
     async def _forward(self, channel, params):
         exact(params, 'action params')

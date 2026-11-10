@@ -1,4 +1,4 @@
-import { clusterStatus } from "../client/cluster";
+import { clusterStatus, clusterNodeRegion, clusterFailoverNotice } from "../client/cluster";
 import { operationEvidence, presentOperationDocument } from "../client/evidence";
 import * as vscode from "vscode";
 import { randomUUID } from "node:crypto";
@@ -85,7 +85,7 @@ export class OwnerWorkflow implements vscode.Disposable {
   }
   async overview() {
     const b = this.scope(); await b.run(() => b.client.connect());
-    await this.document({ origin: b.client.base, installationId: b.client.expectedId, role: "border", ...(b.client.openLab ? { access: b.client.access } : { owner: b.client.sessionState || "Sign in with an owner ticket" }), capabilities: b.client.runtime?.capabilities, cluster: b.client.cluster?.descriptor, authority_status: clusterStatus(b.client.cluster?.descriptor),
+    await this.document({ origin: b.client.base, installationId: b.client.expectedId, role: "border", ...(b.client.openLab ? { access: b.client.access } : { owner: b.client.sessionState || "Sign in with an owner ticket" }), capabilities: b.client.runtime?.capabilities, cluster: b.client.cluster?.descriptor, authority_status: clusterStatus(b.client.cluster?.descriptor), serving_region: b.client.cluster ? clusterNodeRegion(b.client.cluster.descriptor, b.client.cluster.descriptor?.node_id) : undefined, failover_notice: clusterFailoverNotice(b.client.cluster?.descriptor),
       workflow: "Use Prepare cloud read or Recover cloud operation. Local lifecycle, legacy Chat, MCP and model controls are unavailable." }, "Cloud Border identity", b.current);
   }
   async open() {

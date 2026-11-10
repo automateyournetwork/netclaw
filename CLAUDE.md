@@ -1,6 +1,6 @@
 # netclaw Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2026-09-26
+Auto-generated from all feature plans. Last updated: 2026-11-08
 
 Spec153 installer (source 1.12.0 / extension 1.2.0): [new setup](docs/GETTING-STARTED-VSCODE.md), [Claw Plan/CLI](docs/CLAW-PLAN.md), [assistant flow](docs/ASSISTANT-INSTALL.md), and [deployment Spec Kit](docs/SPEC-KIT-CLAWS.md) share a private, exact-review engine. Use `installer/assistant-skills/netclaw-install/SKILL.md` for end-user deployment; `.agents/skills/speckit-*` remain repository development tools. Native Windows is a read-only WSL gate; actual installation targets local macOS and supported WSL2 Ubuntu. No real-installation or publication qualification is implied by fixture success. See `specs/153-ide-installer/verification.md`.
 
@@ -154,6 +154,8 @@ Spec153 installer (source 1.12.0 / extension 1.2.0): [new setup](docs/GETTING-ST
 - N/A — no new persistent storage of any kind (spec Clarifications Q1/Q2, FR-013, (122-worldlabs-topology-viz)
 - Python 3.10+ source (contract environments use 3.12), Node.js ES modules, Bash, Dart/Flutter and Swift mobile code. + Existing MCP/FastMCP, httpx, cryptography, ChromaDB; Express/ws/Vite/React/Three.js HUD; per-component dependency isolation. (124-flagship-audit)
 - Existing JSON, SQLite, ChromaDB, filesystem and GAIT; no new operational datastore. (124-flagship-audit)
+- Python 3.10+ (Border source `mcp-servers/protocol-mcp/bgp/federation/ha/*`, contrac + etcd (3 voters, per Spec 179), lego (ACME DNS-01), GoDaddy API (Personal Access (182-multi-region-ha-borders)
+- Existing etcd/SQLite/GAIT stores; per-Border persistent disk. No new datastore. (182-multi-region-ha-borders)
 
 - Python 3.10+ + FastMCP (MCP framework), grpcio + grpcio-tools (gRPC transport), pygnmi (gNMI client library), protobuf, cryptography (TLS handling) (003-gnmi-mcp-server)
 
@@ -173,9 +175,9 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python 3.10+: Follow standard conventions
 
 ## Recent Changes
+- 182-multi-region-ha-borders: Added Python 3.10+ (Border source `mcp-servers/protocol-mcp/bgp/federation/ha/*`, contrac + etcd (3 voters, per Spec 179), lego (ACME DNS-01), GoDaddy API (Personal Access
 - 124-flagship-audit: Added Python 3.10+ source (contract environments use 3.12), Node.js ES modules, Bash, Dart/Flutter and Swift mobile code. + Existing MCP/FastMCP, httpx, cryptography, ChromaDB; Express/ws/Vite/React/Three.js HUD; per-component dependency isolation.
 - 122-worldlabs-topology-viz: Added Python 3.10+ (matches every existing NetClaw MCP server and skill; no new + FastMCP (`worldlabs-marble-mcp`, matching repo convention), `httpx`
-- 121-federated-topology-viz: Added Python 3.10+ (matches every existing NetClaw MCP server and skill; no new + FastMCP (both new MCP servers, matching repo convention), N2G (new —
 
 
 <!-- MANUAL ADDITIONS START -->

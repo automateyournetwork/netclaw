@@ -16,6 +16,7 @@ from urllib.parse import urlparse
 
 from . import protected_runtime as _runtime_source
 from . import protected_mcp as _mcp_source
+from . import protected_hosted as _hosted
 from . import protected_ollama as _ollama
 from .protected_mcp import (invoke_mcp, validate_binding as validate_mcp_binding, contract_digest as mcp_contract_digest, skill_context)
 
@@ -32,6 +33,7 @@ _HOST_SOURCE_PATHS = {"protected_docker.py": Path(__file__),
 _HOST_SOURCE_PINS = {name: hashlib.sha256(path.read_bytes()).hexdigest()
                     for name, path in _HOST_SOURCE_PATHS.items()}
 _OLLAMA_SOURCE_PIN = hashlib.sha256(Path(_ollama.__file__).read_bytes()).hexdigest()
+_HOSTED_SOURCE_PIN = hashlib.sha256(Path(_hosted.__file__).read_bytes()).hexdigest()
 _GUARD_FIELDS = {"image", "config_file", "config_sha256", "policy_manifest_sha256", "env_file"}
 _RUNTIME_FIELDS = {"state_dir", "agent_image", "relay_image", "docker", "docker_host", "guard_token_env",
                    "sandbox_address_pool", "model_profile", "guard", "pyats"}
@@ -39,6 +41,11 @@ _PYATS_FIELDS = {"python", "upstream", "upstream_sha256", "source_sha256", "adap
                  "testbed_sha256", "known_hosts", "known_hosts_sha256", "endpoint_sha256", "credential_env"}
 
 _MCP_RUNTIME_FIELDS = (_RUNTIME_FIELDS - {'pyats'}) | {'mcp', 'relay_transport'}
+# Spec 182: the exact reviewed pyATS read can also run as an HA member on the hosted model profile. It keeps the pyats
+# field set of the qualified R02 runtime and adds only `hosted` (no `mcp`, no `ollama`). A pyats config may add one
+# optional `credential_file` (see protected_runtime.pyats_credentials); the original field set stays valid unchanged.
+_PYATS_HOSTED_FIELDS = _RUNTIME_FIELDS | {'hosted'}
+_PYATS_OPTIONAL_FIELDS = {'credential_file'}
 
 _INFERENCE_REFUSAL_CODES = frozenset('''inference_route_refused inference_capability_refused approval_expired
 inference_request_bound inference_model_changed inference_fields_refused ambiguous_inference_token_limit
@@ -48,7 +55,8 @@ ollama_tool_history_changed ollama_invented_tool_output ollama_unverified_tool_o
 ollama_tool_arguments_invalid ollama_duplicate_tool_argument ollama_nonfinite_tool_argument
 ollama_tool_family_changed ollama_approval_profile_changed ollama_caller_reasoning_refused
 ollama_tool_schema_changed ollama_messages_invalid ollama_conversation_changed ollama_request_context_bound
-ollama_runner_recovery_required runner_recovery_required'''.split())
+ollama_runner_recovery_required runner_recovery_required
+hosted_guard_binding_invalid hosted_profile_invalid model_guard_unavailable provider_fence_unavailable provider_fence_unreadable admission_expired'''.split())
 
 
 def record_inference_refusal(operation_root, code):
@@ -60,11 +68,31 @@ def record_inference_refusal(operation_root, code):
         'code': code if isinstance(code, str) and code in _INFERENCE_REFUSAL_CODES else 'inference_refused'}))
 
 
+def _single_protected_error(group):
+    """The lone RuntimeRefused/RuntimeUnknown inside an (Base)ExceptionGroup, else None. Nothing else is unwrapped."""
+    inner = getattr(group, 'exceptions', None)
+    if (type(group).__name__ in ('ExceptionGroup', 'BaseExceptionGroup') and isinstance(inner, tuple) and len(inner) == 1
+            and isinstance(inner[0], (RuntimeRefused, RuntimeUnknown))):
+        return inner[0]
+    return None
+
+
 def validate_runtime_fields(config):
     fields = set(config)
     if fields == _RUNTIME_FIELDS:
         return 'pyats'
-    if fields in (_MCP_RUNTIME_FIELDS, _MCP_RUNTIME_FIELDS | {'ollama'}) and config.get('relay_transport') in ('unix', 'tcp'):
+    if fields == _PYATS_HOSTED_FIELDS:
+        try: _hosted.validate_profile(config['hosted'])
+        except _hosted.HostedRefused as exc: raise RuntimeRefused(exc.code) from None
+        return 'pyats'
+    if fields in (_MCP_RUNTIME_FIELDS, _MCP_RUNTIME_FIELDS | {'ollama'}, _MCP_RUNTIME_FIELDS | {'hosted'}) and config.get('relay_transport') in ('unix', 'tcp'):
+        if 'hosted' in config:
+            try: _hosted.validate_profile(config['hosted'])
+            except _hosted.HostedRefused as exc: raise RuntimeRefused(exc.code) from None
+            # Hosted runs the native summary calculator or the exact reviewed NetBox read; every other binding
+            # (origin, credential file, source closure, schema and selection hashes) is still enforced by
+            # validate_mcp_binding below. Ollama stays calculator-only.
+            if config['mcp'].get('kind') not in ('subnet_summary', 'netbox'): raise RuntimeRefused('hosted_mcp_kind_refused')
         if 'ollama' in config:
             try:
                 _ollama.validate_profile(config['ollama'])
@@ -165,6 +193,14 @@ def runtime_profile_revision(config):
                 or profile.get('profile_id') != _ollama.profile_id(local)
                 or profile.get('runtime_kind') != 'openclaw' or profile.get('runtime_version') != _QUALIFIED_HARNESSES['openclaw']):
             raise RuntimeRefused('unqualified_ollama_execution_profile')
+    elif 'hosted' in config:
+        local = config['hosted']
+        if hashlib.sha256(_public_bytes(Path(_hosted.__file__))).hexdigest() != _HOSTED_SOURCE_PIN:
+            raise RuntimeRefused('loaded_runtime_source_changed')
+        if (profile.get('provider') != _hosted.PROVIDER or profile.get('model') != local['model']
+                or profile.get('profile_id') != _hosted.profile_id(local)
+                or profile.get('runtime_kind') != 'openclaw' or profile.get('runtime_version') != _QUALIFIED_HARNESSES['openclaw']):
+            raise RuntimeRefused('unqualified_hosted_execution_profile')
     elif (profile.get("provider") != "anthropic" or profile.get("model") != "claude-sonnet-4-6"
             or profile.get("runtime_kind") not in _QUALIFIED_HARNESSES
             or profile.get("runtime_version") != _QUALIFIED_HARNESSES[profile["runtime_kind"]]):
@@ -179,7 +215,8 @@ def runtime_profile_revision(config):
         "native_docker": _native_identity(config["docker"]), "docker_host": _docker_host(config["docker_host"]),
         "sandbox_address_pool": config["sandbox_address_pool"], "host_adapter_sha256": dict(_HOST_SOURCE_PINS),
         **({"relay_transport": config["relay_transport"]} if "mcp" in config else {}),
-        **({'ollama': _ollama.profile_binding(config['ollama']), 'ollama_source_sha256': _OLLAMA_SOURCE_PIN} if 'ollama' in config else {})})
+        **({'ollama': _ollama.profile_binding(config['ollama']), 'ollama_source_sha256': _OLLAMA_SOURCE_PIN} if 'ollama' in config else {}),
+        **({'hosted': _hosted.profile_binding(config['hosted']), 'hosted_source_sha256': _HOSTED_SOURCE_PIN} if 'hosted' in config else {})})
 
 
 def tool_contract_digest(pyats):
@@ -188,8 +225,13 @@ def tool_contract_digest(pyats):
     This is a tool contract revision, not merely a hash of JSON property names.
     Inventory and resolved endpoint retain their separate signed fields.
     """
-    if not isinstance(pyats, dict) or set(pyats) != _PYATS_FIELDS:
+    if not isinstance(pyats, dict) or set(pyats) - _PYATS_OPTIONAL_FIELDS != _PYATS_FIELDS:
         raise RuntimeRefused("pyats_configuration_fields_refused")
+    if 'credential_file' in pyats:
+        credential_file = pyats['credential_file']
+        if (not isinstance(credential_file, str) or not Path(credential_file).is_absolute()
+                or Path(credential_file).name != 'pyats-credential' or '\x00' in credential_file or len(credential_file) > 1024):
+            raise RuntimeRefused("unsafe_credential_file")
     sources = pyats["source_sha256"]; adapters = pyats["adapter_sha256"]
     if (set(sources) != {"pyats_mcp_server.py", "pyats_testbed_builder.py", "pyats_tasks.py"}
             or set(adapters) != {"protected-tool-broker.py", "lib/protected_pyats.py"}):
@@ -209,7 +251,8 @@ def tool_contract_digest(pyats):
         "enforced_policy": {"command": "show version", "retries": 1, "timeout_min": 1, "timeout_max": 120,
                             "execute_once": True, "parse_captured_output": True, "exact_raw_arguments": True},
         "upstream_sha256": pyats["upstream_sha256"], "source_sha256": sources, "adapter_sha256": adapters,
-        "native_python": _native_identity(pyats["python"], python=True), "credential_env": sorted(credentials)})
+        "native_python": _native_identity(pyats["python"], python=True), "credential_env": sorted(credentials),
+        **({"credential_file": pyats["credential_file"]} if "credential_file" in pyats else {})})
 
 
 def revision_bindings(config):
@@ -274,6 +317,22 @@ def validate_execution_bindings(config, payload):
             valid = False
         if not valid:
             raise RuntimeRefused('ollama_operation_limits_changed')
+    if 'hosted' in config:
+        cap = _hosted.limits(config['hosted'])
+        try:
+            approved = payload['limits']
+            issued = payload['issued_at_ms']
+            values = [issued, *(approved[key] for key in ('expires_at_ms',
+                'inference_timeout_ms', 'max_inference_calls', 'max_tool_calls'))]
+            valid = (all(type(value) is int for value in values)
+                and 0 < approved['expires_at_ms'] - issued <= cap['task_timeout_seconds']*1000
+                and 0 < approved['inference_timeout_ms'] <= cap['call_timeout_seconds']*1000
+                and approved['max_inference_calls'] == cap['max_inference_calls']
+                and approved['max_tool_calls'] == cap['max_tool_calls'])
+        except (KeyError, TypeError):
+            valid = False
+        if not valid:
+            raise RuntimeRefused('hosted_operation_limits_changed')
     return bindings
 
 
@@ -521,6 +580,7 @@ class DockerExecutor:
             raise RuntimeRefused("reviewed_benchmark_address_pool_required")
         self.fence = InferenceFence(self.state / "inference.sqlite")
         self.ollama = config.get('ollama')
+        self.hosted = config.get('hosted')
         self.runner_latch = (_ollama.RunnerLatch(self.state/'ollama-runner.sqlite', _ollama.digest(_ollama.profile_binding(self.ollama)))
                              if self.ollama is not None else None)
 
@@ -671,6 +731,9 @@ class DockerExecutor:
         guard_url = self.guards.get(payload["operation_id"])
         if not guard_url:
             raise RuntimeRefused("operation_bound_guard_unavailable")
+        if getattr(self, 'hosted', None) is not None and 'cluster' in payload:
+            from .ha.hosted_model_transport import ha_hosted_model_forward
+            return strict_inference_json(await ha_hosted_model_forward(self, payload, request, guard_url))
         if self.ollama is not None:
             current = await self.inspect_model()
             if current['guard_url'] != guard_url: raise RuntimeRefused('ollama_guard_binding_changed')
@@ -702,7 +765,7 @@ class DockerExecutor:
     async def run(self, payload, gate, *, ha_admission=None):
         from .protected_runtime import validate_ha_gate
         validate_ha_gate(payload, ha_admission)
-        if ha_admission is not None and not self.ollama:
+        if ha_admission is not None and not (self.ollama or getattr(self, 'hosted', None)):
             raise RuntimeRefused('ha_runtime_unqualified')
         from mcp.server.mcpserver import MCPServer
         from starlette.responses import JSONResponse, Response
@@ -747,7 +810,9 @@ class DockerExecutor:
                             return await invoke_mcp(self.config["mcp"], arguments, operation_root / "tool",
                                 **({'ha_required': True, 'ha_admission': lambda call:
                                     ha_admission('tool', 1, sha(payload['tool_call']), call)} if 'cluster' in payload else {}))
-                        return await invoke_pyats(self.config["pyats"], arguments, operation_root / "tool")
+                        return await invoke_pyats(self.config["pyats"], arguments, operation_root / "tool",
+                            **({'ha_required': True, 'ha_admission': lambda call:
+                                ha_admission('tool', 1, sha(payload['tool_call']), call)} if 'cluster' in payload else {}))
                     return await native()
             except TimeoutError as exc:
                 raise RuntimeUnknown("tool_outcome_unknown") from exc
@@ -951,6 +1016,16 @@ class DockerExecutor:
                         "usage": {"inference_calls": self.fence.count(operation_id),
                                   "tool_calls": 1, "provider_usage": "unavailable", **local_usage},
                         "effective_model_profile": payload["model_profile"]}
+        except BaseException as group:
+            # `mcp.session_manager.run()` is an anyio task group: a refusal raised in its body leaves as an
+            # ExceptionGroup, which the member then cannot classify (not a ProtectedError), so it recorded
+            # `outcome_unknown` and sent no result even though no effect was ever claimed (live finding, hosted
+            # NetBox member: guard_not_ready). Hosted only: re-raise the single reviewed Protected* error unchanged so
+            # the member's existing rules apply (an unclaimed effect becomes a signed refusal; an unknown stays unknown).
+            single = _single_protected_error(group) if getattr(self, 'hosted', None) is not None else None
+            if single is not None:
+                raise single from None
+            raise
         finally:
             # No retries or new containers after interruption. Keep named stopped
             # containers, private evidence and claims for inspection/reconciliation.

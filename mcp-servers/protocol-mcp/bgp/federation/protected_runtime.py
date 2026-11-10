@@ -268,10 +268,60 @@ class ExactToolBroker:
         return await self.gate(dict(approved), effect)
 
 
-async def invoke_pyats(config, arguments, operation_root):
-    """The approved effect is a private official MCP stdio invocation."""
+_PYATS_CREDENTIAL_NAMES = ("PYATS_R02_USERNAME", "PYATS_R02_PASSWORD", "PYATS_R02_ENABLE_PASSWORD")
+
+
+def pyats_credentials(config):
+    """Scoped device credentials for the one child. Spec 182 (HA member): a launcher-started member cannot receive extra
+    environment variables, so an optional private `credential_file` (exactly the three reviewed names, 0600, owner-only,
+    canonical path) supplies them instead; otherwise the original environment-only behaviour is unchanged. Values are
+    never logged and only reach the child's environment."""
+    names = config.get("credential_env", [])
+    path = config.get("credential_file")
+    if path is None:
+        found = {}
+        for name in names:
+            if name not in _PYATS_CREDENTIAL_NAMES or name not in os.environ:
+                raise RuntimeRefused("missing_scoped_device_credential")
+            found[name] = os.environ[name]
+        return found
+    credential = Path(path)
+    if not isinstance(path, str) or credential.absolute() != credential.resolve():
+        raise RuntimeRefused("unsafe_credential_file")
+    try:
+        info = credential.lstat()
+        if (not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid() or info.st_mode & 0o077 or info.st_size > 4096):
+            raise RuntimeRefused("unsafe_credential_file")
+        text = credential.read_text(encoding="utf-8")
+    except (OSError, UnicodeError):
+        raise RuntimeRefused("unsafe_credential_file") from None
+    found = {}
+    for line in text.splitlines():
+        if not line.strip():
+            continue
+        name, separator, value = line.partition("=")
+        if (not separator or name not in _PYATS_CREDENTIAL_NAMES or name in found or not value
+                or any(ord(char) < 32 for char in value)):
+            raise RuntimeRefused("unsafe_credential_file")
+        found[name] = value
+    if set(found) != set(names) or set(found) != set(_PYATS_CREDENTIAL_NAMES):
+        raise RuntimeRefused("missing_scoped_device_credential")
+    return found
+
+
+async def invoke_pyats(config, arguments, operation_root, *, ha_required=False, ha_admission=None):
+    """The approved effect is a private official MCP stdio invocation.
+
+    Spec 182 (HA member): with `ha_required` the single tools/call is written through the HA stdio transport after a fresh
+    effect admission, exactly as `protected_mcp.invoke_mcp` does for the calculator and NetBox reads. Without it (the
+    original R02 path) behaviour is unchanged."""
     from mcp import ClientSession, StdioServerParameters
     from mcp.client.stdio import stdio_client
+    if ha_required:
+        if not callable(ha_admission):
+            raise RuntimeRefused("ha_runtime_unqualified")
+        from .ha.mcp_transport import ha_stdio_client
+        stdio_client = ha_stdio_client
     operation_root = private_directory(operation_root)
     approved = operation_root / "approved-arguments.json"
     private_write(approved, canonical(arguments))
@@ -345,10 +395,7 @@ async def invoke_pyats(config, arguments, operation_root):
                    "PYTHONUNBUFFERED": "1", "PYTHON_DOTENV_DISABLED": "1",
                    "PYATS_TESTBED_PATH": str(frozen_testbed), "PYATS_MCP_CONN_CACHE_TTL": "0",
                    "PYATS_MCP_ARTIFACTS_DIR": str(operation_root / "pyats")}
-    for name in config.get("credential_env", []):
-        if name not in {"PYATS_R02_USERNAME", "PYATS_R02_PASSWORD", "PYATS_R02_ENABLE_PASSWORD"} or name not in os.environ:
-            raise RuntimeRefused("missing_scoped_device_credential")
-        environment[name] = os.environ[name]
+    environment.update(pyats_credentials(config))
     params = StdioServerParameters(command=config["python"], env=environment,
                                    args=[str(script), "--upstream", str(source),
                                          "--upstream-sha256", config["upstream_sha256"],
@@ -361,7 +408,17 @@ async def invoke_pyats(config, arguments, operation_root):
         async with stdio_client(params, errlog=error_log) as (reader, writer):
             async with ClientSession(reader, writer) as session:
                 await session.initialize()
-                response = await session.call_tool("pyats_run_show_command", arguments)
+                if ha_required:
+                    private_write(operation_root / "pyats-call.json", canonical(
+                        {"tool": "pyats_run_show_command", "arguments": arguments, "state": "intent_prepared",
+                         "prepared_at_ms": int(time.time() * 1000)}))
+
+                async def call():
+                    return await session.call_tool("pyats_run_show_command", arguments)
+
+                # Process creation, initialization and every private file precede the fresh challenge; the HA transport
+                # rechecks the consumed scope at the synchronous stdin handoff of the one tools/call.
+                response = await ha_admission(call) if ha_required else await call()
                 if response.is_error:
                     raise RuntimeUnknown("pyats_effect_failed")
                 evidence = response.structured_content

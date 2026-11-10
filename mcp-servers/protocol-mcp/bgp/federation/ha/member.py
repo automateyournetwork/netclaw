@@ -15,7 +15,7 @@ class ClusterMemberOperations(ProtectedOperations):
                  attachments, journal, catalog_provider, executor, audit_writer,
                  clock_ms=None, current=None):
         check(manifest.anchor_key_id is not None, 'unverified_cluster_manifest', 403)
-        check(isinstance(executor, DockerExecutor) and executor.ollama, 'ha_runtime_unqualified', 503)
+        check(isinstance(executor, DockerExecutor) and (executor.ollama or getattr(executor, 'hosted', None)), 'ha_runtime_unqualified', 503)
         check(c.key_id(certificate) == identity['key_id'], 'member_key_mismatch', 403)
         self.manifest, self.attachments, self.journal = manifest, attachments, journal
         self.current = current
@@ -58,7 +58,7 @@ class ClusterMemberOperations(ProtectedOperations):
         # This is only the local single-use tool claim. It grants no permission
         # to invoke: DockerExecutor performs the fresh quorum admission inside
         # its exact native callback, after local catalog/audit/claim work.
-        check(isinstance(self.executor, DockerExecutor) and self.executor.ollama, 'ha_runtime_unqualified', 503)
+        check(isinstance(self.executor, DockerExecutor) and (self.executor.ollama or getattr(self.executor, 'hosted', None)), 'ha_runtime_unqualified', 503)
         return dict(binding, ha_admission_required=True)
 
     async def _run_guarded(self, row, payload, gate):

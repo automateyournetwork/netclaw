@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { verifyClusterDescriptor, clusterAudience, clusterReviewMatches, clusterCanDecide, clusterStatusText } from './cluster-binding.js';
+import { verifyClusterDescriptor, clusterAudience, clusterReviewMatches, clusterCanDecide, clusterStatusText, regionLabel, clusterNodeRegion, clusterFailoverNotice } from './cluster-binding.js';
 const fixture = JSON.parse(fs.readFileSync(new URL('../../../../tests/fixtures/ha-179/cluster-golden.json', import.meta.url)));
 const value = fixture.descriptors[0], options = { pin: fixture.pin, origin: value.manifest.manifest.nodes[0].endpoints.https, installationId: value.installation_id, now: fixture.now_ms };
 test('Python-generated P256 manifest binds distinct node and stable cluster audience', async () => {
@@ -41,4 +41,14 @@ test('old issuer is retained for status but old epoch and quorum loss cannot ena
 test('cross-language negative golden descriptors fail closed and unknown work never becomes a new decision',async()=>{
  for(const row of fixture.negative_descriptors)await assert.rejects(verifyClusterDescriptor(row.descriptor,{pin:row.pin,now:fixture.now_ms}),error=>error.code===row.error,row.case);
  assert.equal(clusterCanDecide(fixture.descriptors[0],fixture.unknown_operation),false);
+});
+
+test('region label is display-only and unknown names stay usable', () => {
+ assert.equal(regionLabel('https://nne1-3fa9c2.automateyournetwork.com'),'Montreal');
+ assert.equal(regionLabel('ew1-b71d04.automateyournetwork.com'),'Belgium');
+ assert.equal(regionLabel('ase1-9c2e55.automateyournetwork.com'),'Singapore');
+ for (const bad of ['https://evil.example/nne1-3fa9c2.automateyournetwork.com','nne1-3fa9c.automateyournetwork.com','nne1-3fa9c2.automateyournetwork.com.evil.io','',undefined]) assert.equal(regionLabel(bad),'Unknown region');
+ assert.equal(clusterNodeRegion(undefined,'x'),'Unknown region');
+ assert.equal(clusterFailoverNotice({node_id:'a',authority:{state:'no_quorum'}}).includes('No quorum'),true);
+ assert.equal(clusterFailoverNotice({node_id:'a',authority:{state:'leader',leader_node_id:'a'}}),'');
 });

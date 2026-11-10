@@ -200,3 +200,18 @@ Future<StoredEnrollment> replaceClusterEndpoint({
     await probe?.close();
   }
 }
+
+/// Spec 182 region display. Display-only: never selects, trusts or pins an
+/// endpoint (contracts/region-display.md). Only the signed manifest does.
+String regionLabel(Object? endpointOrHost) {
+  var host = '${endpointOrHost ?? ''}';
+  final uri = Uri.tryParse(host);
+  if (uri != null && uri.hasScheme && uri.host.isNotEmpty) host = uri.host;
+  final m = RegExp(
+    r'^(nne1|ew1|ase1)-[0-9a-f]{6}\.automateyournetwork\.com$',
+  ).firstMatch(host);
+  if (m == null) return 'Unknown region';
+  return const {'nne1': 'Montreal', 'ew1': 'Belgium', 'ase1': 'Singapore'}[m
+          .group(1)] ??
+      'Unknown region';
+}
