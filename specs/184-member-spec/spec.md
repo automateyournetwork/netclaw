@@ -146,6 +146,11 @@ declarative member spec is the generic fix.
   design so an investigator can search the operator's knowledge base; the tool allowlist limits
   what the member may do with them. Only the memory and GAIT stores are the member's own.
   `GAIT_VENV`/`GAIT_MCP_SCRIPT` (executables) still come from the Border.
+- `literal_secrets` limits: a `${NAME:-literal}` default counts as literal; names ending in
+  `_FILE`, `_PATH`, `_TTL`, `_URL`, `_DOMAIN` and similar are not secrets; only a URL's password
+  (or a bare token user name) must be a reference. Not detected: non-string values under a
+  secret-looking key and secrets inside URL query strings; the operator keeps those out of the
+  template (the shipped template has none, tested).
 - `copy_skill` walks with `os.fwalk(follow_symlinks=False)` and opens files relative to the
   checked directory descriptor, so a directory swapped for a symlink mid-copy is not entered.
 

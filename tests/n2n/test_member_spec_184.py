@@ -1211,7 +1211,7 @@ def test_literal_secrets_finds_paths_never_values(profiles):
                  'https://user:pw@example.test/x', '--auth-token=literal-xyz'],
         'env': {'PROMETHEUS_TOKEN': 'literal-abc', 'PROMETHEUS_URL': 'http://prom:9090',
                 'GNS3_TOKEN_TTL': '3600', 'VERIFY_TOKEN_SSL': 'true', 'SECRET_REF': '${SECRET_REF}',
-                'DEFAULTED_KEY': '${DEFAULTED_KEY:-x}', 'EMPTY_PASSWORD': ''},
+                'EMPTY_PASSWORD': ''},
         'headers': {'Authorization': 'Bearer literal', 'X-Trace': 'on'},
         'url': 'https://u:p@mcp.example.test/sse',
     }
@@ -1221,7 +1221,7 @@ def test_literal_secrets_finds_paths_never_values(profiles):
     assert 'url (URL credentials)' in found
     assert 'args[1]' in found and 'args[6] (URL credentials)' in found and 'args[7]' in found
     for clean in ('env.PROMETHEUS_URL', 'env.GNS3_TOKEN_TTL', 'env.VERIFY_TOKEN_SSL', 'env.SECRET_REF',
-                  'env.DEFAULTED_KEY', 'env.EMPTY_PASSWORD', 'headers.X-Trace', 'args[3]', 'args[4]'):
+                  'env.EMPTY_PASSWORD', 'headers.X-Trace', 'args[3]', 'args[4]'):
         assert clean not in found
     assert not any('abc' in item or 'literal' in item or 'pw' in item for item in found)
 
@@ -1276,3 +1276,26 @@ def test_literal_secrets_accepts_references_with_an_auth_scheme(profiles):
 def test_literal_secrets_flags_nothing_in_the_shipped_template(profiles, template):
     assert {name: found for name, entry in template.items()
             if (found := profiles.literal_secrets(entry))} == {}
+
+
+def test_literal_secrets_round3_residuals(profiles):
+    flagged = {
+        'default': {'env': {'TOKEN': '${TOKEN:-sk-abc}'}},
+        'aws': {'env': {'AWS_ACCESS_KEY_ID': 'AKIAFIXTURE'}},
+        'pwd': {'env': {'DB_PWD': 'x1'}},
+        'url': {'url': 'https://user:pw@host'},
+        'url-token-user': {'url': 'https://ghp_fixture@github.com/x'},
+    }
+    clean = {
+        'ttl': {'env': {'TOKEN_TTL': '30s'}},
+        'file': {'env': {'API_TOKEN_FILE': '/etc/tok'}},
+        'domain': {'env': {'COOKIE_DOMAIN': 'example.com'}},
+        'url-ref': {'url': 'https://user:${PASS}@host'},
+        'url-ref-user': {'url': 'https://${TOKEN}@github.com/x'},
+        'token-file-flag': {'args': ['--token-file', '/run/x']},
+        'empty-default': {'env': {'TOKEN': '${TOKEN:-}'}},
+    }
+    for name, entry in flagged.items():
+        assert profiles.literal_secrets(entry), name
+    for name, entry in clean.items():
+        assert profiles.literal_secrets(entry) == [], name

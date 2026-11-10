@@ -589,20 +589,41 @@ def spec_member_servers(spec, servers):
 # variable NAMES; a value written literally into the Border template (instead of a
 # ${VAR} reference) would be copied into the member's openclaw.json as is. A spec
 # member refuses such an entry; the operator moves the value into the .env.
-_SECRET_KEY = re.compile(r"(?i)(token|secret|passw(or)?d|api[_-]?key|apikey|credential|"
-                         r"authori[sz]ation|bearer|private[_-]?key|session[_-]?key|cookie)")
-_URL_USERINFO = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*://[^/@\s]+@")
-_PLAIN_SETTING = re.compile(r"(?i)^(\d+(\.\d+)?|true|false|yes|no|on|off|none|bearer|basic)$")
-_ANY_ENV_REF = re.compile(r"\$\{[A-Za-z_][A-Za-z0-9_]*(?::?[-=][^}]*)?\}")
+_SECRET_KEY = re.compile(r"(?i)(token|secret|passw(or)?d|(^|[_-])pwd$|^auth$|api[_-]?key|apikey|"
+                         r"access[_-]?key|credential|authori[sz]ation|bearer|private[_-]?key|"
+                         r"session[_-]?key|cookie)")
+# Names that hold where or how a secret is used, not the secret itself.
+_NOT_SECRET_NAME = re.compile(r"(?i)([_-]?(file|path|dir|ttl|url|uri|domain|header|name|type|mode|"
+                              r"expir\w*|timeout|refresh|scope|algorithm|endpoint))$")
+_URL_USERINFO = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*://([^/@\s]+)@")
+_PLAIN_SETTING = re.compile(r"(?i)^(\d+(\.\d+)?[smhd]?|true|false|yes|no|on|off|none|bearer|basic)$")
+_ANY_ENV_REF = re.compile(r"\$\{[A-Za-z_][A-Za-z0-9_]*(?::?[-=]([^}]*))?\}")
 _AUTH_SCHEME = re.compile(r"(?i)^(bearer|basic|token|bot|apikey|api-key|key|digest|sso-key)?$")
 
 
 def _referenced(value):
-    """True when `value` carries its secret only through ${NAME} references, e.g.
-    '${TOKEN}', 'Bearer ${TOKEN}' or 'Basic ${USER_PASS_B64}'."""
-    if not _ANY_ENV_REF.search(value):
+    """True when `value` carries its secret only through ${NAME} references with no
+    literal default, e.g. '${TOKEN}', 'Bearer ${TOKEN}', '${USER}:${PASS}'."""
+    refs = list(_ANY_ENV_REF.finditer(value))
+    if not refs or any((m.group(1) or "").strip() for m in refs):
         return False
     return bool(_AUTH_SCHEME.match(_ANY_ENV_REF.sub("", value).replace(":", " ").strip()))
+
+
+def _secret_name(name):
+    name = str(name)
+    return bool(_SECRET_KEY.search(name)) and not _NOT_SECRET_NAME.search(name)
+
+
+def _url_has_literal_credentials(value):
+    """A URL with user:password@ whose password is literal, or a bare user@ (a token
+    used as the user name) that is literal. A literal user name with a ${NAME}
+    password is fine."""
+    match = _URL_USERINFO.match(value)
+    if not match:
+        return False
+    user, sep, password = match.group(1).partition(":")
+    return not _referenced(password if sep else user)
 
 
 def literal_secrets(entry, where=""):
@@ -614,19 +635,19 @@ def literal_secrets(entry, where=""):
         for key, value in entry.items():
             path = f"{where}.{key}" if where else str(key)
             if isinstance(value, str):
-                if (value and _SECRET_KEY.search(str(key)) and not _referenced(value)
+                if (value and _secret_name(key) and not _referenced(value)
                         and not _PLAIN_SETTING.match(value)):
                     found.append(path)
-                elif _URL_USERINFO.match(value):
+                elif _url_has_literal_credentials(value):
                     found.append(f"{path} (URL credentials)")
             elif key == "args" and isinstance(value, list):
                 for i, arg in enumerate(value):
                     if not isinstance(arg, str):
                         continue
-                    if _URL_USERINFO.match(arg):
+                    if _url_has_literal_credentials(arg):
                         found.append(f"{path}[{i}] (URL credentials)")
                     flag, _, inline = arg.partition("=")
-                    if flag.startswith("-") and _SECRET_KEY.search(flag):
+                    if flag.startswith("-") and _secret_name(flag.lstrip("-")):
                         literal = inline if inline else (value[i + 1] if i + 1 < len(value) else "")
                         if isinstance(literal, str) and literal and not literal.startswith("-") \
                                 and not _referenced(literal) \

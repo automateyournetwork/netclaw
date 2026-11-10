@@ -137,10 +137,14 @@ before every member-home write. Round-3 fixes and tests:
   `test_spec_member_refuses_a_literal_secret_in_a_kept_server`);
 - `copy_skill` does not enter a symlinked skill or subdirectory
   (`test_copy_skill_does_not_enter_a_symlinked_skill_or_subdirectory`);
+- a second read-only Grok pass confirmed the fixes and listed residual shapes; defaults with
+  literals, more secret names, URL passwords and `_FILE`/`_TTL`-style names are now handled
+  (`test_literal_secrets_round3_residuals`), the shipped template stays clean
+  (`test_literal_secrets_flags_nothing_in_the_shipped_template`);
 - docs now state that kept servers keep their own data stores (allowlist-limited) and that
   `GAIT_VENV`/`GAIT_MCP_SCRIPT` come from the Border.
 
-Results on top of e21d867c: `test_member_spec_184.py` 141 passed, `test_member_mcp_mappings_183.py`
+Results on top of e21d867c: `test_member_spec_184.py` 144 passed, `test_member_mcp_mappings_183.py`
 50 passed (installed OpenClaw 2026.10.9). Full `tests/n2n` (fastmcp4 runtime): main 32 failed,
 1975 passed, 16 skipped, 179 errors; this branch the identical failing/erroring ids and 2163+
 passed. The failures and errors come from modules not installed on this host (for example
