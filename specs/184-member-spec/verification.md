@@ -4,9 +4,10 @@ No credentials are recorded here.
 
 ## Tests
 
-- `tests/n2n/test_member_spec_184.py`: 83 tests; 81 passed and 2 skipped without OpenClaw on
-  `npm root -g`; 83 passed with `NETCLAW_TEST_OPENCLAW_DIST` set to the installed OpenClaw
-  2026.10.9 `dist/`. Fixture Borders are built with spec 183's `install_config` (every catalog
+- `tests/n2n/test_member_spec_184.py`: 138 tests, all passing on 2026-11-10 on top of upstream
+  e21d867c (spec 182 HA merged), with the installed OpenClaw 2026.10.9 found through `npm root -g`
+  or `NETCLAW_TEST_OPENCLAW_DIST`; the OpenClaw-backed tests skip when it is absent.
+  Fixture Borders are built with spec 183's `install_config` (every catalog
   component through `scripts/install-mcp-config.py`), plus an operator-registered `pfsense-mcp`.
   - Format: the example spec validates; each error is raised with its message (non-object,
     unknown keys, each missing required key, version 2/"1"/true, unsafe/empty/long/non-string and

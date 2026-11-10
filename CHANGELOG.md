@@ -2,6 +2,13 @@
 
 NetClaw source releases use `1.x.y`. Feature specs increment the minor version and reset the patch; fixes, documentation and maintenance increment the patch. Every release records its numbered specs. Component and mobile distribution versions are independent.
 
+## [1.21.0] - 2026-11-10
+
+- Members get the MCP servers their skills call (35 of 42 profiles), and an env slice with exactly the variables those servers reference; never ServiceNow/comms secrets, never the Border's `.env` or home.
+- Member specs: `in2n-member-home.py --spec`, `netclaw risk add spec`, `in2n-migrate.py --spec` provision a member from a JSON spec (servers, skills, tool allowlist) with its own workspace, stores and allowlisted config; dangerous built-ins and Border-only servers refused.
+
+Specs [183-member-mcp-mappings](specs/183-member-mcp-mappings/spec.md) and [184-member-spec](specs/184-member-spec/spec.md). See [release notes](docs/releases/1.21.0.md).
+
 ## [1.20.0] - 2026-11-08
 
 - `n2n_task_wait`: wait for a delegated task (50 s slices, `still_running`/`not_found`/retryable `error`); the `n2n-federation` skill uses it when available.
