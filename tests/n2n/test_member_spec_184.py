@@ -1264,3 +1264,15 @@ def test_copy_skill_does_not_enter_a_symlinked_skill_or_subdirectory(member_home
     (source / 'refs').symlink_to(private, target_is_directory=True)
     member_home.copy_skill(source, tmp_path / 'out2')
     assert sorted(str(p.relative_to(tmp_path / 'out2')) for p in (tmp_path / 'out2').rglob('*')) == ['SKILL.md']
+
+
+def test_literal_secrets_accepts_references_with_an_auth_scheme(profiles):
+    for value in ('${X}', 'Bearer ${X}', 'Basic ${A}', 'token ${X}', '${A}:${B}', 'Bot ${X}'):
+        assert profiles.literal_secrets({'headers': {'Authorization': value}}) == [], value
+    for value in ('Bearer abc', 'x${A}', 'Basic dXNlcjpwYXNz'):
+        assert profiles.literal_secrets({'headers': {'Authorization': value}}) == ['headers.Authorization'], value
+
+
+def test_literal_secrets_flags_nothing_in_the_shipped_template(profiles, template):
+    assert {name: found for name, entry in template.items()
+            if (found := profiles.literal_secrets(entry))} == {}
