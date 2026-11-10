@@ -22,3 +22,9 @@ R09 left these gaps: no sandbox on any Border or member host; an unguarded Borde
 | HA | R09 failure matrix re-run; admission overhead measured against the signed window |
 | Operability | Per-node sandbox/guard status in HUD and VS Code; audit export; clean teardown |
 | Clients | Explicit G12/G13 disposition |
+
+## Outcome (2026-11-10)
+Two Borders and an etcd witness ran on GCP with the Border role, HUD ingress and DefenseClaw inside OpenShell sandboxes. Verified live:
+key injection by OpenShell, guarded chat turn, prompt/tool/skill blocks, fail-closed, 9/9 negative isolation cases on both nodes, HA
+fault matrix and node upgrade. Not done: member enrollment/member-executed operation, the OpenClaw gateway daemon and workspace
+backend inside the sandbox, a per-hop overhead measurement. See `specs/183-openshell-defenseclaw-gcp/verification.md`.

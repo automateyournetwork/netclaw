@@ -48,3 +48,6 @@ Everything created by this stage carries label `netclaw-spec=183` or name prefix
 - subnet `nc183-sub` and network `nc183-r09a`
 - GoDaddy A records `<code>-<id6>` created for this stage (list from the deploy plan)
 `scripts/ha-r09a-deploy.sh teardown --confirm` lists these first and refuses anything not matching the label or prefix. The default network, `default-*` firewall rules and any resource without the label/prefix are never touched.
+
+## Actual (2026-11-10)
+VMs created 17:17Z (09:17 PST); validation ended about 22:30Z: about 5 h x ~$0.20/h = ~$1.0 compute, plus egress of a few cents. Estimate for six hours was ~$1.8. Anthropic usage: a few short turns.

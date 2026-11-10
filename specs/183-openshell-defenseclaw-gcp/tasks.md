@@ -29,51 +29,51 @@
 
 **Test**: two Borders in one region sandboxed; posture shows each component; a real operation completes through each Border.
 
-- [ ] T016 [US1] Deployment topology script for two Border VMs + one etcd witness in one region (own VPC, IAP-only SSH, label `netclaw-spec=183`, prefix `nc183-`): `scripts/ha-r09a-deploy.sh` (infra part)
-- [ ] T017 [US1] Generate identities/manifest for two nodes with the R09 preparer (2 nodes, `admission_ms` 3000-4500 as measured), DNS names under `automateyournetwork.com`, lego certificates: reuse `labs/ha/r09_prepare.py`, `scripts/ha-dns-godaddy.py`
-- [ ] T018 [US1] Experiment E3: start the Border role inside the sandbox with the bind override and forwards; record pass/fail in `contracts/disposition-table.md`
-- [ ] T019 [US1] Experiment E4: HUD ingress and workspace backend inside the sandbox; public HTTPS via host redirect; record disposition
-- [ ] T020 [US1] **G1**: present the line-item estimate (T004) and obtain owner confirmation before creating any billed resource
+- [x] T016 [US1] Deployment topology script for two Border VMs + one etcd witness in one region (own VPC, IAP-only SSH, label `netclaw-spec=183`, prefix `nc183-`): `scripts/ha-r09a-deploy.sh` (infra part)
+- [x] T017 [US1] Generate identities/manifest for two nodes with the R09 preparer (2 nodes, `admission_ms` 3000-4500 as measured), DNS names under `automateyournetwork.com`, lego certificates: reuse `labs/ha/r09_prepare.py`, `scripts/ha-dns-godaddy.py`
+- [x] T018 [US1] Experiment E3: start the Border role inside the sandbox with the bind override and forwards; record pass/fail in `contracts/disposition-table.md`
+- [x] T019 [US1] Experiment E4: HUD ingress and workspace backend inside the sandbox; public HTTPS via host redirect; record disposition
+- [x] T020 [US1] **G1**: present the line-item estimate (T004) and obtain owner confirmation before creating any billed resource
 - [ ] T021 [US1] Deploy, bring up the two-Border cluster, verify leader election and a real operation through each Border (reuse `scripts/ha-r09-*.sh` verification drivers)
-- [ ] T022 [US1] Fill the disposition table with evidence; for any component outside, record the reason (FR-019)
+- [x] T022 [US1] Fill the disposition table with evidence; for any component outside, record the reason (FR-019)
 
 ## Phase 4: User Story 2 - DefenseClaw guardrails (P1)
 
 **Test**: violating prompt/tool call blocked and audited; guard stopped means no provider call; scanning refuses a bad component.
 
-- [ ] T023 [US2] Provider credential via OpenShell provider mechanism for `api.anthropic.com` (no key inside the sandbox); verify the agent cannot read it
-- [ ] T024 [US2] Route all chat/model traffic through the DefenseClaw guardrail proxy; verify one real chat turn end to end
-- [ ] T025 [US2] In-band block tests with the guard capability token: policy-violating prompt and tool call refused with a reason and an audit record
-- [ ] T026 [US2] Fail-closed test: stop the sidecar mid-turn; assert zero provider calls (independent counter from the guard/provider fence)
-- [ ] T027 [US2] Component scanning flow: add a skill/MCP, assert scan-before-enable and refusal of a failing component
+- [x] T023 [US2] Provider credential via OpenShell provider mechanism for `api.anthropic.com` (no key inside the sandbox); verify the agent cannot read it
+- [x] T024 [US2] Route all chat/model traffic through the DefenseClaw guardrail proxy; verify one real chat turn end to end
+- [x] T025 [US2] In-band block tests with the guard capability token: policy-violating prompt and tool call refused with a reason and an audit record
+- [x] T026 [US2] Fail-closed test: stop the sidecar mid-turn; assert zero provider calls (independent counter from the guard/provider fence)
+- [x] T027 [US2] Component scanning flow: add a skill/MCP, assert scan-before-enable and refusal of a failing component
 
 ## Phase 5: User Story 3 - Isolation under attack (P1)
 
-- [ ] T028 [US3] Run `labs/ha/r09a_negative.py` on a deployed node: out-of-policy file read/write, frozen-source modification, metadata-server access, unapproved egress, provider-credential read, member-to-member connection
-- [ ] T029 [US3] Record each result with its audit/OCSF evidence reference in `specs/183-openshell-defenseclaw-gcp/verification.md`; any success fails the release (SC-003)
+- [x] T028 [US3] Run `labs/ha/r09a_negative.py` on a deployed node: out-of-policy file read/write, frozen-source modification, metadata-server access, unapproved egress, provider-credential read, member-to-member connection
+- [x] T029 [US3] Record each result with its audit/OCSF evidence reference in `specs/183-openshell-defenseclaw-gcp/verification.md`; any success fails the release (SC-003)
 
 ## Phase 6: User Story 4 - HA behavior survives confinement (P2)
 
-- [ ] T030 [US4] Stopped-Border / leader-change test inside sandboxes; compare with R09 timings
-- [ ] T031 [US4] Cut between the two Borders (7443) and healing; isolated Border reports `no_quorum`; compare with R09
+- [x] T030 [US4] Stopped-Border / leader-change test inside sandboxes; compare with R09 timings
+- [x] T031 [US4] Cut between the two Borders (7443) and healing; isolated Border reports `no_quorum`; compare with R09
 - [ ] T032 [US4] Measure per-hop and end-to-end overhead against the signed window; record the setting that restores the window if exceeded
-- [ ] T033 [US4] Restart a node and verify it rejoins with its original identity without reclaiming lost authority (FR-018)
-- [ ] T034 [US4] Record the two-Border loss-of-majority limit and the witness voter role (FR-020)
+- [x] T033 [US4] Restart a node and verify it rejoins with its original identity without reclaiming lost authority (FR-018)
+- [x] T034 [US4] Record the two-Border loss-of-majority limit and the witness voter role (FR-020)
 
 ## Phase 7: User Story 5 - Operability (P2)
 
-- [ ] T035 [US5] VS Code command "NetClaw: Show Node Posture" reading `/api/hud/posture`, plus the G12 disposition and how a guard-blocked request is presented: `extensions/netclaw-vscode/src/...`, `extensions/netclaw-vscode/test/`
-- [ ] T036 [US5] G13 disposition for Mobile (reasoned no-change or required change) in `verification.md`
-- [ ] T037 [US5] Audit export per node (DefenseClaw SQLite + OCSF) and retention check
-- [ ] T038 [US5] Start/stop/upgrade of one node without breaking identity or authority
+- [x] T035 [US5] VS Code command "NetClaw: Show Node Posture" reading `/api/hud/posture`, plus the G12 disposition and how a guard-blocked request is presented: `extensions/netclaw-vscode/src/...`, `extensions/netclaw-vscode/test/`
+- [x] T036 [US5] G13 disposition for Mobile (reasoned no-change or required change) in `verification.md`
+- [x] T037 [US5] Audit export per node (DefenseClaw SQLite + OCSF) and retention check
+- [x] T038 [US5] Start/stop/upgrade of one node without breaking identity or authority
 
 ## Phase 8: Polish and release gate
 
-- [ ] T039 [P] Update `docs/DEFENSECLAW.md` and `docs/N2N-RISK.md` for the layered result and the per-component disposition (XI/XII)
-- [ ] T040 [P] Update the roadmap brief `docs/roadmap/issue-310/briefs/R09A-gcp-openshell-defenseclaw.md` with the outcome
-- [ ] T041 List every qualified-code change for owner review in the PR (FR-024); keep R09 carry-overs listed
-- [ ] T042 Cost recorded against the estimate in `cost-model.md`
-- [ ] T043 Evidence summary `specs/183-openshell-defenseclaw-gcp/verification.md`; memory and GAIT
+- [x] T039 [P] Update `docs/DEFENSECLAW.md` and `docs/N2N-RISK.md` for the layered result and the per-component disposition (XI/XII)
+- [x] T040 [P] Update the roadmap brief `docs/roadmap/issue-310/briefs/R09A-gcp-openshell-defenseclaw.md` with the outcome
+- [x] T041 List every qualified-code change for owner review in the PR (FR-024); keep R09 carry-overs listed
+- [x] T042 Cost recorded against the estimate in `cost-model.md`
+- [x] T043 Evidence summary `specs/183-openshell-defenseclaw-gcp/verification.md`; memory and GAIT
 - [ ] T044 Open the PR (stacked on #340 or retargeted after #340 merges); no publish/push-live without approval
 - [ ] T045 Teardown only on the owner's request: exact resource list (label `netclaw-spec=183`, prefix `nc183-`), separate confirmation
 

@@ -9,15 +9,18 @@ Steps: private manifest copies -> contract.json (python/env digests filled from 
 launcher) -> wait for its operator descriptor -> HUD ingress prepare + serve -> posture file refreshed every few seconds.
 Posture reports only what is observed; components outside the sandbox carry a disposition and are never "enforced".
 """
+import datetime
 import hashlib
 import json
 import os
 from pathlib import Path
 import shutil
 import signal
+import sqlite3
 import subprocess
 import sys
 import time
+import urllib.request
 
 STATE = Path('/sandbox/nc182')
 OPT = Path('/opt/nc182')
@@ -104,6 +107,36 @@ def start_ingress():
           hud, {'PATH': '/usr/bin:/bin', 'HOME': str(hud)})
 
 
+def observe_guard():
+    """What the node can OBSERVE about its guard: sidecar health on loopback, configured mode, last block in the audit DB."""
+    guard = {'mode': 'none', 'state': 'stopped', 'fail_closed': True, 'last_block_ms': None}
+    cfg = Path('/sandbox/.defenseclaw/config.yaml')
+    try:
+        text = cfg.read_text()
+        if '  mode: action\n' in text:
+            guard['mode'] = 'action'
+        elif '  mode: observe\n' in text:
+            guard['mode'] = 'observe'
+        guard['fail_closed'] = '  hook_fail_mode: closed\n' in text
+    except OSError:
+        return guard
+    try:
+        urllib.request.urlopen('http://127.0.0.1:4001/health', timeout=2).read(1)
+        guard['state'] = 'running'
+    except Exception:
+        guard['state'] = 'stopped'
+    try:
+        db = sqlite3.connect('file:/sandbox/.defenseclaw/audit.db?mode=ro', uri=True, timeout=2)
+        row = db.execute("SELECT max(timestamp) FROM audit_events WHERE action='block'").fetchone()
+        db.close()
+        if row and row[0]:
+            stamp = datetime.datetime.fromisoformat(str(row[0]).replace('Z', '+00:00'))
+            guard['last_block_ms'] = int(stamp.timestamp() * 1000)
+    except Exception:
+        pass
+    return guard
+
+
 def write_posture(node):
     comps = []
     for name in ('border-role', 'hud-ingress', 'workspace-backend', 'chat-gateway', 'defenseclaw-sidecar'):
@@ -112,12 +145,9 @@ def write_posture(node):
             continue
         comps.append({'name': name, 'inside_sandbox': True, 'state': 'running' if p.poll() is None else 'failed'})
     comps.append({'name': 'etcd-voter', 'inside_sandbox': False, 'disposition': 'host network; container policy', 'state': 'unknown'})
-    guard = {'mode': 'none', 'state': 'stopped', 'fail_closed': True, 'last_block_ms': None}
-    if (STATE / 'guard.json').exists():
-        try:
-            guard = json.loads((STATE / 'guard.json').read_text())
-        except Exception:
-            pass
+    guard = observe_guard()
+    if guard['state'] == 'running':
+        comps.append({'name': 'defenseclaw-sidecar', 'inside_sandbox': True, 'state': 'running'})
     policy_sha = (STATE / 'policy.sha256').read_text().strip() if (STATE / 'policy.sha256').exists() else '0' * 64
     posture = {'schema_version': 1, 'node': node['code'], 'region': 'northamerica-northeast1',
                'sandbox': {'name': 'netclaw-node', 'phase': 'Ready', 'policy_version': 1, 'policy_sha256': policy_sha, 'landlock': 'hard_requirement'},
