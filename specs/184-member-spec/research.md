@@ -89,7 +89,7 @@ reference with `%ENV{}`, and the testbed mode settings) and `config/installer-ac
 (`required_env`, `script_env`, `command_env`, read by `component-launch.py` `resolve`). Every
 installer-access component is a catalog component. `component_env_keys` takes the union.
 
-Spec 182's profile slices had the same gap wherever a component setting matches no profile
+Spec 183's profile slices had the same gap wherever a component setting matches no profile
 prefix: pyats (device logins, `NETCLAW_TESTBED_MODE`/`NETCLAW_TESTBED_SOURCES`), packet
 (`PCAP_UPLOAD_DIR`), netbox (`PYATS_TESTBED_PATH`). The fix is in the shared `_slice`. The
 servicenow component's settings are all `SERVICENOW_*` and stay denied.
@@ -151,7 +151,7 @@ servicenow component's settings are all `SERVICENOW_*` and stay denied.
   `memory.search.extraPaths` (`memory_get`, `memory_search`, `personal_instructions`), or other
   sessions, processes, files or devices.
 
-## Follow-up (not in spec 183)
+## Follow-up (not in spec 184)
 
 Profile members still deep-copy the Border's config (see spec.md "Known behaviour"): gateway
 auth, hooks token, cron, env.vars, every provider key, memory search remote key and extra

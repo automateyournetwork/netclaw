@@ -7,7 +7,7 @@
   `PROFILE_MATCHERS` is, and replace the misleading comment.
 - Move the member-home server filter into `scoped_mcp_servers(servers, member, prof)` in
   `scripts/in2n-member-home.py`; `main()` calls it. No behaviour change.
-- `tests/n2n/test_member_mcp_mappings_182.py`: registration, keys, corrected mappings,
+- `tests/n2n/test_member_mcp_mappings_183.py`: registration, keys, corrected mappings,
   unchanged uncertain profiles, catalog drift with recorded exceptions, the scoping
   function on a minimal template, and `in2n-member-home.py` run end to end on a fixture
   Border config.

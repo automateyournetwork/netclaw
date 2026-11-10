@@ -1,4 +1,4 @@
-"""Spec 182: a member's scoped config keeps the MCP servers its skills call.
+"""Spec 183: a member's scoped config keeps the MCP servers its skills call.
 
 Source and fixture checks only: no gateway, provider or MCP server is started.
 """

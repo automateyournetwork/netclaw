@@ -17,7 +17,7 @@ Usage: python3 scripts/in2n-member-home.py --risk johns-risk --member ipfabric \
          [--model claude-sonnet-5] [--anthropic-key-from ~/.openclaw/.env]
        python3 scripts/in2n-member-home.py --risk johns-risk --spec member.json \
          --member-env <the member's .env>
-A member spec (spec 183) sets the kept servers, skills and the top-level `tools`
+A member spec (spec 184) sets the kept servers, skills and the top-level `tools`
 policy; see docs/N2N-RISK.md "Member spec".
 """
 import argparse, copy, importlib.util, json, os, stat, sys, re, shutil
@@ -58,7 +58,7 @@ def _launched_component(entry):
 def scoped_mcp_servers(servers, member, prof=None, home=None, member_env=None, border_root=None,
                        spec=None):
     """The Border's mcp.servers entries a member of profile `member` keeps: its
-    MCP_SERVERS list plus memory-mcp, or for a member spec (spec 183) spec.servers
+    MCP_SERVERS list plus memory-mcp, or for a member spec (spec 184) spec.servers
     plus memory-mcp. Servers the Border lacks are skipped.
 
     With `home`, an entry that selects a runtime (NETCLAW_RUNTIME_ROOT/ENV, which
@@ -67,7 +67,7 @@ def scoped_mcp_servers(servers, member, prof=None, home=None, member_env=None, b
     NETCLAW_RUNTIME_ENV, so the Border's would hand the member the whole Border .env.
     pyATS keeps the Border's pyats-venv (an executable, like GAIT_VENV), from the
     entry's own NETCLAW_RUNTIME_ROOT or else `border_root`. Its change root follows
-    the member's runtime root (<home>/netclaw-changes); see spec 182 research.md."""
+    the member's runtime root (<home>/netclaw-changes); see spec 183 research.md."""
     prof = prof or _profiles()
     kept = copy.deepcopy(prof.spec_member_servers(spec, servers) if spec is not None
                          else prof.member_servers(member, servers))
@@ -362,7 +362,7 @@ def copy_skill(source, target):
 
 def member_home_command(risk, member, member_env, spec=None, allow_dangerous=False):
     """The exact provisioning command for a staged member (printed by in2n-migrate.py);
-    a spec member's names its spec file (spec 183), plus --allow-dangerous-tools when
+    a spec member's names its spec file (spec 184), plus --allow-dangerous-tools when
     the operator opted in for a spec that needs it."""
     import shlex
     selector = ("--spec", str(_member_path(spec))) if spec else ("--member", member)
@@ -660,7 +660,7 @@ def main():
     ap.add_argument("--risk", required=True)
     ap.add_argument("--member", default=None, help="profile/member name, e.g. ipfabric "
                     "(with --spec: defaults to, and must equal, the spec's name)")
-    ap.add_argument("--spec", default=None, help="member spec JSON file (spec 183)")
+    ap.add_argument("--spec", default=None, help="member spec JSON file (spec 184)")
     ap.add_argument("--allow-dangerous-tools", action="store_true",
                     help="with --spec: permit dangerous built-in tools (exec, write, ...) the spec "
                          "allows; recorded in the member home")
@@ -703,8 +703,8 @@ def main():
 
 
 def provision_spec(args, runtime):
-    """A member from a member spec (spec 183): the generic OpenClaw path with the
-    spec's servers, model and tool policy. Every spec-182 protection applies."""
+    """A member from a member spec (spec 184): the generic OpenClaw path with the
+    spec's servers, model and tool policy. Every spec-183 protection applies."""
     if runtime.kind=='hermes' and not args.border_config:
         raise ValueError('an OpenClaw member requires --border-config pointing at its reviewed OpenClaw template')
     prof = _profiles()
@@ -771,7 +771,7 @@ def _provision_openclaw(args, runtime, name, spec=None):
         key = _anthropic_key(args.member_env or Path(mh) / ".env")
     else:
         # 2. strip comms plugins/channels that break --local; keep defenseclaw (guardrails).
-        # Profile members: unchanged by spec 183 (see spec 183 "Known behaviour").
+        # Profile members: unchanged by spec 184 (see spec 184 "Known behaviour").
         pl = m.get("plugins", {})
         if isinstance(pl, dict):
             for sub in ("entries", "load"):

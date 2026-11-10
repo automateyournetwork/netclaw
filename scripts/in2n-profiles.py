@@ -13,7 +13,7 @@ Usage:
     python3 scripts/in2n-profiles.py scope cml            # JSON scope (base + specialty)
     python3 scripts/in2n-profiles.py scope custom a,b,c   # custom skill set
     python3 scripts/in2n-profiles.py spec member.json [--border-config PATH] [--allow-dangerous-tools]
-                                                          # validate a member spec (spec 183)
+                                                          # validate a member spec (spec 184)
 No third-party deps (stdlib only), matching scripts/register-all-mcps.py.
 """
 
@@ -253,7 +253,7 @@ def env_slice_keys(profile, env_keys, servers=None):
     """Return the env-key NAMES a member of `profile` should receive (least
     privilege): its integration prefixes + the base-member prefixes + every variable
     its kept MCP servers reference as ${NAME} or, for a component-launched server,
-    read from its env file (component_env_keys, spec 183), except shared credentials
+    read from its env file (component_env_keys, spec 184), except shared credentials
     (derived_ref_allowed). `servers` is the Border template's mcp.servers map;
     without it only the prefixes apply. A key no kept server references and no
     prefix matches (comms secrets, other integrations) is never included. Values
@@ -288,7 +288,7 @@ def _read_json(relative):
         return {}
 
 
-# ── Border-only components (spec 183 review): never a member's ──
+# ── Border-only components (spec 184 review): never a member's ──
 # HUD-private components (installer-access.json `access: hud-private`), the federation
 # and control plane (protocol daemon, n2n tools), netconverter (bound to the Border
 # installation's identity and API key), the Convergence reader (provisioned only by
@@ -353,7 +353,7 @@ def component_env_keys(entry):
     return set(COMPONENT_ENV_KEYS.get(launched_component(entry), ()))
 
 
-# ── Member spec (spec 183): a declarative member, no profile, no NetClaw patch ──
+# ── Member spec (spec 184): a declarative member, no profile, no NetClaw patch ──
 #
 # {"version": 1, "name": ..., "description": ..., "servers": [...], "skills": [...],
 #  "tools": {"allow": [...]}, "model": null}
@@ -628,7 +628,7 @@ def spec_tool_policy(spec):
 # protocol base floor). Each list is the set of registered servers whose tools
 # the profile's skills call, from the skill→server binding in
 # config/components/catalog.json and the skills' own "MCP Server" sections
-# (audit: specs/182-member-mcp-mappings/research.md). Every name is registered in
+# (audit: specs/183-member-mcp-mappings/research.md). Every name is registered in
 # config/openclaw.json, except ipfabric-mcp, which scripts/ipfabric-enable.sh has
 # the operator add.
 #

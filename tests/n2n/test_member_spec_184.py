@@ -1,7 +1,7 @@
-"""Spec 183: provision an iN2N member from a declarative member spec.
+"""Spec 184: provision an iN2N member from a declarative member spec.
 
 Source and fixture checks only: no gateway, provider, daemon or MCP server is started.
-Fixture Borders are built by install-mcp-config.py, as in spec 182's tests.
+Fixture Borders are built by install-mcp-config.py, as in spec 183's tests.
 """
 import copy
 import importlib.util
@@ -27,7 +27,7 @@ def load(path, name):
     return module
 
 
-T182 = load(ROOT / 'tests/n2n/test_member_mcp_mappings_182.py', 'spec183_t182')
+T182 = load(ROOT / 'tests/n2n/test_member_mcp_mappings_183.py', 'spec183_t182')
 install_config, private_file, slice_keys = T182.install_config, T182.private_file, T182.slice_keys
 
 # The operator-registered pfsense server (not a NetClaw component) the Convergence
@@ -390,7 +390,7 @@ def test_denied_component_settings_never_appear(profiles, template, tmp_path):
     ('netbox', {'PYATS_TESTBED_PATH'}),
 ])
 def test_profile_members_get_component_settings(profiles, template, profile, keys):
-    """Spec 182's profile slices had the same gap: these settings match no profile prefix."""
+    """Spec 183's profile slices had the same gap: these settings match no profile prefix."""
     env_keys = keys | {'SLACK_BOT_TOKEN', 'UNRELATED_SECRET'}
     assert set(profiles.env_slice_keys(profile, env_keys, template)) == keys
 
@@ -466,7 +466,7 @@ def test_member_requires_member_or_spec(tmp_path):
     assert result.returncode != 0 and '--member or --spec is required' in result.stderr
 
 
-# ── Spec 182 protections hold for a spec member ──
+# ── Spec 183 protections hold for a spec member ──
 
 def test_spec_member_refuses_missing_and_border_env(tmp_path):
     border = tmp_path / '.openclaw'
@@ -1148,7 +1148,7 @@ def test_spec_store_overrides_without_installed_env(member_home, tmp_path):
 
 
 def test_profile_member_memory_store_unchanged(tmp_path):
-    """Known behaviour (predates spec 183): a profile member's memory-mcp keeps the
+    """Known behaviour (predates spec 184): a profile member's memory-mcp keeps the
     Border template's MEMORY_DATA_DIR. Pinned so a change is deliberate."""
     border = tmp_path / '.openclaw'
     servers = border_with_pfsense(border, 'ANTHROPIC_API_KEY=fixture\n')

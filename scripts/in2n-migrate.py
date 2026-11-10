@@ -19,7 +19,7 @@ NOTE: this is ALSO the shape a FRESH install produces per member — migration j
 pre-fills the .env slice from an existing monolith; a fresh member fills it in via
 the installer. Same runtime (scripts/in2n-member.py), same enrollment.
 
-A member spec (spec 183, `--spec member.json`, repeatable) stages one more member:
+A member spec (spec 184, `--spec member.json`, repeatable) stages one more member:
 its slice is every variable its kept servers reference plus the base-member keys, no
 profile prefixes; `--specs-only` stages only the spec members.
 
@@ -92,7 +92,7 @@ def main():
                     help="idle seconds before a cold/on-demand member exits")
     ap.add_argument("--live-env", default=None)
     ap.add_argument("--spec", action="append", default=[],
-                    help="member spec JSON file to stage as a member (spec 183); repeatable")
+                    help="member spec JSON file to stage as a member (spec 184); repeatable")
     ap.add_argument("--specs-only", action="store_true",
                     help="stage only the --spec members, not the offered profiles")
     ap.add_argument("--allow-dangerous-tools", action="store_true",

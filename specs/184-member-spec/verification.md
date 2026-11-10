@@ -4,9 +4,9 @@ No credentials are recorded here.
 
 ## Tests
 
-- `tests/n2n/test_member_spec_183.py`: 83 tests; 81 passed and 2 skipped without OpenClaw on
+- `tests/n2n/test_member_spec_184.py`: 83 tests; 81 passed and 2 skipped without OpenClaw on
   `npm root -g`; 83 passed with `NETCLAW_TEST_OPENCLAW_DIST` set to the installed OpenClaw
-  2026.10.9 `dist/`. Fixture Borders are built with spec 182's `install_config` (every catalog
+  2026.10.9 `dist/`. Fixture Borders are built with spec 183's `install_config` (every catalog
   component through `scripts/install-mcp-config.py`), plus an operator-registered `pfsense-mcp`.
   - Format: the example spec validates; each error is raised with its message (non-object,
     unknown keys, each missing required key, version 2/"1"/true, unsafe/empty/long/non-string and
@@ -37,7 +37,7 @@ No credentials are recorded here.
     component contribute nothing. Denied keys never appear: a spec keeping `servicenow-mcp` gets
     none of its `SERVICENOW_*` settings, and a catalog patched to declare `SLACK_BOT_TOKEN`,
     `EMAIL_PASSWORD` and `TWILIO_AUTH_TOKEN` as pyats settings still yields only
-    `NETCLAW_PASSWORD`. Profile members (spec 182 gap): pyats now gets the device logins and
+    `NETCLAW_PASSWORD`. Profile members (spec 183 gap): pyats now gets the device logins and
     `NETCLAW_TESTBED_MODE`, packet `PCAP_UPLOAD_DIR`, netbox `PYATS_TESTBED_PATH`.
   - Skills (round 1): `spec_skill_allowlist` creates `agents.entries.main` without a roster, sets
     `skills` on every keyed entry (keeping `ownership`) and every legacy `list` entry, and on
@@ -52,7 +52,7 @@ No credentials are recorded here.
     registered and allow-listed, no Border `.env` or runtime root; `--member` must equal the spec
     name; default home `~/.openclaw-lab-<name>`; an invalid spec writes nothing; neither `--member`
     nor `--spec` is a usage error; Hermes is refused.
-  - Spec 182 protections for a spec member keeping `pyats-mcp`: no `<home>/.env` refused naming
+  - Spec 183 protections for a spec member keeping `pyats-mcp`: no `<home>/.env` refused naming
     `pyats-mcp` and `--member-env`; the Border's `.env` directly, through `..` and through a hard
     link refused; a symlinked env file refused; `--home` at the Border's home (direct and `..`)
     refused; the Border's `openclaw.json` unchanged. With `--member-env`, netbox and pyats entries
@@ -69,16 +69,16 @@ No credentials are recorded here.
     `netclaw risk add spec` (functions extracted from `scripts/netclaw`, `api_post` stubbed)
     posts `{"name", "profile": "custom", "specialty"}`, prints the token and the migrate command,
     and never calls the daemon for an invalid spec.
-- With `tests/n2n/test_member_mcp_mappings_182.py` (50, unchanged): 133 passed with OpenClaw set;
+- With `tests/n2n/test_member_mcp_mappings_183.py` (50, unchanged): 133 passed with OpenClaw set;
   131 passed and 2 skipped without.
 - Full `tests/n2n`: 7 failed, 1595 passed, 7 skipped, 158 collection errors. An export of commit
-  c00a62ca (before spec 183) run the same way: 7 failed, 1514 passed, 5 skipped, 158 errors; the
+  c00a62ca (before spec 184) run the same way: 7 failed, 1514 passed, 5 skipped, 158 errors; the
   failing and erroring test ids are identical (MCP SDK runtime tests and a `lib` import
   collision).
 
 ## Review round 1 (second commit set, final)
 
-- `tests/n2n/test_member_spec_183.py`: 116 tests; 111 passed and 5 skipped without OpenClaw on
+- `tests/n2n/test_member_spec_184.py`: 116 tests; 111 passed and 5 skipped without OpenClaw on
   `npm root -g`; 116 passed with `NETCLAW_TEST_OPENCLAW_DIST` (and nvm Node 24 on `PATH`) set to
   the installed OpenClaw 2026.10.9. With the 182 file: 166 passed with OpenClaw set; 161 passed,
   5 skipped without.
@@ -132,12 +132,12 @@ No credentials are recorded here.
 - `git diff --check`: clean.
 - `scripts/check-catalog-metadata.py`: PASS after refreshing the `n2n-federation` skill hash in
   `config/components/catalog.json`. `scripts/build-catalog.py` cannot run on this host
-  (`setup_state.Conflict: unsafe_parent`, group-writable checkout, as spec 182 recorded), so
+  (`setup_state.Conflict: unsafe_parent`, group-writable checkout, as spec 183 recorded), so
   `scripts/lib/catalog.sh` was regenerated with its `render()`: `render()` of the HEAD catalog
   reproduces the committed file byte for byte, and the new file differs only in the
   `# Catalog SHA-256` line (as commit 1f9d5bcc did).
 - `python3 scripts/reconcile-mcp.py`: catalog, dependencies, docs, meraki-ids, packages and
-  portability pass; startup fails for missing host Python modules, as on spec 182. No server is
+  portability pass; startup fails for missing host Python modules, as on spec 183. No server is
   registered by this change.
 - `openclaw config validate` (2026.10.9, scratch `HOME`/`OPENCLAW_STATE_DIR`) on a spec member home:
   "Config valid", warnings only for unset fixture variables. Round 1, with the skill allowlist,
@@ -158,7 +158,7 @@ No credentials are recorded here.
 2. 70 passed, 1 skipped (OpenClaw not on `npm root -g`); added `NETCLAW_TEST_OPENCLAW_DIST`; the
    cross-check passed against the installed copy. Catalog skill hash refreshed.
 3. Review: migrate ignored `--spec` on a Hermes runtime; now refused, with a test.
-4. Coordinator review round 1: component env keys in every slice (spec 182 profile gap fixed) and
+4. Coordinator review round 1: component env keys in every slice (spec 183 profile gap fixed) and
    the per-agent skill allowlist. First run: 2 failures, the migrate test still asserting the old
    absence of `PYATS_TESTBED_PATH`; updated. A first `openclaw config validate` attempt used a
    legacy `agents.list` fixture, which 2026.10.9 rejects on the Border too; the fixture now uses the

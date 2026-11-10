@@ -10,14 +10,14 @@
   logic). `scope()` takes an optional `installed` list.
 - `scripts/in2n-member-home.py`: `--spec`; `--member` optional (defaults to and must equal the
   spec name). The generic OpenClaw body moves into `_provision_openclaw(args, runtime, name,
-  spec=None)`, used by both paths, so the spec-182 protections run unchanged.
+  spec=None)`, used by both paths, so the spec-183 protections run unchanged.
   `scoped_mcp_servers(..., spec=)` and `member_home_command(..., spec=)`.
 - `scripts/in2n-migrate.py`: `--spec` (repeatable) and `--specs-only`; `_load_specs` validates
   before anything is staged; the generic staging body becomes `_stage_member`, used by profile and
   spec members; runbook add bodies via `_add_body` (spec: `custom` + scope).
 - `scripts/netclaw`: `risk add spec <file>` (`risk_add_spec`).
 - Docs: docs/N2N-RISK.md "Member spec" section and table row; `n2n-federation` skill pointer.
-- Tests: `tests/n2n/test_member_spec_183.py`, using spec 182's installed-config fixture Borders.
+- Tests: `tests/n2n/test_member_spec_184.py`, using spec 183's installed-config fixture Borders.
 - Review round 1: `in2n-profiles.py` gains `launched_component`, `COMPONENT_ENV_KEYS` (catalog
   settings + installer-access contract) and `component_env_keys`, used by the shared `_slice`, so
   profile and spec slices both carry a component-launched server's settings; `in2n-member-home.py`

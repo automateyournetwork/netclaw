@@ -1,6 +1,6 @@
-# Spec 183: Provision an iN2N member from a member spec file
+# Spec 184: Provision an iN2N member from a member spec file
 
-Created 2026-11-08; branch `183-member-spec`, stacked on `182-member-mcp-mappings`, on 1.19.1;
+Created 2026-11-08; branch `184-member-spec`, stacked on `183-member-mcp-mappings`, on 1.19.1;
 status: implementation and verification.
 
 ## Problem
@@ -37,7 +37,7 @@ declarative member spec is the generic fix.
 - FR-006: `in2n-member-home.py --spec PATH` provisions an OpenClaw member like a profile member,
   except: kept servers = `spec.servers` + `memory-mcp`; model = `--model`, else `spec.model`,
   else the default tier; the member home's top-level `tools` section is `spec_tool_policy(spec)`.
-  `--member` defaults to `spec.name` and must equal it if given. Every spec-182 protection
+  `--member` defaults to `spec.name` and must equal it if given. Every spec-183 protection
   applies unchanged: the member env file check, the Border `.env` and home refusals, runtime path
   rewriting and record copying. An invalid spec writes nothing. Hermes is refused.
 - FR-007: `spec_tool_policy` is `allow` = `tools.allow`, plus `read` when the spec lists skills
@@ -48,7 +48,7 @@ declarative member spec is the generic fix.
   narrow it.
 - FR-008: A spec member's env slice (`spec_env_slice_keys`) is every variable its kept servers
   reference as `${NAME}` or, for a component-launched server, its component's env keys (FR-012),
-  with the spec-182 deny lists unchanged, plus `BASE_MEMBER_ENV_PREFIXES`; no profile prefixes.
+  with the spec-183 deny lists unchanged, plus `BASE_MEMBER_ENV_PREFIXES`; no profile prefixes.
 - FR-009: `in2n-migrate.py --spec PATH` (repeatable) stages each spec member like a profile
   member (0600 `.env` slice, `run.sh`, runbook entries) and prints and writes the exact
   `in2n-member-home.py --spec PATH --member-env <staged .env>` command. `--specs-only` stages only
@@ -68,7 +68,7 @@ declarative member spec is the generic fix.
   `config/installer-access.json` `required_env`, `script_env`, `command_env`, the keys
   `component-launch.py` itself reads) join the slice, through `derived_ref_allowed`, so the
   ServiceNow and comms deny lists hold. This applies to profile members too (`_slice` is shared):
-  spec 182's slices had the same gap, e.g. the pyats profile lacked the `NETCLAW_USERNAME`,
+  spec 183's slices had the same gap, e.g. the pyats profile lacked the `NETCLAW_USERNAME`,
   `NETCLAW_PASSWORD` and `NETCLAW_ENABLE_PASSWORD` device logins and `NETCLAW_TESTBED_MODE`
   (`PYATS_` covers only `PYATS_*`), packet lacked `PCAP_UPLOAD_DIR`, netbox lacked
   `PYATS_TESTBED_PATH`.
@@ -135,7 +135,7 @@ declarative member spec is the generic fix.
 - `copy_skill` opens each source file `O_NOFOLLOW` and copies it only when `fstat` shows a
   regular file with one link.
 
-## Known behaviour (profile members; predates spec 183, not changed here)
+## Known behaviour (profile members; predates spec 184, not changed here)
 
 A profile member's `openclaw.json` is still a deep copy of the Border's, minus comms channels
 and plugins: it carries the Border's `gateway` (auth token/password), `hooks` (token,

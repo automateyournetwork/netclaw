@@ -519,7 +519,7 @@ print("      N2N_ENROLLMENT_TOKEN=%s" % j.get("token"))
 '
 }
 
-risk_add_spec() {  # risk_add_spec <member-spec.json> [--allow-dangerous-tools] (spec 183)
+risk_add_spec() {  # risk_add_spec <member-spec.json> [--allow-dangerous-tools] (spec 184)
     # Validated against the selected Border template first; the daemon then records a
     # custom member whose specialty is the spec's scope and issues its token. Dangerous
     # built-in tools are refused unless the operator passes --allow-dangerous-tools,

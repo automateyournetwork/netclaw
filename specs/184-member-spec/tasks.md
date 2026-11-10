@@ -11,7 +11,7 @@
 - [x] T009 Docs: N2N-RISK.md "Member spec"; `n2n-federation` skill.
 - [x] T010 Tests: each format error, non-kept server patterns, env slice, generated config, 182 protections, migrate, CLI, OpenClaw cross-check.
 - [x] T011 Run the 183 and 182 tests, `tests/n2n`, `verify-spec-artifacts.py`, `git diff --check`; validate a generated home with `openclaw config validate`.
-- [x] T012 Review round 1: component-launched servers' env keys (catalog settings + installer-access contract) join every member slice, deny lists unchanged; fixes spec 182's profile slices too.
+- [x] T012 Review round 1: component-launched servers' env keys (catalog settings + installer-access contract) join every member slice, deny lists unchanged; fixes spec 183's profile slices too.
 - [x] T013 Review round 1: per-agent skill allowlist (`spec_skill_allowlist`) on every agent entry and the defaults; `[]` for no skills.
 - [x] T014 Review round 1: tests, OpenClaw skill-filter cross-check, `openclaw config validate` and `openclaw skills list` on generated homes; docs and spec updated.
 

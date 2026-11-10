@@ -1,6 +1,6 @@
-# Spec 182: Members get the MCP servers their skills call
+# Spec 183: Members get the MCP servers their skills call
 
-Created 2026-11-08; branch `182-member-mcp-mappings`, on 1.19.0; status: implementation and
+Created 2026-11-08; branch `183-member-mcp-mappings`, on 1.19.0; status: implementation and
 verification. Found on an operator fork where pyATS, CML, Nautobot and GitHub members only worked
 after their mappings were fixed by hand.
 
@@ -102,7 +102,7 @@ the servers `MCP_SERVERS` (`scripts/in2n-profiles.py`) names for the member's pr
   unsupported on members; research.md has the evidence.
 - Every member keeps `memory-mcp`, whose `MEMORY_DATA_DIR` defaults to the Border's
   `~/.openclaw/memory` (`config/mcp-env-defaults.json`), so members share the Border's memory
-  store. This predates spec 182 and is out of scope here.
+  store. This predates spec 183 and is out of scope here.
 - Existing member homes are not rewritten: `in2n-member-home.py` refuses to overwrite a
   provisioned `openclaw.json`. An operator re-provisions a member to pick up the new servers.
 

@@ -230,7 +230,7 @@ component reads from the env file: the installer catalog's
 `NETCLAW_ENABLE_PASSWORD` device logins, the testbed mode settings). The same
 never-derived shared credentials apply (ServiceNow, comms). A spec member adds the
 base-member keys and no profile prefixes; a profile member adds its profile prefixes.
-Every spec-182 protection applies unchanged: `--member-env` is required for
+Every spec-183 protection applies unchanged: `--member-env` is required for
 component-launched servers, the Border's `.env` and home are refused, and runtime
 paths are rewritten to the member's own.
 
