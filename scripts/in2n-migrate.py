@@ -19,9 +19,14 @@ NOTE: this is ALSO the shape a FRESH install produces per member — migration j
 pre-fills the .env slice from an existing monolith; a fresh member fills it in via
 the installer. Same runtime (scripts/in2n-member.py), same enrollment.
 
+A member spec (spec 183, `--spec member.json`, repeatable) stages one more member:
+its slice is every variable its kept servers reference plus the base-member keys, no
+profile prefixes; `--specs-only` stages only the spec members.
+
 Usage:
   python3 scripts/in2n-migrate.py --risk johns-risk --border-endpoint 127.0.0.1:11790 \
-      [--staging ./migration-staging] [--hot cml,pyats,ipfabric,viz] [--live-env ~/.openclaw/.env]
+      [--staging ./migration-staging] [--hot cml,pyats,ipfabric,viz] [--live-env ~/.openclaw/.env] \
+      [--spec member.json ...] [--specs-only]
 """
 
 import argparse
@@ -86,16 +91,29 @@ def main():
     ap.add_argument("--idle-exit", type=int, default=900,
                     help="idle seconds before a cold/on-demand member exits")
     ap.add_argument("--live-env", default=None)
+    ap.add_argument("--spec", action="append", default=[],
+                    help="member spec JSON file to stage as a member (spec 183); repeatable")
+    ap.add_argument("--specs-only", action="store_true",
+                    help="stage only the --spec members, not the offered profiles")
+    ap.add_argument("--allow-dangerous-tools", action="store_true",
+                    help="with --spec: accept specs that allow dangerous built-in tools (exec, "
+                         "write, ...); the printed in2n-member-home.py command carries the flag")
     args = ap.parse_args()
+    if args.specs_only and not args.spec:
+        ap.error("--specs-only needs at least one --spec")
+    if args.allow_dangerous_tools and not args.spec:
+        ap.error("--allow-dangerous-tools needs at least one --spec")
 
     sys.path.insert(0,os.path.join(REPO,'mcp-servers/protocol-mcp'))
     from bgp.federation.runtime import selected
     runtime=selected()
     args.live_env=args.live_env or str(runtime.env_file)
+    if runtime.kind=='hermes' and args.spec:
+        raise SystemExit('error: member specs stage OpenClaw members; Hermes qualifies only the subnet member')
     if runtime.kind=='hermes':return stage_hermes(args,runtime)
     prof = _load_profiles()
     prof.ENV_FILE = args.live_env
-    offered = prof.profiles()                      # env-gated: only configured members
+    offered = {} if args.specs_only else prof.profiles()   # env-gated: only configured members
     live_env = _read_env(args.live_env)
     # The Border template members are scoped from (in2n-member-home.py's default):
     # its kept servers' ${VAR}s join each member's env slice.
@@ -114,6 +132,7 @@ def main():
         print(f"WARNING: Border config {runtime.config} {problem}; member env slices use key "
               "prefixes only, so these mapped servers may start without variables they "
               "reference: " + (", ".join(mapped) or "(none)"), file=sys.stderr)
+    specs = _load_specs(prof, args.spec, runtime.config, offered, args.allow_dangerous_tools)
     hot = {h.strip() for h in args.hot.split(",") if h.strip()}
     staging = os.path.abspath(args.staging)
     members_dir = os.path.join(staging, "members")
@@ -144,50 +163,15 @@ def main():
             continue
         # least-privilege env slice (KEYS only listed here; VALUES copied verbatim)
         slice_keys = prof.env_slice_keys(name, set(live_env.keys()), border_servers)
-        env_lines = [live_env[k] for k in slice_keys]
-        # iN2N member config
-        member_cfg = [
-            "# ── iN2N member config (feature 056) ──",
-            "N2N_ROLE=member",
-            f"N2N_RISK_NAME={args.risk}",
-            f"N2N_MEMBER_ID={member_id}",
-            f"N2N_BORDER_ENDPOINT={args.border_endpoint}",
-            f"N2N_MEMBER_BASE={os.path.join(mdir, 'n2n')}",
-            # Point the member's OpenClaw runtime at the scoped home that
-            # scripts/in2n-member-home.py builds (~/.openclaw-<risk>-<member>/openclaw.json).
-            # openclaw agent --local honors OPENCLAW_CONFIG_PATH / OPENCLAW_STATE_DIR from
-            # the env (verified: OPENCLAW_PROFILE as an env var is ignored — only the
-            # --profile flag takes it). in2n-member.py loads this .env into os.environ and
-            # gateway.py spawns `openclaw agent --local` inheriting that env, so without
-            # these two vars the member silently loads the default ~/.openclaw home
-            # (scope not enforced). Path is absolute (expanduser) because the .env loader
-            # uses os.environ.setdefault with the raw string (no shell ~ expansion).
-            f"OPENCLAW_CONFIG_PATH={os.path.expanduser('~/.openclaw-' + args.risk + '-' + name)}/openclaw.json",
-            f"OPENCLAW_STATE_DIR={os.path.expanduser('~/.openclaw-' + args.risk + '-' + name)}",
-            f"N2N_MEMBER_SCOPE={_scope_json(info['skills'])}",
-            "# Pick THIS member's provider/model (any provider incl local/Ollama):",
-            "N2N_MEMBER_MODEL=anthropic/claude-sonnet-5   # <-- edit per member",
-            "# ANTHROPIC_API_KEY / OPENAI_API_KEY / OLLAMA_HOST as needed for the model above",
-            "# N2N_ENROLLMENT_TOKEN=<paste from: netclaw risk add …>   # first run only",
-        ]
-        env_path = os.path.join(mdir, ".env")
-        fd = os.open(env_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | os.O_NOFOLLOW, 0o600)
-        os.fchmod(fd, 0o600)  # also when the file already existed
-        with os.fdopen(fd, "w") as fh:
-            fh.write("# Least-privilege .env slice for member %s (generated).\n" % member_id)
-            fh.write("# Integration + base-floor (memory/gait/humanrail) keys only.\n\n")
-            fh.write("\n".join(env_lines) + ("\n\n" if env_lines else "\n"))
-            fh.write("\n".join(member_cfg) + "\n")
-        idle = 0 if always_on else args.idle_exit
-        with open(os.path.join(mdir, "run.sh"), "w") as fh:
-            fh.write("#!/usr/bin/env bash\n")
-            fh.write("# Robust: the launcher parses the .env itself (values may contain\n")
-            fh.write("# spaces/colons/JSON) — no fragile shell sourcing.\n")
-            fh.write('export N2N_MEMBER_ENV_FILE="$(dirname "$0")/.env"\n')
-            fh.write(f"exec python3 {REPO}/scripts/in2n-member.py --idle-exit {idle}\n")
-        os.chmod(os.path.join(mdir, "run.sh"), 0o755)
-        summary.append((name, member_id, "always-on" if always_on else "on-demand",
-                        len(info["skills"]), len(slice_keys)))
+        summary.append(_stage_member(args, mdir, name, member_id, always_on, info["skills"],
+                                     [live_env[k] for k in slice_keys], len(slice_keys)))
+    for name, (_path, spec) in specs.items():
+        mdir = os.path.join(members_dir, name)
+        os.makedirs(mdir, exist_ok=True, mode=0o700)
+        slice_keys = prof.spec_env_slice_keys(spec, set(live_env.keys()), border_servers)
+        summary.append(_stage_member(args, mdir, name, f"{args.risk}/{name}", name in hot, spec["scope"],
+                                     [live_env[k] for k in slice_keys], len(slice_keys),
+                                     model=spec["model"]))
 
     # Border additions (role only — comms secrets stay in ~/.openclaw/.env)
     with open(os.path.join(staging, "border.env.additions"), "w") as fh:
@@ -200,8 +184,76 @@ def main():
             "N2N_RISK_MODE=production",
         ]) + "\n")
 
-    _write_runbook(staging, args, summary)
-    _print_summary(staging, summary, args.risk)
+    _write_runbook(staging, args, summary, specs)
+    _print_summary(staging, summary, args.risk, specs)
+
+
+def _load_specs(prof, paths, config, offered, allow_dangerous=False):
+    """Validate each --spec against the Border template; refuse on any error, a
+    duplicate name, or a name an offered profile member already uses. Dangerous
+    built-in tools are refused unless `allow_dangerous` (--allow-dangerous-tools)."""
+    specs = {}
+    if not paths:
+        return specs
+    try:
+        servers = prof.border_template_servers(config)
+        for path in paths:
+            spec, warnings = prof.load_member_spec(path, servers, allow_dangerous=allow_dangerous)
+            for warning in warnings:
+                print(f"WARNING: {path}: {warning}", file=sys.stderr)
+            if spec["name"] in specs or spec["name"] in offered:
+                raise prof.MemberSpecError(f"{path}: member name {spec['name']!r} is already staged")
+            specs[spec["name"]] = (os.path.abspath(path), spec)
+    except prof.MemberSpecError as error:
+        raise SystemExit(f"error: {error}")
+    return specs
+
+
+def _stage_member(args, mdir, name, member_id, always_on, skills, env_lines, key_count, model=None):
+    """Write a generic member's staged .env (0600) and run.sh; return its summary row."""
+    # iN2N member config
+    member_cfg = [
+        "# ── iN2N member config (feature 056) ──",
+        "N2N_ROLE=member",
+        f"N2N_RISK_NAME={args.risk}",
+        f"N2N_MEMBER_ID={member_id}",
+        f"N2N_BORDER_ENDPOINT={args.border_endpoint}",
+        f"N2N_MEMBER_BASE={os.path.join(mdir, 'n2n')}",
+        # Point the member's OpenClaw runtime at the scoped home that
+        # scripts/in2n-member-home.py builds (~/.openclaw-<risk>-<member>/openclaw.json).
+        # openclaw agent --local honors OPENCLAW_CONFIG_PATH / OPENCLAW_STATE_DIR from
+        # the env (verified: OPENCLAW_PROFILE as an env var is ignored — only the
+        # --profile flag takes it). in2n-member.py loads this .env into os.environ and
+        # gateway.py spawns `openclaw agent --local` inheriting that env, so without
+        # these two vars the member silently loads the default ~/.openclaw home
+        # (scope not enforced). Path is absolute (expanduser) because the .env loader
+        # uses os.environ.setdefault with the raw string (no shell ~ expansion).
+        f"OPENCLAW_CONFIG_PATH={os.path.expanduser('~/.openclaw-' + args.risk + '-' + name)}/openclaw.json",
+        f"OPENCLAW_STATE_DIR={os.path.expanduser('~/.openclaw-' + args.risk + '-' + name)}",
+        f"N2N_MEMBER_SCOPE={_scope_json(skills)}",
+        *(["# The member spec's model:", f"N2N_MEMBER_MODEL=anthropic/{model}"] if model else [
+        "# Pick THIS member's provider/model (any provider incl local/Ollama):",
+        "N2N_MEMBER_MODEL=anthropic/claude-sonnet-5   # <-- edit per member"]),
+        "# ANTHROPIC_API_KEY / OPENAI_API_KEY / OLLAMA_HOST as needed for the model above",
+        "# N2N_ENROLLMENT_TOKEN=<paste from: netclaw risk add …>   # first run only",
+    ]
+    env_path = os.path.join(mdir, ".env")
+    fd = os.open(env_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | os.O_NOFOLLOW, 0o600)
+    os.fchmod(fd, 0o600)  # also when the file already existed
+    with os.fdopen(fd, "w") as fh:
+        fh.write("# Least-privilege .env slice for member %s (generated).\n" % member_id)
+        fh.write("# Integration + base-floor (memory/gait/humanrail) keys only.\n\n")
+        fh.write("\n".join(env_lines) + ("\n\n" if env_lines else "\n"))
+        fh.write("\n".join(member_cfg) + "\n")
+    idle = 0 if always_on else args.idle_exit
+    with open(os.path.join(mdir, "run.sh"), "w") as fh:
+        fh.write("#!/usr/bin/env bash\n")
+        fh.write("# Robust: the launcher parses the .env itself (values may contain\n")
+        fh.write("# spaces/colons/JSON) — no fragile shell sourcing.\n")
+        fh.write('export N2N_MEMBER_ENV_FILE="$(dirname "$0")/.env"\n')
+        fh.write(f"exec python3 {REPO}/scripts/in2n-member.py --idle-exit {idle}\n")
+    os.chmod(os.path.join(mdir, "run.sh"), 0o755)
+    return (name, member_id, "always-on" if always_on else "on-demand", len(skills), key_count)
 
 
 def _scope_json(skills):
@@ -218,7 +270,8 @@ def _scope_json(skills):
     return json.dumps([e["name"] for e in from_base + spec])
 
 
-def _write_runbook(staging, args, summary):
+def _write_runbook(staging, args, summary, specs=None):
+    specs = specs or {}
     hot = [s for s in summary if s[2] == "always-on"]
     cold = [s for s in summary if s[2] == "on-demand"]
     lines = [
@@ -249,7 +302,7 @@ def _write_runbook(staging, args, summary):
         "component-launched servers load the staged slice named by --member-env, never the",
         "Border's .env; the command refuses to run without it.",
         "```bash",
-        *[command for _name, command in _member_home_commands(staging, args.risk, summary)],
+        *[command for _name, command in _member_home_commands(staging, args.risk, summary, specs)],
         "```",
         "",
         "## 3. Bring up the HOT SET (always-on) — one at a time, verify each",
@@ -263,7 +316,7 @@ def _write_runbook(staging, args, summary):
         lines += [
             f"# --- {mid}  (always-on) ---",
             f"curl -s -XPOST {api}/n2n/members/add -H 'Content-Type: application/json' \\",
-            f"  -d '{{\"name\":\"{name}\",\"profile\":\"{name}\",\"launch_cmd\":\"bash {run}\",\"on_demand\":false}}'",
+            f"  -d '{_add_body(name, run, False, specs)}'",
             f"#   -> paste enrollment_token into {env} (N2N_ENROLLMENT_TOKEN=) + set N2N_MEMBER_MODEL",
             f"bash {run} &                             # persistent (idle-exit 0); dials + enrolls",
             f"netclaw risk members                     # expect {mid} live",
@@ -280,7 +333,7 @@ def _write_runbook(staging, args, summary):
         env = os.path.join(staging, 'members', name, 'home', '.env') if name == 'convergence' else os.path.join(staging, 'members', name, '.env')
         lines += [
             f"curl -s -XPOST {api}/n2n/members/add -H 'Content-Type: application/json' \\",
-            f"  -d '{{\"name\":\"{name}\",\"profile\":\"{name}\",\"launch_cmd\":\"bash {run}\",\"on_demand\":true}}'",
+            f"  -d '{_add_body(name, run, True, specs)}'",
             f"#   -> paste token + model into {env}   ({mid}: Border cold-starts on route)",
         ]
     lines += ["# test a cold member end-to-end (Border spawns it, waits, delegates):",
@@ -312,22 +365,37 @@ def _write_runbook(staging, args, summary):
         fh.write("\n".join(lines))
 
 
-def _member_home_commands(staging, risk, summary):
+def _add_body(name, run, on_demand, specs):
+    """The /n2n/members/add body: a profile member by its profile, a spec member as a
+    custom member whose specialty is the spec's scope (the daemon has no spec files)."""
+    body = {"name": name, "profile": name}
+    if name in specs:
+        body = {"name": name, "profile": "custom", "specialty": specs[name][1]["scope"]}
+    body.update(launch_cmd=f"bash {run}", on_demand=on_demand)
+    return json.dumps(body, separators=(",", ":"))
+
+
+def _member_home_commands(staging, risk, summary, specs=None):
     """Exact in2n-member-home.py command per staged member; --member-env points its
-    component-launched servers at the staged slice, never the Border's .env."""
+    component-launched servers at the staged slice, never the Border's .env. A spec
+    member's command names its spec file."""
+    specs = specs or {}
     spec = importlib.util.spec_from_file_location('member_home_cmd', Path(REPO)/'scripts/in2n-member-home.py')
     module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
-    return [(name, module.member_home_command(risk, name, os.path.join(staging, 'members', name, '.env')))
+    return [(name, module.member_home_command(
+                risk, name, os.path.join(staging, 'members', name, '.env'),
+                spec=specs[name][0] if name in specs else None,
+                allow_dangerous=bool(name in specs and specs[name][1]["dangerous_tools"])))
             for name, *_ in summary if name != 'convergence']
 
 
-def _print_summary(staging, summary, risk):
+def _print_summary(staging, summary, risk, specs=None):
     print(f"Generated iN2N migration scaffold → {staging}  (GENERATE-ONLY, nothing deployed)")
     print(f"  {len(summary)} member scaffolds + border.env.additions + RUNBOOK.md\n")
     print(f"  {'member':16s} {'mode':10s} {'skills':>6s} {'env-keys':>8s}")
     for name, mid, mode, sk, ek in summary:
         print(f"  {name:16s} {mode:10s} {sk:6d} {ek:8d}")
-    commands = _member_home_commands(staging, risk, summary)
+    commands = _member_home_commands(staging, risk, summary, specs)
     if commands:
         print("\n  Provision each member's scoped OpenClaw home (before its first launch):")
         for _name, command in commands:

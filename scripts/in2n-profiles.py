@@ -12,6 +12,8 @@ Usage:
     python3 scripts/in2n-profiles.py show cml             # skills in the cml profile
     python3 scripts/in2n-profiles.py scope cml            # JSON scope (base + specialty)
     python3 scripts/in2n-profiles.py scope custom a,b,c   # custom skill set
+    python3 scripts/in2n-profiles.py spec member.json [--border-config PATH] [--allow-dangerous-tools]
+                                                          # validate a member spec (spec 183)
 No third-party deps (stdlib only), matching scripts/register-all-mcps.py.
 """
 
@@ -218,12 +220,16 @@ def derived_ref_allowed(name):
     return not (name.startswith(DERIVED_DENY_PREFIXES) or name in DERIVED_DENY_KEYS)
 
 
+def _kept(names, servers):
+    keep = set(names) | {"memory-mcp"}
+    return {k: v for k, v in (servers or {}).items() if k in keep}
+
+
 def member_servers(profile, servers):
     """The Border mcp.servers entries a generic OpenClaw member of `profile` keeps
     (scripts/in2n-member-home.py): its MCP_SERVERS list plus memory-mcp. Servers the
     Border has not registered are skipped."""
-    keep = set(MCP_SERVERS.get(profile, [])) | {"memory-mcp"}
-    return {k: v for k, v in (servers or {}).items() if k in keep}
+    return _kept(MCP_SERVERS.get(profile, []), servers)
 
 
 def server_env_refs(entry):
@@ -246,16 +252,375 @@ def server_env_refs(entry):
 def env_slice_keys(profile, env_keys, servers=None):
     """Return the env-key NAMES a member of `profile` should receive (least
     privilege): its integration prefixes + the base-member prefixes + every variable
-    its kept MCP servers reference as ${NAME}, except shared credentials
+    its kept MCP servers reference as ${NAME} or, for a component-launched server,
+    read from its env file (component_env_keys, spec 183), except shared credentials
     (derived_ref_allowed). `servers` is the Border template's mcp.servers map;
     without it only the prefixes apply. A key no kept server references and no
     prefix matches (comms secrets, other integrations) is never included. Values
     are the caller's concern (never logged)."""
-    prefixes = tuple(ENV_PREFIXES.get(profile, []) + BASE_MEMBER_ENV_PREFIXES)
+    return _slice(ENV_PREFIXES.get(profile, []), member_servers(profile, servers), env_keys)
+
+
+def _slice(prefixes, kept, env_keys):
+    prefixes = tuple(list(prefixes) + BASE_MEMBER_ENV_PREFIXES)
     refs = set()
-    for entry in member_servers(profile, servers).values():
-        refs |= {name for name in server_env_refs(entry) if derived_ref_allowed(name)}
+    for server, entry in kept.items():
+        if server in BORDER_ONLY_SERVERS or launched_component(entry) in BORDER_ONLY_COMPONENTS:
+            continue
+        names = server_env_refs(entry) | component_env_keys(entry)
+        refs |= {name for name in names if derived_ref_allowed(name)}
     return sorted(k for k in env_keys if k.startswith(prefixes) or k in refs)
+
+
+def launched_component(entry):
+    """The component a scripts/component-launch.py entry starts, else None."""
+    args = [str(a) for a in (entry.get("args") or [])] if isinstance(entry, dict) else []
+    for i, arg in enumerate(args[:-1]):
+        if Path(arg).name == "component-launch.py":
+            return args[i + 1]
+    return None
+
+
+def _read_json(relative):
+    try:
+        return json.loads(Path(REPO, relative).read_text())
+    except (OSError, ValueError):
+        return {}
+
+
+# ── Border-only components (spec 183 review): never a member's ──
+# HUD-private components (installer-access.json `access: hud-private`), the federation
+# and control plane (protocol daemon, n2n tools), netconverter (bound to the Border
+# installation's identity and API key), the Convergence reader (provisioned only by
+# provision_convergence, with its own runtime paths) and the comms components
+# config/components/comms.json binds (twilio, zoom-rtms). A member spec may not keep
+# their servers, and their settings are never derived into any member's slice.
+FEDERATION_CONTROL_COMPONENTS = frozenset({"protocol", "n2n", "netconverter", "convergence-read"})
+
+
+def _border_only():
+    contract = (_read_json("config/installer-access.json").get("components") or {})
+    components = {c for c, rule in contract.items()
+                  if isinstance(rule, dict) and rule.get("access") == "hud-private"}
+    components |= FEDERATION_CONTROL_COMPONENTS
+    components |= {e["component"] for e in (_read_json("config/components/comms.json").get("entries") or [])
+                   if isinstance(e, dict) and isinstance(e.get("component"), str)}
+    servers = set()
+    for component in _read_json("config/components/catalog.json").get("components") or []:
+        if isinstance(component, dict) and component.get("id") in components:
+            servers.update(s for s in component.get("servers") or [] if isinstance(s, str))
+    for component, rule in contract.items():
+        if component in components and isinstance(rule, dict):
+            servers.update(s for s in rule.get("servers") or [] if isinstance(s, str))
+    return frozenset(components), frozenset(servers)
+
+
+BORDER_ONLY_COMPONENTS, BORDER_ONLY_SERVERS = _border_only()
+
+
+def _component_env_index():
+    """component id -> the env keys it reads from its env file: the installer catalog's
+    settings (config/components/catalog.json components[].settings[].key) plus what
+    scripts/component-launch.py itself reads (config/installer-access.json required_env,
+    script_env, command_env). Border-only components contribute nothing. Unreadable
+    files contribute nothing."""
+    index = {}
+    try:
+        catalog = json.loads(Path(REPO, "config/components/catalog.json").read_text())
+        for component in catalog.get("components", []):
+            index.setdefault(component["id"], set()).update(
+                s["key"] for s in component.get("settings", []) if isinstance(s.get("key"), str))
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
+        pass
+    try:
+        contract = json.loads(Path(REPO, "config/installer-access.json").read_text())["components"]
+        for component, rule in contract.items():
+            keys = index.setdefault(component, set())
+            keys.update(k for k in rule.get("required_env") or [] if isinstance(k, str))
+            keys.update(rule[k] for k in ("script_env", "command_env") if isinstance(rule.get(k), str))
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
+        pass
+    return {component: frozenset(keys) for component, keys in index.items()
+            if component not in BORDER_ONLY_COMPONENTS}
+
+
+COMPONENT_ENV_KEYS = _component_env_index()
+
+
+def component_env_keys(entry):
+    """Env keys a component-launched server reads from NETCLAW_RUNTIME_ENV without naming
+    them as ${NAME} in its entry (e.g. pyats-mcp's PYATS_TESTBED_PATH and device logins)."""
+    return set(COMPONENT_ENV_KEYS.get(launched_component(entry), ()))
+
+
+# ── Member spec (spec 183): a declarative member, no profile, no NetClaw patch ──
+#
+# {"version": 1, "name": ..., "description": ..., "servers": [...], "skills": [...],
+#  "tools": {"allow": [...]}, "model": null}
+# The member keeps `servers` plus the base servers (memory-mcp, gait-mcp), loads its
+# skills plus the base skills from its own workspace, and its OpenClaw tool policy is
+# `tools.allow` plus what those base skills need (spec_tool_policy). Validation is strict.
+
+MEMBER_SPEC_VERSION = 1
+MEMBER_SPEC_REQUIRED = ("version", "name", "servers", "tools")
+MEMBER_SPEC_KEYS = frozenset(MEMBER_SPEC_REQUIRED + ("description", "skills", "model"))
+SAFE_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,63}")
+# convergence has its own provisioning path; custom and spec are `netclaw risk add` keywords.
+# Every profile id is refused too (reserved_member_names), so a spec member never shares a
+# staged directory, home or --hot entry with a profile member.
+RESERVED_MEMBER_NAMES = frozenset({"convergence", "custom", "spec"})
+
+# File-backed base skills match the migration scope. Runtime/status capabilities
+# are daemon methods, not installed SKILL.md directories. HumanRail is included as
+# escalation guidance, but no exec or paid external-dispatch permission is implicit.
+SPEC_BASE_SKILL_NAMES = ("memory", "gait-session-tracking", "humanrail-escalation")
+SPEC_BASE_SKILLS = (("memory", "memory-mcp"), ("gait-session-tracking", "gait-mcp"))
+
+# OpenClaw's core tool ids (CORE_TOOL_DEFINITIONS and CORE_TOOL_GROUPS in OpenClaw
+# 2026.10.9, dist/tool-catalog-*.mjs; every id passes its isKnownCoreToolId). Group
+# names, "*" and "bundle-mcp" are refused: they grant whole families of tools.
+OPENCLAW_BUILTIN_TOOLS = frozenset((
+    "agents_list", "agents_wait", "apply_patch", "ask_user", "automations", "browser",
+    "canvas", "code_execution", "computer", "conversations_list", "conversations_send",
+    "conversations_turn", "create_goal", "dashboard", "decision_evaluate", "dismiss_task",
+    "edit", "exec", "gateway", "get_goal", "github_identity_status", "github_publish",
+    "heartbeat_respond", "image_generate", "ls", "memory_get", "memory_search", "message",
+    "mobile_ui", "music_generate", "nodes", "openclaw", "pdf", "personal_instructions",
+    "plugins", "portal", "presence", "process", "progress_card", "read", "screen", "secrets",
+    "session_status", "sessions", "sessions_history", "sessions_list", "sessions_search",
+    "sessions_send", "sessions_spawn", "sessions_yield", "show_widget", "skill_workshop",
+    "skills_read", "skills_search", "subagents", "suggest_task", "terminal", "theme", "tts",
+    "update_goal", "video_generate", "view_image", "web_fetch", "web_search", "write",
+    "x_search"))
+# The built-ins a spec member may use without --allow-dangerous-tools (review round 2:
+# an explicit SAFE list, not a list of known-dangerous tools, so a tool OpenClaw adds
+# later, or one whose reach is not obvious, needs the opt-in):
+# - read: OpenClaw tells the agent to read a skill's SKILL.md before using it, and
+#   tools.fs.workspaceOnly (set by spec_tool_policy) confines it to the member's own
+#   workspace, which holds only the member's copied skills.
+# - session_status: this session's status, model and usage; it reaches nothing else.
+# Every other built-in is dangerous, among them web_fetch/web_search/x_search (network),
+# the media generators and tts (paid external APIs), memory_get/memory_search and
+# personal_instructions (read OpenClaw's memory files and memorySearch.extraPaths), ls
+# (not covered by tools.fs.workspaceOnly), exec/process/code_execution/secrets, the fs
+# writers, automation, nodes, messaging, and session/agent/publishing tools.
+SAFE_BUILTINS = frozenset({"read", "session_status"})
+DANGEROUS_BUILTINS = OPENCLAW_BUILTIN_TOOLS - SAFE_BUILTINS
+# OpenClaw names an MCP tool <safe server>__<tool> (agent-bundle-mcp-names): a server
+# name outside [A-Za-z0-9_-], not starting with a letter, or over 30 characters is
+# renamed, so an allowlist written with the configured name would never match.
+OPENCLAW_SAFE_SERVER = re.compile(r"[A-Za-z][A-Za-z0-9_-]{0,29}")
+# The tool part: OpenClaw's tool-name characters, plus "*" (its only glob character).
+ALLOW_TOOL_PART = re.compile(r"[A-Za-z0-9_*-]+")
+MODEL_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.:-]{0,199}")
+
+
+class MemberSpecError(ValueError):
+    """A member spec failed validation; str() lists every problem, one per line."""
+
+
+def reserved_member_names():
+    return RESERVED_MEMBER_NAMES | set(PROFILE_MATCHERS) | set(MCP_SERVERS)
+
+
+def load_member_spec(source, servers, installed=None, allow_dangerous=False):
+    """Validate a member spec against the Border template's mcp.servers.
+
+    `source` is a path or an already-parsed dict. Returns (spec, warnings): `spec`
+    is the normalized spec plus "scope" (the specialty skills the existing `scope
+    custom` path yields; `installed` defaults to the installed skills), "base_skills"
+    and "base_servers" (SPEC_BASE_SKILLS whose server the Border has) and
+    "dangerous_tools" (allowed only with `allow_dangerous`). Raises MemberSpecError
+    naming every problem."""
+    if not isinstance(source, (str, os.PathLike)):
+        data, where = source, "member spec"
+    else:
+        where = str(source)
+        try:
+            data = json.loads(Path(source).read_text())
+        except OSError as error:
+            raise MemberSpecError(f"{where}: cannot read ({type(error).__name__})") from None
+        except ValueError as error:
+            raise MemberSpecError(f"{where}: not valid JSON ({error})") from None
+    if not isinstance(data, dict):
+        raise MemberSpecError(f"{where}: must be a JSON object")
+    errors, warnings = [], []
+    unknown = sorted(set(data) - MEMBER_SPEC_KEYS)
+    if unknown:
+        errors.append("unknown keys: " + ", ".join(unknown))
+    for key in MEMBER_SPEC_REQUIRED:
+        if key not in data:
+            errors.append(f"missing required key: {key}")
+
+    version = data.get("version")
+    if "version" in data and (type(version) is not int or version != MEMBER_SPEC_VERSION):
+        errors.append(f"version must be {MEMBER_SPEC_VERSION}, not {version!r}")
+
+    name = data.get("name")
+    if "name" in data:
+        if not isinstance(name, str) or not SAFE_NAME.fullmatch(name):
+            errors.append("name must match [A-Za-z0-9][A-Za-z0-9_.-]{0,63}")
+        elif name in RESERVED_MEMBER_NAMES:
+            errors.append(f"name {name!r} is reserved")
+        elif name in reserved_member_names():
+            errors.append(f"name {name!r} is a member profile id; choose another name")
+
+    description = data.get("description")
+    if description is not None and not isinstance(description, str):
+        errors.append("description must be a string")
+
+    template = servers if isinstance(servers, dict) else {}
+    base = [(skill, server) for skill, server in SPEC_BASE_SKILLS if server in template]
+    names = data.get("servers")
+    kept = set()
+    if "servers" in data:
+        if not isinstance(names, list) or not all(isinstance(s, str) and s for s in names):
+            errors.append("servers must be a list of server names")
+        else:
+            if len(set(names)) != len(names):
+                errors.append("servers lists a server more than once")
+            border_only = sorted(s for s in names if s in BORDER_ONLY_SERVERS or
+                                 launched_component(template.get(s)) in BORDER_ONLY_COMPONENTS)
+            if border_only:
+                errors.append("Border-only servers cannot be kept by a member: " + ", ".join(border_only)
+                              + (" (the Convergence member is provisioned with --member convergence)"
+                                 if "convergence-read-mcp" in border_only else ""))
+            missing = sorted(set(names) - set(template) - BORDER_ONLY_SERVERS)
+            if missing:
+                errors.append("servers not in the Border template's mcp.servers: " + ", ".join(missing))
+            kept = (set(names) | {"memory-mcp"} | {s for _, s in base}) & set(template)
+            kept -= BORDER_ONLY_SERVERS
+            renamed = sorted(s for s in kept if not OPENCLAW_SAFE_SERVER.fullmatch(s))
+            if renamed:
+                errors.append("OpenClaw renames these servers' tools, so no allowlist entry can name "
+                              "them: " + ", ".join(renamed))
+
+    skills = data.get("skills", [])
+    if not isinstance(skills, list) or not all(isinstance(s, str) and SAFE_NAME.fullmatch(s) for s in skills):
+        errors.append("skills must be a list of skill names")
+        skills = []
+    elif len(set(skills)) != len(skills):
+        errors.append("skills lists a skill more than once")
+
+    tools = data.get("tools")
+    allow, dangerous = [], []
+    if "tools" in data:
+        if not isinstance(tools, dict) or set(tools) != {"allow"}:
+            errors.append('tools must be {"allow": [...]} and nothing else')
+        elif not isinstance(tools["allow"], list) or not tools["allow"]:
+            errors.append("tools.allow must be a non-empty list")
+        else:
+            allow = tools["allow"]
+            seen = set()
+            for entry in allow:
+                problem = _allow_entry_problem(entry, kept)
+                if problem:
+                    errors.append(f"tools.allow {entry!r}: {problem}")
+                elif entry.lower() in seen:
+                    errors.append(f"tools.allow {entry!r}: listed more than once")
+                else:
+                    seen.add(entry.lower())
+                    if entry in DANGEROUS_BUILTINS:
+                        dangerous.append(entry)
+            if dangerous and not allow_dangerous:
+                errors.append("tools.allow names built-in tools outside the safe set ("
+                              + ", ".join(sorted(SAFE_BUILTINS)) + "): " + ", ".join(dangerous)
+                              + "; refused unless --allow-dangerous-tools is passed")
+            elif dangerous:
+                warnings.append("--allow-dangerous-tools: this member may use " + ", ".join(dangerous))
+
+    model = data.get("model")
+    if model is not None:
+        bare = model[len("anthropic/"):] if isinstance(model, str) and model.startswith("anthropic/") else model
+        if not isinstance(bare, str) or not MODEL_ID.fullmatch(bare):
+            errors.append("model must be null or an Anthropic model id (optionally 'anthropic/<id>'); "
+                          "generic members register only the Anthropic provider")
+        else:
+            model = bare
+
+    if errors:
+        raise MemberSpecError(f"{where}: invalid member spec:\n  - " + "\n  - ".join(errors))
+    available = set(_installed_skills() if installed is None else installed)
+    absent = [s for s in skills if s not in available]
+    if absent:
+        warnings.append("skills not installed: " + ", ".join(absent))
+    scope_skills = [e["name"] for e in scope("custom", custom_skills=skills,
+                                             installed=sorted(available)) if e["tier"] == "specialty"]
+    spec = {"version": version, "name": name, "description": description or "",
+            "servers": list(names), "skills": list(skills), "tools": {"allow": list(allow)},
+            "model": model, "scope": scope_skills,
+            "base_skills": [skill for skill in SPEC_BASE_SKILL_NAMES if skill not in skills],
+            "base_servers": [server for _, server in base],
+            "dangerous_tools": dangerous}
+    return spec, warnings
+
+
+def _allow_entry_problem(entry, kept):
+    if not isinstance(entry, str) or not entry or entry != entry.strip():
+        return "must be a non-empty string"
+    if "__" in entry:
+        server, tool = entry.split("__", 1)
+        if "*" in server:
+            return "the server part must be a literal server name"
+        if server not in kept:
+            return f"{server!r} is not one of this member's servers"
+        if not ALLOW_TOOL_PART.fullmatch(tool):
+            return "the tool part may use only letters, digits, '_', '-' and the glob '*'"
+        return None
+    if entry not in OPENCLAW_BUILTIN_TOOLS:
+        return ("not an OpenClaw built-in tool name or <server>__<tool> pattern "
+                "(groups, '*' and 'bundle-mcp' are not accepted)")
+    return None
+
+
+def spec_skills(spec):
+    """Every skill a spec member loads: its own, then the base skills."""
+    return list(dict.fromkeys(list(spec["skills"]) + list(SPEC_BASE_SKILL_NAMES)))
+
+
+def spec_member_servers(spec, servers):
+    """The Border mcp.servers entries a spec member keeps: spec.servers, memory-mcp and
+    the base skills' servers; never a Border-only server."""
+    kept = _kept(list(spec["servers"]) + list(spec.get("base_servers", [])), servers)
+    return {k: v for k, v in kept.items() if k not in BORDER_ONLY_SERVERS}
+
+
+# Where the base servers keep their data (review round 2). A spec member's memory-mcp
+# and gait-mcp entries point into its own home (in2n-member-home.py
+# spec_store_overrides), so the Border's values of these never enter its slice.
+SPEC_MEMBER_STORE_KEYS = frozenset({"MEMORY_DATA_DIR", "GAIT_DIR", "GAIT_ROOT", "GAIT_MCP_STICKY_FILE"})
+# The one model provider a spec member registers, referenced as ${ANTHROPIC_API_KEY}
+# from its openclaw.json (never a literal key), so the key joins its slice.
+SPEC_MEMBER_PROVIDER_KEYS = ("ANTHROPIC_API_KEY",)
+
+
+def spec_env_slice_keys(spec, env_keys, servers):
+    """A spec member's env slice: every variable its kept servers reference or, when
+    component-launched, read from their env file (same deny lists as env_slice_keys),
+    plus BASE_MEMBER_ENV_PREFIXES and its provider key; no profile prefixes, and never
+    the Border's memory/GAIT store locations (SPEC_MEMBER_STORE_KEYS)."""
+    keys = set(_slice([], spec_member_servers(spec, servers), env_keys)) - SPEC_MEMBER_STORE_KEYS
+    keys |= {k for k in SPEC_MEMBER_PROVIDER_KEYS if k in env_keys}
+    return sorted(keys)
+
+
+def spec_tool_policy(spec):
+    """The member home's top-level OpenClaw `tools` section (the mechanism the
+    Convergence member's native_tool_policy uses). allow = tools.allow plus:
+    - `read` when the member has any skill: OpenClaw's system prompt tells the agent to
+      read a matching skill's SKILL.md at its <location> (system-prompt-skills);
+    - `<server>__*` for each base skill's server (memory-mcp for memory, gait-mcp for
+      gait-session-tracking): those skills call nothing else.
+    fs.workspaceOnly, elevated off and toolSearch off match the qualified Convergence
+    policy. The sandbox layer (tools.sandbox.tools) is set by the member home."""
+    allow = list(spec["tools"]["allow"])
+    present = {entry.lower() for entry in allow}
+    extra = (["read"] if spec_skills(spec) else []) + [
+        server + "__*" for skill, server in SPEC_BASE_SKILLS if skill in spec_skills(spec)
+        and server in spec.get("base_servers", [])]
+    allow += [entry for entry in extra if entry.lower() not in present]
+    return {"allow": allow, "fs": {"workspaceOnly": True},
+            "elevated": {"enabled": False}, "toolSearch": False}
 
 
 # Profile → OpenClaw mcp.servers names to keep in a member's scoped config
@@ -437,14 +802,17 @@ def profiles(skills_dir=None, include_unconfigured=False):
     return out
 
 
-def scope(profile_id=None, custom_skills=None, skills_dir=None):
-    """Return a member scope: base floor (tier=base) + specialty (tier=specialty)."""
+def scope(profile_id=None, custom_skills=None, skills_dir=None, installed=None):
+    """Return a member scope: base floor (tier=base) + specialty (tier=specialty).
+    `installed` overrides the installed-skill listing (a member spec passes it)."""
     out = list(BASE_FLOOR)
     specialty = []
+    if installed is None:
+        installed = _installed_skills(skills_dir)
     if profile_id and profile_id != "custom":
-        specialty = _match_profile(profile_id, _installed_skills(skills_dir))
+        specialty = _match_profile(profile_id, installed)
     elif custom_skills:
-        installed = set(_installed_skills(skills_dir))
+        installed = set(installed)
         specialty = [s for s in custom_skills if s in installed] or list(custom_skills)
     for s in specialty:
         out.append({"name": s, "type": "skill", "tier": "specialty"})
@@ -468,10 +836,38 @@ def _main(argv):
         pid = argv[1]
         custom = argv[2].split(",") if pid == "custom" and len(argv) > 2 else None
         print(json.dumps(scope(profile_id=pid, custom_skills=custom), indent=2))
+    elif cmd == "spec" and len(argv) > 1:
+        config = argv[argv.index("--border-config") + 1] if "--border-config" in argv[:-1] else str(_RUNTIME.config)
+        try:
+            servers = border_template_servers(config)
+            spec, warnings = load_member_spec(argv[1], servers,
+                                              allow_dangerous="--allow-dangerous-tools" in argv)
+        except MemberSpecError as error:
+            print(f"error: {error}", file=sys.stderr)
+            return 1
+        for warning in warnings:
+            print(f"warning: {warning}", file=sys.stderr)
+        spec["kept_servers"] = sorted(spec_member_servers(spec, servers))
+        spec["skill_allowlist"] = spec_skills(spec)
+        spec["tool_policy"] = spec_tool_policy(spec)
+        print(json.dumps(spec, indent=2))
     else:
         print(__doc__)
         return 1
     return 0
+
+
+def border_template_servers(config):
+    """The Border template's mcp.servers a member spec is checked against."""
+    try:
+        servers = (json.loads(Path(config).read_text()).get("mcp") or {}).get("servers")
+    except OSError as error:
+        raise MemberSpecError(f"Border config {config} could not be read ({type(error).__name__})") from None
+    except (ValueError, AttributeError):
+        raise MemberSpecError(f"Border config {config} is not valid JSON") from None
+    if not isinstance(servers, dict):
+        raise MemberSpecError(f"Border config {config} has no mcp.servers")
+    return servers
 
 
 if __name__ == "__main__":
