@@ -42,6 +42,8 @@ PORTS = {'cluster': 7443, 'in2n': 7444, 'https': 443, 'edge': 8444, 'api': 8179,
 LIMITS = {'leader_lease_s': 15, 'renewal_s': 5, 'admission_ms': 4500,
           'clock_uncertainty_ms': 250, 'max_operations': 1024, 'max_members': 32}
 ETCD_HEARTBEAT_MS, ETCD_ELECTION_MS = 500, 5000
+# OpenShell's egress refuses the standard etcd client port 2379 (live finding); sandboxed Borders reach etcd on 12379.
+ETCD_CLIENT_PORT = 12379
 SOURCE_ROOTS = ('mcp-servers/protocol-mcp',)
 SOURCE_EXTRA = ('scripts/federation-control.py', 'scripts/protected-role.py',
                 'scripts/lib/protected_role.py', 'scripts/write-env.py', 'scripts/runtime-selection.py',
@@ -197,7 +199,7 @@ def prepare(args):
     credentials = {n: secrets.token_urlsafe(32) for n in ['root'] + [f'border{i}' for i in range(len(nodes))]}
     owned = {'schema_version': 1, 'name': name, 'cluster_id': cluster_id, 'generation': generation, 'prefix': prefix,
              'peers': [f"v{i}=https://{n['internal']}:2380" for i, n in enumerate(voters)],
-             'clients': [f"https://{n.get('iname') or n['internal']}:2379" for n in voters],
+             'clients': [f"https://{n.get('iname') or n['internal']}:{ETCD_CLIENT_PORT}" for n in voters],
              'heartbeat_ms': ETCD_HEARTBEAT_MS, 'election_ms': ETCD_ELECTION_MS}
     private(root / 'etcd-owned.json', owned); private(root / 'etcd-credentials.json', credentials)
 
@@ -245,7 +247,7 @@ def prepare(args):
         private(state / 'etcd-password', credentials[f'border{i}'].encode())
         private(state / 'protected-operator.env', ('NETCLAW_PROTECTED_OPERATOR_TOKEN=' + secrets.token_urlsafe(32) + '\n').encode())
         private(home / 'openclaw.json', {'netclaw': {'controlOnly': True}})
-        order = [i] + [k for k in range(len(voters)) if k != i]
+        order = [k for k in range(len(voters)) if k != i] or [i]  # sandbox nodes cannot dial their own host address (OpenShell); any healthy remote voter serves the client
         config = {'schema_version': 1, 'role': 'border', 'manifest_file': f'{VM_STATE}/identity/manifest.json',
                   'anchor_certificate_file': f'{VM_STATE}/identity/root.crt', 'anchor_key_id': anchor_id,
                   'transport_ca_file': f'{VM_STATE}/transport/transport-ca.crt', 'node_id': n['node_id'],

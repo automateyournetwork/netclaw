@@ -147,9 +147,34 @@ def main():
         stop = True
     signal.signal(signal.SIGTERM, halt)
     signal.signal(signal.SIGINT, halt)
+    ctl = STATE / 'CTL'
+    ctl.mkdir(mode=0o700, exist_ok=True)
     while not stop:
+        if (ctl / 'stop-border').exists():
+            (ctl / 'stop-border').unlink()
+            try:
+                descriptor.unlink()
+            except FileNotFoundError:
+                pass
+            for name in ('hud-ingress', 'border-role'):
+                p = procs.pop(name, None)
+                if p is not None:
+                    p.terminate()
+                    try:
+                        p.wait(timeout=15)
+                    except subprocess.TimeoutExpired:
+                        p.kill()
+        if (ctl / 'start-border').exists():
+            (ctl / 'start-border').unlink()
+            if 'border-role' not in procs:
+                start_border()
+                deadline2 = time.time() + 120
+                while not descriptor.exists() and time.time() < deadline2:
+                    time.sleep(1)
+                if prepare_ingress():
+                    start_ingress()
         write_posture(node)
-        time.sleep(5)
+        time.sleep(3)
     for p in procs.values():
         p.terminate()
 

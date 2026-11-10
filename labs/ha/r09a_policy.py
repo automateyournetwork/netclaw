@@ -31,6 +31,7 @@ READ_ONLY = ['/usr', '/lib', '/lib64', '/bin', '/sbin', '/proc', '/dev/urandom',
 READ_WRITE = ['/sandbox', '/tmp', '/dev/null']  # the only writable locations: state and scratch
 FORBIDDEN_PATHS = ('/', '/root', '/home', '/var/lib/docker', '/var/run/docker.sock', '/run/docker.sock', '/var/run', '/run', '/host')
 ANTHROPIC_HOST = 'api.anthropic.com'
+ETCD_CLIENT_PORT = 12379  # OpenShell refuses egress to 2379; etcd serves clients on 12379 in sandboxed deployments
 FORBIDDEN_HOST_NAMES = {'metadata', 'metadata.google.internal', 'metadata.goog', 'localhost', 'host.docker.internal'}
 TOP_KEYS = {'version', 'filesystem_policy', 'landlock', 'process', 'network_policies'}
 L7_ONLY_FIELDS = ('enforcement', 'access', 'rules', 'deny_rules')
@@ -56,6 +57,16 @@ def canonical(value):
 def policy_sha256(policy):
     """Content hash of the parsed policy (comments and key order do not matter)."""
     return hashlib.sha256(canonical(policy)).hexdigest()
+
+
+def _private_ip(value):
+    try:
+        address = ipaddress.ip_address(value)
+    except ValueError:
+        raise PolicyRefused('resolve_invalid') from None
+    need(address.version == 4 and address.is_private and not (address.is_loopback or address.is_link_local
+         or address.is_multicast or address.is_unspecified), 'resolve_invalid')
+    return str(address)
 
 
 GCE_INTERNAL = re.compile(r'^[a-z]([a-z0-9-]{0,61}[a-z0-9])?\.[a-z][a-z0-9-]*\.c\.[a-z][a-z0-9-]*\.internal$')
@@ -86,10 +97,11 @@ def _binary(path):
 
 
 def check_node_spec(spec):
-    need(isinstance(spec, dict) and set(spec) <= {'node', 'etcd', 'peers', 'anthropic', 'binaries'}
+    need(isinstance(spec, dict) and set(spec) <= {'node', 'etcd', 'peers', 'anthropic', 'binaries', 'resolve'}
          and {'node', 'etcd', 'peers', 'anthropic'} <= set(spec), 'invalid_node_spec')
     need(isinstance(spec['node'], str) and NODE_CODE.match(spec['node']), 'invalid_node')
-    need(isinstance(spec['etcd'], list) and len(spec['etcd']) == 3 and len(set(spec['etcd'])) == 3, 'etcd_three_voters_required')
+    # a sandboxed node lists only its REMOTE voters (OpenShell refuses the node's own host address): 2 of a 3-voter cluster
+    need(isinstance(spec['etcd'], list) and 2 <= len(spec['etcd']) <= 3 and len(set(spec['etcd'])) == len(spec['etcd']), 'etcd_two_or_three_voters_required')
     need(isinstance(spec['peers'], list) and len(spec['peers']) <= 2 and len(set(spec['peers'])) == len(spec['peers']), 'invalid_peers')
     need(type(spec['anthropic']) is bool, 'invalid_anthropic_flag')
     binaries = dict(DEFAULT_BINARIES)
@@ -102,15 +114,23 @@ def check_node_spec(spec):
 def build_policy(spec):
     """Deterministic policy dict for one node (`netclaw-node` sandbox)."""
     binaries = check_node_spec(spec)
-    etcd = [_endpoint(item, 2379, 'etcd_endpoint') for item in spec['etcd']]
+    etcd = [_endpoint(item, ETCD_CLIENT_PORT, 'etcd_endpoint') for item in spec['etcd']]
     peers = [_endpoint(item, 7443, 'peer_endpoint') for item in spec['peers']]
+    resolve = spec.get('resolve') or {}
+    for host, _ in etcd + peers:
+        need(host in resolve, 'resolve_missing')
+        _private_ip(resolve[host])
+
+    def tcp(host, port):
+        # allowed_ips replaces OpenShell's SSRF internal-address check with an exact allowlist (live finding).
+        return {'host': host, 'port': port, 'protocol': 'tcp', 'tls': 'skip', 'allowed_ips': [resolve[host] + '/32']}
     policies = {
         'etcd': {'name': 'etcd-voters', 'endpoints': [
-            {'host': h, 'port': p, 'protocol': 'tcp', 'tls': 'skip'} for h, p in etcd],
+            tcp(h, p) for h, p in etcd],
             'binaries': [_binary(binaries['python'])]}}
     if peers:
         policies['border-peers'] = {'name': 'border-peers', 'endpoints': [
-            {'host': h, 'port': p, 'protocol': 'tcp', 'tls': 'skip'} for h, p in peers],
+            tcp(h, p) for h, p in peers],
             'binaries': [_binary(binaries['python'])]}
     if spec['anthropic']:
         # Default TLS termination (no `tls` field): required for OpenShell to inject the provider credential.
@@ -188,7 +208,10 @@ def validate_policy(text):
             if protocol == 'tcp':
                 for field in L7_ONLY_FIELDS:
                     need(field not in endpoint, 'l7_fields_on_tcp_refused')
-                need(set(endpoint) == {'host', 'port', 'protocol', 'tls'}, 'endpoint_fields_invalid')
+                need(set(endpoint) == {'host', 'port', 'protocol', 'tls', 'allowed_ips'}, 'endpoint_fields_invalid')
+                ips = endpoint['allowed_ips']
+                need(isinstance(ips, list) and len(ips) == 1 and isinstance(ips[0], str) and ips[0].endswith('/32'), 'allowed_ips_must_be_one_exact_address')
+                _private_ip(ips[0][:-3])
                 need(endpoint['tls'] == 'skip', 'tcp_endpoint_requires_tls_skip')
                 try:
                     ipaddress.ip_address(host)

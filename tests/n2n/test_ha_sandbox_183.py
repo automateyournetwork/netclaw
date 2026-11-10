@@ -15,8 +15,9 @@ from labs.ha import r09a_defenseclaw as dc  # noqa: E402
 from labs.ha import r09a_image as image  # noqa: E402
 from labs.ha import r09a_policy as pol  # noqa: E402
 
-SPEC = {'node': 'nne1', 'etcd': ['nc183-border-a.northamerica-northeast1-c.c.netclaw-506315.internal:2379', 'nc183-border-b.northamerica-northeast1-c.c.netclaw-506315.internal:2379', 'nc183-witness.northamerica-northeast1-c.c.netclaw-506315.internal:2379'],
-        'peers': ['nc183-border-b.northamerica-northeast1-c.c.netclaw-506315.internal:7443'], 'anthropic': True}
+SPEC = {'node': 'nne1', 'etcd': ['nc183-border-a.northamerica-northeast1-c.c.netclaw-506315.internal:12379', 'nc183-border-b.northamerica-northeast1-c.c.netclaw-506315.internal:12379', 'nc183-witness.northamerica-northeast1-c.c.netclaw-506315.internal:12379'],
+        'peers': ['nc183-border-b.northamerica-northeast1-c.c.netclaw-506315.internal:7443'], 'anthropic': True,
+        'resolve': {'nc183-border-a.northamerica-northeast1-c.c.netclaw-506315.internal': '10.183.2.2', 'nc183-border-b.northamerica-northeast1-c.c.netclaw-506315.internal': '10.183.2.3', 'nc183-witness.northamerica-northeast1-c.c.netclaw-506315.internal': '10.183.2.4'}}
 
 
 def refused(code, text):
@@ -106,9 +107,9 @@ def test_every_refusal(mutate, code):
 
 
 def test_invalid_node_specs_refused():
-    bad = [{**SPEC, 'etcd': SPEC['etcd'][:2]}, {**SPEC, 'node': 'Bad Node'}, {**SPEC, 'anthropic': 'yes'},
-           {**SPEC, 'etcd': ['nc183-border-a.northamerica-northeast1-c.c.netclaw-506315.internal:2379', 'nc183-border-b.northamerica-northeast1-c.c.netclaw-506315.internal:2379', '8.8.8.8:2379']},
-           {**SPEC, 'etcd': ['nc183-border-a.northamerica-northeast1-c.c.netclaw-506315.internal:2379', 'nc183-border-b.northamerica-northeast1-c.c.netclaw-506315.internal:2379', '169.254.169.254:2379']},
+    bad = [{**SPEC, 'etcd': SPEC['etcd'][:1]}, {**SPEC, 'node': 'Bad Node'}, {**SPEC, 'anthropic': 'yes'},
+           {**SPEC, 'etcd': ['nc183-border-a.northamerica-northeast1-c.c.netclaw-506315.internal:12379', 'nc183-border-b.northamerica-northeast1-c.c.netclaw-506315.internal:12379', '8.8.8.8:12379']},
+           {**SPEC, 'etcd': ['nc183-border-a.northamerica-northeast1-c.c.netclaw-506315.internal:12379', 'nc183-border-b.northamerica-northeast1-c.c.netclaw-506315.internal:12379', '169.254.169.254:12379']},
            {**SPEC, 'peers': ['nc183-border-b.northamerica-northeast1-c.c.netclaw-506315.internal:7444']}, {**SPEC, 'peers': ['a', 'b', 'c']}, {**SPEC, 'binaries': {'x': '/bin/x'}},
            {**SPEC, 'binaries': {'python': 'relative/python'}}, {'node': 'nne1'}]
     for spec in bad:

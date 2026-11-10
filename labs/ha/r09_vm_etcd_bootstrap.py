@@ -20,12 +20,12 @@ B = S / 'etcd-bootstrap'
 owned = json.loads((B / 'owned.json').read_text())
 credentials = json.loads((B / 'credentials.json').read_text())
 _node = json.loads((S / 'node.json').read_text())
-internal = _node.get('iname') or _node['internal']  # sandbox nodes must use DNS names (OpenShell refuses IP literals)
+internal = os.environ.get('NC_ETCD_HOST') or _node.get('iname') or _node['internal']  # sandbox nodes must use DNS names (OpenShell refuses IP literals)
 
 context = ssl.create_default_context(cafile=str(B / 'client-ca.crt'))
 context.minimum_version = ssl.TLSVersion.TLSv1_3
 context.load_cert_chain(B / 'admin.crt', B / 'admin.key')
-url = f'https://{internal}:2379/v3/'
+url = f"https://{internal}:{os.environ.get('NC_ETCD_PORT', '12379')}/v3/"
 
 
 def request(client, path, value):
@@ -52,7 +52,7 @@ with httpx.Client(verify=context, timeout=5, trust_env=False, follow_redirects=F
     request(client, 'auth/role/add', {'name': 'ncfed-cluster'})
     request(client, 'auth/role/grant', {'name': 'ncfed-cluster', 'perm': {
         'permType': 'READWRITE', 'key': base64.b64encode(prefix).decode(), 'range_end': base64.b64encode(end).decode()}})
-    for i in range(3):
+    for i in range(sum(1 for k in credentials if k.startswith('border'))):  # 2 Borders in R09A, 3 in R09
         request(client, 'auth/user/add', {'name': f'border{i}', 'password': credentials[f'border{i}']})
         request(client, 'auth/user/grant', {'user': f'border{i}', 'role': 'ncfed-cluster'})
     request(client, 'auth/enable', {})

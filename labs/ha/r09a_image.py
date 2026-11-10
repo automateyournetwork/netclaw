@@ -94,7 +94,7 @@ def main():
         if name in NPM_DIRS:
             env = {'PATH': f'{NODE_BIN}:/usr/bin:/bin', 'HOME': '/root'}
             subprocess.run([str(NODE_BIN / 'npm'), 'ci', '--omit=dev', '--ignore-scripts', '--no-audit', '--no-fund'],
-                           cwd=target / NPM_DIRS[name], env=env, check=True, capture_output=True)
+                           cwd=target / NPM_DIRS[name], env=env, check=True)
             for directory, dirs, files in os.walk(target, followlinks=False):  # the ingress refuses symlink aliases
                 for entry in list(dirs) + list(files):
                     p = Path(directory) / entry
@@ -131,7 +131,7 @@ ARG OPENCLAW_VERSION={OPENCLAW_VERSION}
 ARG DEFENSECLAW_VERSION={DEFENSECLAW_VERSION}
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates xz-utils git \\
+RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates xz-utils git procps \\
     && rm -rf /var/lib/apt/lists/*
 
 # The policy's run_as_user must exist in the image (OpenShell: IdentityResolutionFailed otherwise).

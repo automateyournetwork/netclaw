@@ -161,7 +161,7 @@ stage_etcd() {
     --user "$uid:$gid" --memory 1g --cap-drop ALL --security-opt no-new-privileges -e GOMEMLIMIT=768MiB \
     -v "$STATE/etcd-voter:/pki:ro" -v "$STATE/etcd-data:/data" \
     "$ETCD_IMAGE" /usr/local/bin/etcd --name "v$idx" --data-dir /data \
-    --listen-client-urls "https://$internal:2379,https://127.0.0.1:2379" --advertise-client-urls "https://$internal:2379" \
+    --listen-client-urls "https://$internal:12379,https://127.0.0.1:12379" --advertise-client-urls "https://$internal:12379" \
     --listen-peer-urls "https://$internal:2380" --initial-advertise-peer-urls "https://$internal:2380" \
     --initial-cluster "$cluster" --initial-cluster-token "$name" --initial-cluster-state new \
     --cert-file /pki/server.crt --key-file /pki/server.key --trusted-ca-file /pki/client-ca.crt --client-cert-auth=true \

@@ -3,7 +3,7 @@
 
 plan   (default) GET only: reads zone A records and reports create / noop / CONFLICT per name.
 apply  needs --apply: PUT A records; refuses CONFLICT (existing name with another target) and bad names.
-Names: <code>-<id6>.automateyournetwork.com, code in nne1|ew1|ase1, id6 = 6 lowercase hex.
+Names: <code>-<id6>.automateyournetwork.com, code in nne1|nne2|ew1|ase1, id6 = 6 lowercase hex.
 Credentials only from ~/.openclaw/.env: GODADDY_PAT (Bearer) or GODADDY_API_KEY + GODADDY_API_SECRET (sso-key).
 Secrets are never printed. Never read an exit code through a pipe.
 """
@@ -17,8 +17,8 @@ import urllib.request
 
 ZONE = "automateyournetwork.com"
 API = "https://api.godaddy.com"
-CODES = ("nne1", "ew1", "ase1")
-LABEL_RE = re.compile(r"^(nne1|ew1|ase1)-[0-9a-f]{6}$")
+CODES = ("nne1", "nne2", "ew1", "ase1")
+LABEL_RE = re.compile(r"^(nne1|nne2|ew1|ase1)-[0-9a-f]{6}$")
 TTL = 600
 
 
@@ -73,6 +73,8 @@ def wanted(id6, ips):
     """[(label, fqdn, ip)]; refuses names outside the pattern."""
     recs = []
     for code in CODES:
+        if code not in id6 and code not in ips:
+            continue  # only the codes supplied are managed (R09A uses nne1+nne2)
         if code not in id6 or code not in ips:
             raise ValueError(f"need both --id6 and --ip for {code}")
         label = f"{code}-{id6[code]}"
