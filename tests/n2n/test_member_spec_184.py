@@ -1200,3 +1200,67 @@ def test_copy_skill_skips_hard_links_and_special_files(member_home, tmp_path):
     copied = sorted(str(p.relative_to(target)) for p in target.rglob('*'))
     assert copied == ['SKILL.md', 'sub', 'sub/notes.md']
     assert (target / 'SKILL.md').stat().st_mode & 0o777 == 0o600
+
+
+# ── Review round 3: literal secrets and symlink-safe skill copy ──
+
+def test_literal_secrets_finds_paths_never_values(profiles):
+    entry = {
+        'command': 'python3',
+        'args': ['server.py', '--api-key', 'abc123', '--token=${TOKEN}', '--timeout', '30',
+                 'https://user:pw@example.test/x', '--auth-token=literal-xyz'],
+        'env': {'PROMETHEUS_TOKEN': 'literal-abc', 'PROMETHEUS_URL': 'http://prom:9090',
+                'GNS3_TOKEN_TTL': '3600', 'VERIFY_TOKEN_SSL': 'true', 'SECRET_REF': '${SECRET_REF}',
+                'DEFAULTED_KEY': '${DEFAULTED_KEY:-x}', 'EMPTY_PASSWORD': ''},
+        'headers': {'Authorization': 'Bearer literal', 'X-Trace': 'on'},
+        'url': 'https://u:p@mcp.example.test/sse',
+    }
+    found = profiles.literal_secrets(entry)
+    assert 'env.PROMETHEUS_TOKEN' in found
+    assert 'headers.Authorization' in found
+    assert 'url (URL credentials)' in found
+    assert 'args[1]' in found and 'args[6] (URL credentials)' in found and 'args[7]' in found
+    for clean in ('env.PROMETHEUS_URL', 'env.GNS3_TOKEN_TTL', 'env.VERIFY_TOKEN_SSL', 'env.SECRET_REF',
+                  'env.DEFAULTED_KEY', 'env.EMPTY_PASSWORD', 'headers.X-Trace', 'args[3]', 'args[4]'):
+        assert clean not in found
+    assert not any('abc' in item or 'literal' in item or 'pw' in item for item in found)
+
+
+def test_spec_member_refuses_a_literal_secret_in_a_kept_server(tmp_path):
+    border = tmp_path / '.openclaw'
+    servers = border_with_pfsense(border, 'ANTHROPIC_API_KEY=fixture\n')
+    config = json.loads((border / 'openclaw.json').read_text())
+    config['mcp']['servers']['prometheus-mcp'].setdefault('env', {})['PROMETHEUS_TOKEN'] = 'literal-abc'
+    (border / 'openclaw.json').write_text(json.dumps(config))
+    spec = write_spec(tmp_path / 's.json', servers=['prometheus-mcp'], skills=[],
+                      tools={'allow': ['prometheus-mcp__*']})
+    member = tmp_path / 'member'
+    out = run_member_home(tmp_path, border, member, spec)
+    assert out.returncode != 0
+    assert 'prometheus-mcp: env.PROMETHEUS_TOKEN' in out.stderr
+    assert 'literal-abc' not in out.stderr + out.stdout
+    assert not (member / 'openclaw.json').exists()
+    # A server the spec does not keep does not block it.
+    config['mcp']['servers']['prometheus-mcp']['env'].pop('PROMETHEUS_TOKEN')
+    config['mcp']['servers']['pfsense-mcp'] = {**servers['pfsense-mcp'],
+                                               'env': {'PFSENSE_API_KEY': 'literal-unkept'}}
+    (border / 'openclaw.json').write_text(json.dumps(config))
+    ok = run_member_home(tmp_path, border, member, spec)
+    assert ok.returncode == 0, ok.stderr
+    assert 'literal-unkept' not in (member / 'openclaw.json').read_text()
+
+
+def test_copy_skill_does_not_enter_a_symlinked_skill_or_subdirectory(member_home, tmp_path):
+    private = tmp_path / 'border-private'
+    private.mkdir()
+    (private / 'token.txt').write_text('secret')
+    swapped = tmp_path / 'swapped-skill'
+    swapped.symlink_to(private, target_is_directory=True)
+    member_home.copy_skill(swapped, tmp_path / 'out1')
+    assert not any((tmp_path / 'out1').rglob('*'))
+    source = tmp_path / 'skill'
+    source.mkdir()
+    (source / 'SKILL.md').write_text('skill')
+    (source / 'refs').symlink_to(private, target_is_directory=True)
+    member_home.copy_skill(source, tmp_path / 'out2')
+    assert sorted(str(p.relative_to(tmp_path / 'out2')) for p in (tmp_path / 'out2').rglob('*')) == ['SKILL.md']

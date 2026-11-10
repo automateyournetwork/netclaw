@@ -135,6 +135,20 @@ declarative member spec is the generic fix.
 - `copy_skill` opens each source file `O_NOFOLLOW` and copies it only when `fstat` shows a
   regular file with one link.
 
+## Review round 3 contract
+
+- A kept server entry (and the DefenseClaw plugin configuration a spec member carries) must
+  reference secrets as `${NAME}`. `in2n-profiles.literal_secrets` finds secret-looking `env`,
+  `headers` and other keys with literal values (purely numeric/boolean settings excepted), URLs
+  with credentials, and secret-looking command-line flags with literal arguments; a spec member
+  with any of these stops before writing and names server and key, never the value.
+- Kept servers keep their own data stores (for example `RAG_DATA_DIR` for `rag-mcp`): shared by
+  design so an investigator can search the operator's knowledge base; the tool allowlist limits
+  what the member may do with them. Only the memory and GAIT stores are the member's own.
+  `GAIT_VENV`/`GAIT_MCP_SCRIPT` (executables) still come from the Border.
+- `copy_skill` walks with `os.fwalk(follow_symlinks=False)` and opens files relative to the
+  checked directory descriptor, so a directory swapped for a symlink mid-copy is not entered.
+
 ## Known behaviour (profile members; predates spec 184, not changed here)
 
 A profile member's `openclaw.json` is still a deep copy of the Border's, minus comms channels

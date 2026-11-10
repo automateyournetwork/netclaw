@@ -26,4 +26,5 @@
 - [x] T024 Round 2: explicit `SAFE_BUILTINS` (read, session_status); everything else needs the opt-in.
 - [x] T025 Round 2: `copy_skill` opens `O_NOFOLLOW` and checks `fstat` (regular, one link).
 - [x] T026 Round 2: profile-member exposure documented (spec.md Known behaviour, research.md Follow-up); tests and verification.
+- [x] T027 Round 3: refuse literal secrets in kept servers/guard plugin; document shared server stores and GAIT executables; fwalk-based skill copy; tests.
 - [x] T021 Final verification: 183/182 tests, full `tests/n2n` against the main baseline, `verify-spec-artifacts.py`, `git diff --check` (verification.md).

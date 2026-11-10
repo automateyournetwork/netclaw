@@ -127,6 +127,25 @@ No credentials are recorded here.
   `_ollama_selection_176`, `_orchestration_171`: `RuntimeRefused: unsafe_pinned_source` on this
   host's checkout).
 
+## Review round 3 (rebased onto upstream e21d867c, 2026-11-10)
+
+Reviewer: Grok (read-only), after the Claude agents reached their usage limit; fixes by the
+coordinator. Round-2 items 1-4 confirmed fixed; `require_standalone_home` (upstream HA) runs
+before every member-home write. Round-3 fixes and tests:
+- literal secrets in kept server entries or the guard plugin are refused, naming server and key
+  only (`test_literal_secrets_finds_paths_never_values`,
+  `test_spec_member_refuses_a_literal_secret_in_a_kept_server`);
+- `copy_skill` does not enter a symlinked skill or subdirectory
+  (`test_copy_skill_does_not_enter_a_symlinked_skill_or_subdirectory`);
+- docs now state that kept servers keep their own data stores (allowlist-limited) and that
+  `GAIT_VENV`/`GAIT_MCP_SCRIPT` come from the Border.
+
+Results on top of e21d867c: `test_member_spec_184.py` 141 passed, `test_member_mcp_mappings_183.py`
+50 passed (installed OpenClaw 2026.10.9). Full `tests/n2n` (fastmcp4 runtime): main 32 failed,
+1975 passed, 16 skipped, 179 errors; this branch the identical failing/erroring ids and 2163+
+passed. The failures and errors come from modules not installed on this host (for example
+`service_identity`, `qrcode`) and protected-runtime setup refusals, the same on main.
+
 ## Checks
 
 - `python3 scripts/verify-spec-artifacts.py`: exit 0.

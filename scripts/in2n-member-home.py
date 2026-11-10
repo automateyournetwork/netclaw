@@ -329,35 +329,33 @@ def skill_sources(skills, roots):
 
 def copy_skill(source, target):
     """Copy one skill's regular files into the member's workspace (0700 dirs, 0600 files).
-    Symlinks, hard-linked files and anything not a regular file are skipped (each source
-    is opened O_NOFOLLOW and checked with fstat), so nothing outside the skill is copied."""
+    The tree is walked with os.fwalk(follow_symlinks=False): every directory, the skill's
+    own included, is opened and checked against what was listed, so a directory swapped
+    for a symlink during the copy is not entered. Each file is opened O_NOFOLLOW relative
+    to its directory and must be a regular file with one link (fstat). Nothing outside
+    the skill is copied."""
     private_dir(target)
-    for path in sorted(Path(source).rglob("*")):
-        relative = path.relative_to(source)
-        if any((Path(source) / part).is_symlink() for part in
-               [Path(*relative.parts[:i + 1]) for i in range(len(relative.parts))]):
-            continue
-        if path.is_dir():
-            private_dir(target / relative)
-            continue
-        # Open first, then check what was opened: O_NOFOLLOW refuses a symlink swapped in
-        # after the walk, and fstat must show a regular file with one link (a hard link
-        # could name a Border file outside the skill).
-        try:
-            src = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | getattr(os, "O_NONBLOCK", 0))
-        except OSError:
-            print(f"warning: skill file not copied (not a regular file): {path}", file=sys.stderr)
-            continue
-        with os.fdopen(src, "rb") as source_stream:
-            info = os.fstat(source_stream.fileno())
-            if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1:
-                print(f"warning: skill file not copied (not a single-link regular file): {path}",
+    source = str(source)
+    for dirpath, _dirs, files, dirfd in os.fwalk(source, follow_symlinks=False):
+        relative = Path(os.path.relpath(dirpath, source))
+        private_dir(target / relative)
+        for name in sorted(files):
+            try:
+                src = os.open(name, os.O_RDONLY | os.O_NOFOLLOW | getattr(os, "O_NONBLOCK", 0), dir_fd=dirfd)
+            except OSError:
+                print(f"warning: skill file not copied (not a regular file): {Path(dirpath) / name}",
                       file=sys.stderr)
                 continue
-            private_dir((target / relative).parent)
-            fd = os.open(target / relative, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
-            with os.fdopen(fd, "wb") as stream:
-                shutil.copyfileobj(source_stream, stream)
+            with os.fdopen(src, "rb") as source_stream:
+                info = os.fstat(source_stream.fileno())
+                if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1:
+                    print(f"warning: skill file not copied (not a single-link regular file): "
+                          f"{Path(dirpath) / name}", file=sys.stderr)
+                    continue
+                fd = os.open(target / relative / name, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+                             0o600)
+                with os.fdopen(fd, "wb") as stream:
+                    shutil.copyfileobj(source_stream, stream)
 
 
 def member_home_command(risk, member, member_env, spec=None, allow_dangerous=False):
@@ -741,6 +739,15 @@ def _provision_openclaw(args, runtime, name, spec=None):
     _refuse_border_home(mh, {runtime.home, border_home})
     border_servers = m["mcp"].get("servers", {})
     kept = prof.spec_member_servers(spec, border_servers) if spec else prof.member_servers(name, border_servers)
+    if spec:
+        from bgp.federation.controls import defenseclaw_plugin_config
+        literal = [f"{server}: {path}" for server, entry in sorted(kept.items())
+                   for path in prof.literal_secrets(entry)]
+        literal += [f"DefenseClaw plugin: {path}"
+                    for path in prof.literal_secrets(defenseclaw_plugin_config(border) or {})]
+        if literal:
+            raise SystemExit("error: the Border template holds literal secrets that a spec member would copy "
+                             "(move each into the .env and reference it as ${NAME}): " + "; ".join(literal))
     border_roots = {e["env"]["NETCLAW_RUNTIME_ROOT"] for e in kept.values()
                     if isinstance(e, dict) and isinstance(e.get("env"), dict) and e["env"].get("NETCLAW_RUNTIME_ROOT")}
     border_root = (border_roots.pop() if len(border_roots) == 1 else

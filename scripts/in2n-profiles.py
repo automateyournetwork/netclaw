@@ -585,6 +585,52 @@ def spec_member_servers(spec, servers):
     return {k: v for k, v in kept.items() if k not in BORDER_ONLY_SERVERS}
 
 
+# Literal secrets in a kept server entry (review round 3). The env slice filters
+# variable NAMES; a value written literally into the Border template (instead of a
+# ${VAR} reference) would be copied into the member's openclaw.json as is. A spec
+# member refuses such an entry; the operator moves the value into the .env.
+_SECRET_KEY = re.compile(r"(?i)(token|secret|passw(or)?d|api[_-]?key|apikey|credential|"
+                         r"authori[sz]ation|bearer|private[_-]?key|session[_-]?key|cookie)")
+_WHOLE_ENV_REF = re.compile(r"^\$\{[A-Za-z_][A-Za-z0-9_]*(?::?[-=][^}]*)?\}$")
+_URL_USERINFO = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*://[^/@\s]+@")
+_PLAIN_SETTING = re.compile(r"(?i)^(\d+(\.\d+)?|true|false|yes|no|on|off|none|bearer|basic)$")
+
+
+def literal_secrets(entry, where=""):
+    """Paths (never values) in `entry` that hold a literal secret: a secret-looking key
+    whose string value is not a ${VAR} reference, a URL with embedded credentials, or a
+    secret-looking command-line flag followed by a literal argument."""
+    found = []
+    if isinstance(entry, dict):
+        for key, value in entry.items():
+            path = f"{where}.{key}" if where else str(key)
+            if isinstance(value, str):
+                if (value and _SECRET_KEY.search(str(key)) and not _WHOLE_ENV_REF.match(value)
+                        and not _PLAIN_SETTING.match(value)):
+                    found.append(path)
+                elif _URL_USERINFO.match(value):
+                    found.append(f"{path} (URL credentials)")
+            elif key == "args" and isinstance(value, list):
+                for i, arg in enumerate(value):
+                    if not isinstance(arg, str):
+                        continue
+                    if _URL_USERINFO.match(arg):
+                        found.append(f"{path}[{i}] (URL credentials)")
+                    flag, _, inline = arg.partition("=")
+                    if flag.startswith("-") and _SECRET_KEY.search(flag):
+                        literal = inline if inline else (value[i + 1] if i + 1 < len(value) else "")
+                        if isinstance(literal, str) and literal and not literal.startswith("-") \
+                                and not _WHOLE_ENV_REF.match(literal) \
+                                and not _PLAIN_SETTING.match(literal):
+                            found.append(f"{path}[{i}]")
+            else:
+                found.extend(literal_secrets(value, path))
+    elif isinstance(entry, list):
+        for i, item in enumerate(entry):
+            found.extend(literal_secrets(item, f"{where}[{i}]"))
+    return found
+
+
 # Where the base servers keep their data (review round 2). A spec member's memory-mcp
 # and gait-mcp entries point into its own home (in2n-member-home.py
 # spec_store_overrides), so the Border's values of these never enter its slice.

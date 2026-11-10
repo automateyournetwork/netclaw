@@ -167,14 +167,30 @@ alone, as for the Convergence member). The Border's `gateway`, `env.vars`, other
 and their keys, other plugins, memory-search remote keys and extra paths, and sandbox binds,
 docker env, ssh and browser settings never reach it. A non-docker sandbox backend is refused.
 Its `memory-mcp` stores in `<member home>/memory` and its `gait-mcp` runs with `cwd`, `HOME`
-and sticky root under `<member home>/gait`; the Border's `MEMORY_DATA_DIR` and GAIT paths are
-not in its slice.
+and sticky root under `<member home>/gait`; the Border's `MEMORY_DATA_DIR`, `GAIT_DIR`,
+`GAIT_ROOT` and `GAIT_MCP_STICKY_FILE` are not in its slice. `GAIT_VENV` and `GAIT_MCP_SCRIPT`
+(the GAIT executable and script, not stores) still come from the Border, like `PYATS_VENV`.
+
+Other kept servers keep **their own data stores**: a spec member that keeps `rag-mcp` searches
+the Border's knowledge base (`RAG_DATA_DIR`), as an investigator should; the same holds for
+any server whose store path is in its entry or env. The member's tool allowlist decides what
+it may do with that store (for example `rag-mcp__rag_search` but not `rag-mcp__rag_ingest`),
+so list only the servers whose data the member should reach.
+
+A kept server entry must reference its secrets as `${NAME}`. If the Border template holds a
+**literal** secret in a kept server entry or in the DefenseClaw plugin configuration (a
+secret-looking `env` or `headers` key with a literal value, a URL with credentials, or a
+`--token`/`--api-key`-style argument followed by a literal), provisioning stops before
+writing anything and names the server and key (never the value); move the value into the
+`.env` and reference it.
 
 A spec member gets its **own workspace** (`<member home>/workspace`, a directory, not
 the Border's workspace symlink) holding copies of its installed skills plus the
 file-backed base-floor skills `memory`, `gait-session-tracking` and
-`humanrail-escalation`. Symlinks inside a skill are skipped, so no Border file is
-reachable through it; anything the agent writes stays in the member home. Every
+`humanrail-escalation`. The copy walks each skill with `os.fwalk` without following
+symlinks (a directory swapped for a symlink during the copy is not entered) and copies
+only single-link regular files, so no Border file outside the skill is reachable through
+it; anything the agent writes to its workspace stays in the member home. Every
 agent entry (and `agents.defaults`) points at this workspace and gets the same
 per-agent `skills` allowlist; tools policies and `agentDir` copied from the Border's
 agent entries are removed. `skills.load.extraDirs` is dropped, `skills.entries` keeps
