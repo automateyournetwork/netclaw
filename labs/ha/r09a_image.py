@@ -150,7 +150,7 @@ RUN set -e; f="node-v${{NODE_VERSION}}-linux-x64.tar.xz"; base="https://nodejs.o
 RUN python -m venv /opt/nc182/venv && /opt/nc182/venv/bin/pip install --no-cache-dir {packages}
 
 # Pinned OpenClaw (qualified version), no install scripts.
-RUN PATH=/opt/nc182/node/bin:$PATH npm install --prefix /opt/nc182/openclaw --ignore-scripts --no-audit --no-fund \\
+RUN export PATH=/opt/nc182/node/bin:$PATH && npm install --prefix /opt/nc182/openclaw --ignore-scripts --no-audit --no-fund \\
     "openclaw@${{OPENCLAW_VERSION}}" && /opt/nc182/openclaw/node_modules/.bin/openclaw --version
 
 # DefenseClaw from the pinned, checksum-verified release installer (binaries are then copied root-owned to /usr/local/bin;

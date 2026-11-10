@@ -112,11 +112,13 @@ def parse_nodes(values):
     nodes = []
     for value in values:
         code, _, rest = value.partition('=')
-        internal, public = rest.split(',')
+        parts = rest.split(',')
+        internal, public = parts[0], parts[1]
+        iname = parts[2] if len(parts) > 2 else None
         need(re.fullmatch('[a-z0-9]{2,6}', code), 'node_code')
         socket.inet_aton(internal); socket.inet_aton(public)
-        nodes.append({'code': code, 'internal': internal, 'public': public})
-    need(len(nodes) == 3 and len({n['code'] for n in nodes}) == 3, 'three_nodes_required')
+        nodes.append({'code': code, 'internal': internal, 'public': public, 'iname': iname})
+    need(1 <= len(nodes) <= 3 and len({n['code'] for n in nodes}) == len(nodes), 'one_to_three_nodes_required')
     return nodes
 
 
@@ -131,7 +133,18 @@ def prepare(args):
 
     root = Path(args.root).absolute()
     root.mkdir(mode=0o700, parents=True, exist_ok=False)
+    global VM_STATE
+    VM_STATE = args.state_dir
     nodes = parse_nodes(args.node)
+    witness = None
+    if args.witness:
+        wcode, _, wrest = args.witness.partition('=')
+        wparts = (wrest.split(',') + ['', ''])[:3]
+        winternal, wpublic, winame = wparts[0], wparts[1], (wparts[2] or None)
+        socket.inet_aton(winternal)
+        witness = {'code': wcode, 'internal': winternal, 'public': wpublic, 'iname': winame}
+    voters = list(nodes) + ([witness] if witness else [])
+    need(len(voters) in (1, 3), 'etcd_needs_one_or_three_voters')
     cluster_id, generation = str(uuid.uuid4()), str(uuid.uuid4())
     organization = args.organization
     identity = private_dir(root / 'identity')
@@ -153,7 +166,7 @@ def prepare(args):
         'node_id': n['node_id'], 'installation_id': n['installation_id'], 'identity': n['identity'],
         'key_id': c.key_id(n['crt']), 'certificate': n['crt'], 'role': 'border',
         'endpoints': {
-            'cluster': {'host': n['internal'], 'port': PORTS['cluster'], 'server_name': n['dns']},
+            'cluster': {'host': n.get('iname') or n['internal'], 'port': PORTS['cluster'], 'server_name': n['dns']},
             'in2n': {'host': n['public'], 'port': PORTS['in2n'], 'server_name': n['dns']},
             'https': f"https://{n['dns']}", 'wss': f"wss://{n['dns']}/mobile/ws"}} for n in nodes]
     value = {'schema_version': 1, 'cluster_id': cluster_id, 'generation': generation,
@@ -173,17 +186,18 @@ def prepare(args):
     client_key, client_ca = certificate(etcd, 'client-ca')
     peer_key, peer_ca = certificate(etcd, 'peer-ca')
     certificate(etcd, 'admin', issuer_key=client_key, issuer=client_ca, names=('admin',), user=True)
-    for i, n in enumerate(nodes):
+    for i, n in enumerate(voters):
         certificate(etcd, f'server{i}', issuer_key=client_key, issuer=client_ca,
-                    names=(f'v{i}', 'localhost', '127.0.0.1', n['internal']))
+                    names=tuple(x for x in (f'v{i}', 'localhost', '127.0.0.1', n['internal'], n.get('iname')) if x))
         certificate(etcd, f'peer{i}', issuer_key=peer_key, issuer=peer_ca, names=(f'v{i}', n['internal']))
-        certificate(etcd, f'border{i}', issuer_key=client_key, issuer=client_ca, names=(f'border{i}',), user=True)
+        if i < len(nodes):
+            certificate(etcd, f'border{i}', issuer_key=client_key, issuer=client_ca, names=(f'border{i}',), user=True)
     name = 'nc182-etcd-' + secrets.token_hex(4)
     prefix = f'/netclaw/ha/{cluster_id}/{generation}/'
-    credentials = {n: secrets.token_urlsafe(32) for n in ('root', 'border0', 'border1', 'border2')}
+    credentials = {n: secrets.token_urlsafe(32) for n in ['root'] + [f'border{i}' for i in range(len(nodes))]}
     owned = {'schema_version': 1, 'name': name, 'cluster_id': cluster_id, 'generation': generation, 'prefix': prefix,
-             'peers': [f"v{i}=https://{n['internal']}:2380" for i, n in enumerate(nodes)],
-             'clients': [f"https://{n['internal']}:2379" for n in nodes],
+             'peers': [f"v{i}=https://{n['internal']}:2380" for i, n in enumerate(voters)],
+             'clients': [f"https://{n.get('iname') or n['internal']}:2379" for n in voters],
              'heartbeat_ms': ETCD_HEARTBEAT_MS, 'election_ms': ETCD_ELECTION_MS}
     private(root / 'etcd-owned.json', owned); private(root / 'etcd-credentials.json', credentials)
 
@@ -231,7 +245,7 @@ def prepare(args):
         private(state / 'etcd-password', credentials[f'border{i}'].encode())
         private(state / 'protected-operator.env', ('NETCLAW_PROTECTED_OPERATOR_TOKEN=' + secrets.token_urlsafe(32) + '\n').encode())
         private(home / 'openclaw.json', {'netclaw': {'controlOnly': True}})
-        order = [i] + [k for k in range(3) if k != i]
+        order = [i] + [k for k in range(len(voters)) if k != i]
         config = {'schema_version': 1, 'role': 'border', 'manifest_file': f'{VM_STATE}/identity/manifest.json',
                   'anchor_certificate_file': f'{VM_STATE}/identity/root.crt', 'anchor_key_id': anchor_id,
                   'transport_ca_file': f'{VM_STATE}/transport/transport-ca.crt', 'node_id': n['node_id'],
@@ -242,6 +256,8 @@ def prepare(args):
                            'certificate_file': f'{VM_STATE}/etcd-client/border.crt',
                            'private_key_file': f'{VM_STATE}/etcd-client/border.key',
                            'username': f'border{i}', 'password_file': f'{VM_STATE}/home/netclaw-federation/etcd-password'}}
+        if args.sandbox:  # sandbox loopback listeners; peers still dial the signed manifest addresses (spec 183, D9a)
+            config['listen'] = {'cluster': {'host': '127.0.0.1', 'port': PORTS['cluster']}, 'in2n': {'host': '127.0.0.1', 'port': PORTS['in2n']}}
         private_canonical(state / 'ha-config.json', config)
         profile = {'schemaVersion': 2, 'role': 'border', 'identity': binding, 'access': {'mode': 'open-lab'},
                    'ha': {'config_file': f'{VM_STATE}/home/netclaw-federation/ha-config.json', 'config_sha256': digest(config)}}
@@ -260,11 +276,21 @@ def prepare(args):
                     'origin': f"https://{n['dns']}", 'environment': environment}
         private(b / 'contract.template.json', contract)
         private(b / 'node.json', {**{k: n[k] for k in ('code', 'internal', 'public', 'installation_id', 'node_id', 'id6', 'dns')},
-                                   'index': i, 'anchor_key_id': anchor_id})
+                                   'index': i, 'anchor_key_id': anchor_id, **({'iname': n['iname']} if n.get('iname') else {})})
         # Single self-contained tarball, extracted on the VM as the service user.
         with tarfile.open(bundles / f'{n["code"]}.tar', 'w') as archive:
             archive.add(b, arcname='.', recursive=True)
         summary.append({k: n[k] for k in ('code', 'internal', 'public', 'installation_id', 'id6', 'dns')})
+    if witness:  # etcd-only voter host: its server/peer PKI, nothing else
+        wi = len(nodes)
+        wb = private_dir(bundles / witness['code'])
+        wv = private_dir(wb / 'etcd-voter')
+        for src, dst in (('client-ca.crt', 'client-ca.crt'), ('peer-ca.crt', 'peer-ca.crt'), (f'server{wi}.crt', 'server.crt'),
+                         (f'server{wi}.key', 'server.key'), (f'peer{wi}.crt', 'peer.crt'), (f'peer{wi}.key', 'peer.key')):
+            private(wv / dst, (etcd / src).read_bytes())
+        private(wb / 'node.json', {'code': witness['code'], 'internal': witness['internal'], 'public': witness['public'], 'index': wi, 'role': 'witness'})
+        with tarfile.open(bundles / f'{witness["code"]}.tar', 'w') as archive:
+            archive.add(wb, arcname='.', recursive=True)
     private(root / 'summary.json', {'schema_version': 1, 'cluster_id': cluster_id, 'generation': generation,
         'manifest_sha256': c.sha256(verified.value), 'anchor_key_id': anchor_id, 'limits': LIMITS,
         'etcd': {'heartbeat_ms': ETCD_HEARTBEAT_MS, 'election_ms': ETCD_ELECTION_MS},
@@ -296,6 +322,9 @@ def main():
     p = sub.add_parser('prepare')
     p.add_argument('--root', required=True)
     p.add_argument('--node', action='append', required=True, help='code=internal_ip,public_ip')
+    p.add_argument('--witness', help='code=internal_ip[,public_ip]: etcd-only third voter host')
+    p.add_argument('--state-dir', default=VM_STATE, help='state directory the node sees (sandbox: /sandbox/nc182)')
+    p.add_argument('--sandbox', action='store_true', help='emit the loopback listen block for OpenShell sandboxes')
     p.add_argument('--organization', default='nc182-r09')
     p.add_argument('--days', type=int, default=7)
     r = sub.add_parser('refreeze')

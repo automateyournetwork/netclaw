@@ -15,8 +15,8 @@ from labs.ha import r09a_defenseclaw as dc  # noqa: E402
 from labs.ha import r09a_image as image  # noqa: E402
 from labs.ha import r09a_policy as pol  # noqa: E402
 
-SPEC = {'node': 'nne1', 'etcd': ['10.183.1.2:2379', '10.183.1.3:2379', '10.183.1.4:2379'],
-        'peers': ['10.183.1.3:7443'], 'anthropic': True}
+SPEC = {'node': 'nne1', 'etcd': ['nc183-border-a.northamerica-northeast1-c.c.netclaw-506315.internal:2379', 'nc183-border-b.northamerica-northeast1-c.c.netclaw-506315.internal:2379', 'nc183-witness.northamerica-northeast1-c.c.netclaw-506315.internal:2379'],
+        'peers': ['nc183-border-b.northamerica-northeast1-c.c.netclaw-506315.internal:7443'], 'anthropic': True}
 
 
 def refused(code, text):
@@ -64,7 +64,7 @@ def test_metadata_server_and_unlisted_hosts_are_absent():
     assert '169.254' not in text and 'metadata' not in text and '*' not in text.replace('# ', '')
     policy = pol.build_policy(SPEC)
     hosts = {e['host'] for rule in policy['network_policies'].values() for e in rule['endpoints']}
-    assert hosts == {'10.183.1.2', '10.183.1.3', '10.183.1.4', 'api.anthropic.com'}
+    assert hosts == {'nc183-border-a.northamerica-northeast1-c.c.netclaw-506315.internal', 'nc183-border-b.northamerica-northeast1-c.c.netclaw-506315.internal', 'nc183-witness.northamerica-northeast1-c.c.netclaw-506315.internal', 'api.anthropic.com'}
 
 
 def test_landlock_hard_requirement_and_process_user():
@@ -92,7 +92,7 @@ def test_landlock_hard_requirement_and_process_user():
     (lambda p: p['network_policies']['etcd']['endpoints'][0].update(host='169.254.169.254'), 'metadata_or_internal_host_forbidden'),
     (lambda p: p['network_policies']['etcd']['endpoints'][0].update(host='metadata.google.internal'), 'endpoint_host_forbidden'),
     (lambda p: p['network_policies']['etcd']['endpoints'][0].update(host='*'), 'endpoint_host_forbidden'),
-    (lambda p: p['network_policies']['etcd']['endpoints'][0].update(host='8.8.8.8'), 'tcp_endpoint_must_be_private'),
+    (lambda p: p['network_policies']['etcd']['endpoints'][0].update(host='8.8.8.8'), 'tcp_endpoint_must_be_a_dns_name'),
     (lambda p: p['network_policies']['etcd']['endpoints'][0].update(protocol='udp'), 'endpoint_protocol_refused'),
     (lambda p: p['network_policies']['etcd'].update(binaries=[]), 'network_policy_binaries_required'),
     (lambda p: p.update(extra=1), 'policy_fields_invalid'),
@@ -107,9 +107,9 @@ def test_every_refusal(mutate, code):
 
 def test_invalid_node_specs_refused():
     bad = [{**SPEC, 'etcd': SPEC['etcd'][:2]}, {**SPEC, 'node': 'Bad Node'}, {**SPEC, 'anthropic': 'yes'},
-           {**SPEC, 'etcd': ['10.183.1.2:2379', '10.183.1.3:2379', '8.8.8.8:2379']},
-           {**SPEC, 'etcd': ['10.183.1.2:2379', '10.183.1.3:2379', '169.254.169.254:2379']},
-           {**SPEC, 'peers': ['10.183.1.3:7444']}, {**SPEC, 'peers': ['a', 'b', 'c']}, {**SPEC, 'binaries': {'x': '/bin/x'}},
+           {**SPEC, 'etcd': ['nc183-border-a.northamerica-northeast1-c.c.netclaw-506315.internal:2379', 'nc183-border-b.northamerica-northeast1-c.c.netclaw-506315.internal:2379', '8.8.8.8:2379']},
+           {**SPEC, 'etcd': ['nc183-border-a.northamerica-northeast1-c.c.netclaw-506315.internal:2379', 'nc183-border-b.northamerica-northeast1-c.c.netclaw-506315.internal:2379', '169.254.169.254:2379']},
+           {**SPEC, 'peers': ['nc183-border-b.northamerica-northeast1-c.c.netclaw-506315.internal:7444']}, {**SPEC, 'peers': ['a', 'b', 'c']}, {**SPEC, 'binaries': {'x': '/bin/x'}},
            {**SPEC, 'binaries': {'python': 'relative/python'}}, {'node': 'nne1'}]
     for spec in bad:
         with pytest.raises(pol.PolicyRefused):

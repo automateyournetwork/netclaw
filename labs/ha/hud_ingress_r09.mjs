@@ -290,7 +290,7 @@ export function validatePosture(value) {
     names.add(c.name);
     if(!c.inside_sandbox)need(typeof c.disposition==='string'&&c.disposition.length>=1&&c.disposition.length<=200&&/^[\x20-\x7e]+$/.test(c.disposition)&&!/enforc/i.test(c.disposition),'posture_invalid');
   }
-  need(exact(value.guard,'mode state fail_closed last_block_ms')&&['observe','action'].includes(value.guard.mode)&&POSTURE_STATES.has(value.guard.state)
+  need(exact(value.guard,'mode state fail_closed last_block_ms')&&['observe','action','none'].includes(value.guard.mode)&&POSTURE_STATES.has(value.guard.state)
     &&typeof value.guard.fail_closed==='boolean'&&(value.guard.last_block_ms===null||nonNegative(value.guard.last_block_ms)),'posture_invalid');
   need(nonNegative(value.observed_at_ms),'posture_invalid');
   const walk=item=>{if(typeof item==='string')need(!SECRET_LOOKING.test(item),'posture_invalid');else if(item&&typeof item==='object')for(const [k,v] of Object.entries(item)){need(!SECRET_LOOKING.test(k),'posture_invalid');walk(v);}};

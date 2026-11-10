@@ -11,7 +11,7 @@ OpenShell provider mechanism injects the credential into the HTTP request.
   python -m labs.ha.r09a_policy render --node-spec node.json --out DIR
   python -m labs.ha.r09a_policy validate POLICY.yaml
 
-node_spec (JSON): {"node": "nne1", "etcd": ["10.183.1.2:2379", ...3], "peers": ["10.183.1.3:7443"], "anthropic": true,
+node_spec (JSON): {"node": "nne1", "etcd": ["<inst>.<zone>.c.<project>.internal:2379", ...3], "peers": ["<inst>.<zone>.c.<project>.internal:7443"], "anthropic": true,
                    "binaries": {"python": "...", "node": "...", "defenseclaw": "..."}}   (binaries optional)
 """
 import argparse
@@ -58,16 +58,23 @@ def policy_sha256(policy):
     return hashlib.sha256(canonical(policy)).hexdigest()
 
 
+GCE_INTERNAL = re.compile(r'^[a-z]([a-z0-9-]{0,61}[a-z0-9])?\.[a-z][a-z0-9-]*\.c\.[a-z][a-z0-9-]*\.internal$')
+
+
 def _endpoint(value, port, label):
-    """`ip:port` with a private RFC1918 IPv4 address; never link-local, loopback, multicast or the metadata range."""
+    """`name:port` where name is a GCE zonal internal DNS name (`<instance>.<zone>.c.<project>.internal`).
+
+    Live finding (OpenShell 0.1.7): tcp endpoints must be DNS hostnames; an IP literal is refused because direct IP
+    connections bypass policy DNS. The metadata server and any non-GCE-internal name are never accepted here."""
     need(isinstance(value, str) and value.count(':') == 1, 'invalid_' + label)
     host, _, text = value.partition(':')
     try:
-        address = ipaddress.ip_address(host)
+        ipaddress.ip_address(host)
     except ValueError:
-        raise PolicyRefused('invalid_' + label) from None
-    need(address.version == 4 and address.is_private and not (address.is_loopback or address.is_link_local
-         or address.is_multicast or address.is_unspecified), 'invalid_' + label)
+        pass
+    else:
+        raise PolicyRefused('tcp_endpoint_must_be_a_dns_name')
+    need(GCE_INTERNAL.match(host) is not None and host not in FORBIDDEN_HOST_NAMES, 'invalid_' + label)
     need(text.isdigit() and int(text) == port, 'invalid_' + label)
     return host, port
 
@@ -174,7 +181,8 @@ def validate_policy(text):
             need(isinstance(endpoint, dict), 'endpoint_invalid')
             host, port, protocol = endpoint.get('host'), endpoint.get('port'), endpoint.get('protocol')
             need(isinstance(host, str) and host and '*' not in host and host.lower() not in FORBIDDEN_HOST_NAMES, 'endpoint_host_forbidden')
-            need(not host.startswith('169.254.') and not host.endswith(('.internal', '.local')) or host == 'host.openshell.internal',
+            need(not host.startswith('169.254.') and not host.endswith('.local')
+                 and (not host.endswith('.internal') or host == 'host.openshell.internal' or GCE_INTERNAL.match(host) is not None),
                  'metadata_or_internal_host_forbidden')
             need(type(port) is int and 1 <= port <= 65535, 'endpoint_port_invalid')
             if protocol == 'tcp':
@@ -183,10 +191,12 @@ def validate_policy(text):
                 need(set(endpoint) == {'host', 'port', 'protocol', 'tls'}, 'endpoint_fields_invalid')
                 need(endpoint['tls'] == 'skip', 'tcp_endpoint_requires_tls_skip')
                 try:
-                    address = ipaddress.ip_address(host)
+                    ipaddress.ip_address(host)
                 except ValueError:
-                    raise PolicyRefused('tcp_endpoint_must_be_an_ip') from None
-                need(address.is_private and not (address.is_loopback or address.is_link_local), 'tcp_endpoint_must_be_private')
+                    pass
+                else:
+                    raise PolicyRefused('tcp_endpoint_must_be_a_dns_name')
+                need(GCE_INTERNAL.match(host) is not None or host == 'host.openshell.internal', 'tcp_endpoint_must_be_gce_internal_name')
             elif protocol == 'https':
                 need(host == ANTHROPIC_HOST and port == 443, 'https_host_not_approved')
                 need('tls' not in endpoint, 'https_endpoint_must_keep_tls_termination')

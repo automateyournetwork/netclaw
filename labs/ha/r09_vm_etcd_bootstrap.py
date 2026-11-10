@@ -6,6 +6,7 @@ Single attempt per write: a partial bootstrap is inspected, never blindly retrie
 """
 import base64
 import json
+import os
 import ssl
 import sys
 import time
@@ -14,11 +15,12 @@ from pathlib import Path
 sys.path.insert(0, '/opt/nc182/source/mcp-servers/protocol-mcp')
 import httpx  # noqa: E402
 
-S = Path('/var/lib/nc182')
+S = Path(os.environ.get('NC_STATE', '/var/lib/nc182'))  # sandbox nodes set NC_STATE=/sandbox/nc182
 B = S / 'etcd-bootstrap'
 owned = json.loads((B / 'owned.json').read_text())
 credentials = json.loads((B / 'credentials.json').read_text())
-internal = json.loads((S / 'node.json').read_text())['internal']
+_node = json.loads((S / 'node.json').read_text())
+internal = _node.get('iname') or _node['internal']  # sandbox nodes must use DNS names (OpenShell refuses IP literals)
 
 context = ssl.create_default_context(cafile=str(B / 'client-ca.crt'))
 context.minimum_version = ssl.TLSVersion.TLSv1_3
