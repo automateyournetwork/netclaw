@@ -162,6 +162,7 @@ RUN set -e; d="$(mktemp -d)"; base="https://github.com/cisco-ai-defense/defensec
     mkdir -p /opt/nc182/dc-home; \\
     HOME=/opt/nc182/dc-home PATH=/opt/nc182/node/bin:/opt/nc182/openclaw/node_modules/.bin:$PATH bash "$d/install.sh" --yes --connector openclaw; \\
     install -m 0555 /opt/nc182/dc-home/.local/bin/defenseclaw /opt/nc182/dc-home/.local/bin/defenseclaw-gateway /usr/local/bin/; \\
+    chmod -R go+rX,go-w /opt/nc182/dc-home; \\
     rm -rf "$d"
 
 # Frozen trees (root-owned, read-only) and manifests.

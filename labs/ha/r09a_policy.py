@@ -31,6 +31,7 @@ READ_ONLY = ['/usr', '/lib', '/lib64', '/bin', '/sbin', '/proc', '/dev/urandom',
 READ_WRITE = ['/sandbox', '/tmp', '/dev/null']  # the only writable locations: state and scratch
 FORBIDDEN_PATHS = ('/', '/root', '/home', '/var/lib/docker', '/var/run/docker.sock', '/run/docker.sock', '/var/run', '/run', '/host')
 ANTHROPIC_HOST = 'api.anthropic.com'
+PROVIDER_NAME = 'nc183-anthropic'
 ETCD_CLIENT_PORT = 12379  # OpenShell refuses egress to 2379; etcd serves clients on 12379 in sandboxed deployments
 FORBIDDEN_HOST_NAMES = {'metadata', 'metadata.google.internal', 'metadata.goog', 'localhost', 'host.docker.internal'}
 TOP_KEYS = {'version', 'filesystem_policy', 'landlock', 'process', 'network_policies'}
@@ -135,8 +136,9 @@ def build_policy(spec):
     if spec['anthropic']:
         # Default TLS termination (no `tls` field): required for OpenShell to inject the provider credential.
         policies['anthropic'] = {'name': 'anthropic-api', 'endpoints': [
-            {'host': ANTHROPIC_HOST, 'port': 443, 'protocol': 'https', 'enforcement': 'enforce', 'access': 'full'}],
-            'binaries': [_binary(binaries['defenseclaw']), _binary(binaries['node'])]}
+            {'host': ANTHROPIC_HOST, 'port': 443, 'protocol': 'rest', 'enforcement': 'enforce', 'access': 'full',
+             'credential_binding': {'provider': PROVIDER_NAME}}],
+            'binaries': [_binary(binaries['defenseclaw'])]}  # only the guard proxy may reach the provider: no bypass
     policy = {'version': POLICY_VERSION_FIELD,
               'filesystem_policy': {'include_workdir': True, 'read_only': list(READ_ONLY), 'read_write': list(READ_WRITE)},
               'landlock': {'compatibility': 'hard_requirement'},
@@ -220,11 +222,12 @@ def validate_policy(text):
                 else:
                     raise PolicyRefused('tcp_endpoint_must_be_a_dns_name')
                 need(GCE_INTERNAL.match(host) is not None or host == 'host.openshell.internal', 'tcp_endpoint_must_be_gce_internal_name')
-            elif protocol == 'https':
+            elif protocol == 'rest':
                 need(host == ANTHROPIC_HOST and port == 443, 'https_host_not_approved')
                 need('tls' not in endpoint, 'https_endpoint_must_keep_tls_termination')
-                need(set(endpoint) == {'host', 'port', 'protocol', 'enforcement', 'access'}
-                     and endpoint['enforcement'] == 'enforce' and endpoint['access'] == 'full', 'endpoint_fields_invalid')
+                need(set(endpoint) == {'host', 'port', 'protocol', 'enforcement', 'access', 'credential_binding'}
+                     and endpoint['enforcement'] == 'enforce' and endpoint['access'] == 'full'
+                     and endpoint['credential_binding'] == {'provider': PROVIDER_NAME}, 'endpoint_fields_invalid')
             else:
                 raise PolicyRefused('endpoint_protocol_refused')
             count += 1

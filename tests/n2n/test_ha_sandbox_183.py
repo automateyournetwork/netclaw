@@ -56,7 +56,7 @@ def test_tcp_peers_carry_tls_skip_and_no_l7_fields():
 
 def test_anthropic_keeps_default_tls_termination_for_provider_injection():
     anthropic = pol.build_policy(SPEC)['network_policies']['anthropic']['endpoints'][0]
-    assert anthropic['host'] == 'api.anthropic.com' and anthropic['protocol'] == 'https' and 'tls' not in anthropic
+    assert anthropic['host'] == 'api.anthropic.com' and anthropic['protocol'] == 'rest' and 'tls' not in anthropic
     assert 'anthropic' not in pol.build_policy({**SPEC, 'anthropic': False})['network_policies']
 
 
@@ -201,8 +201,26 @@ def test_sidecar_spec_and_export_plan_carry_no_secrets():
     assert spec['listen']['guardrail_proxy'] == '127.0.0.1:4000' and spec['start'] == ['defenseclaw-gateway', 'start']
     assert dc.SECRET_LIKE.search(json.dumps(spec).encode()) is None
     plan = dc.export_plan('nne1', '/var/tmp/export')
-    assert plan['steps'][0]['source'] == '/sandbox/defenseclaw/audit.db'
+    assert plan['steps'][0]['source'] == '/sandbox/.defenseclaw/audit.db'
     with pytest.raises(dc.DefenseClawRefused):
         dc.sidecar_spec('Bad')
     with pytest.raises(dc.DefenseClawRefused):
         dc.export_plan('nne1', 'relative/../x')
+
+
+@pytest.mark.skipif(not QUALIFIED.is_file(), reason='qualified R04A guard config not present on this host')
+def test_node_config_differs_from_qualified_only_by_the_listed_deviations():
+    qualified, node = dc.render_config().decode().splitlines(), dc.render_node_config().decode().splitlines()
+    removed = [line for line in qualified if line not in node]
+    added = [line for line in node if line not in qualified]
+    assert sorted(removed) == sorted(['data_dir: /guard', '  base_url: http://127.0.0.1:18888', '    base_url: http://127.0.0.1:18888',
+                                      '  forward_custom_headers: false', '    forward_custom_headers: false'])
+    assert sorted(added) == sorted(['  forward_custom_headers: true', '    forward_custom_headers: true', 'data_dir: /sandbox/.defenseclaw'])
+    assert 'mode: action' in dc.render_node_config().decode() and 'hook_fail_mode: closed' in dc.render_node_config().decode()
+
+
+def test_only_the_guard_binary_may_reach_the_provider():
+    spec = {'node': 'nne1', 'etcd': ['a.z.c.p.internal:12379', 'b.z.c.p.internal:12379'], 'peers': [], 'anthropic': True,
+            'resolve': {'a.z.c.p.internal': '10.0.0.2', 'b.z.c.p.internal': '10.0.0.3'}}
+    policy = pol.build_policy(spec)
+    assert policy['network_policies']['anthropic']['binaries'] == [{'path': '/usr/local/bin/defenseclaw-gateway'}]

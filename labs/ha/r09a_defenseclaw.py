@@ -24,7 +24,7 @@ DEFENSECLAW_VERSION = '1.0.4'
 GUARD_PORT = 4000        # guardrail proxy (loopback in the node sandbox)
 API_PORT = 4001          # gateway management API probed by the qualified health probe
 SANDBOX_HOME = '/sandbox'
-AUDIT_DIR = SANDBOX_HOME + '/defenseclaw'
+AUDIT_DIR = SANDBOX_HOME + '/.defenseclaw'
 REQUIRED_LINES = ('  mode: action\n', '  hook_fail_mode: closed\n', '  scanner_mode: local\n',
                   '  detection_strategy: regex_only\n', '  connector: openclaw\n', 'data_dir: /guard\n',
                   '  llm_role: judge_and_agent\n', '  base_url: http://127.0.0.1:18888\n', '  fleet_mode: disabled\n',
@@ -52,6 +52,35 @@ def render_config(path=None):
     text = raw.decode('utf-8', 'strict')
     for line in REQUIRED_LINES:
         need(line in text, 'guard_config_posture_missing')
+    return raw
+
+
+NODE_DEVIATIONS = (
+    # (qualified text, node text or None to drop the line). Live findings of R09A (node A, OpenShell 0.1.7, DefenseClaw 1.0.4):
+    ('data_dir: /guard', 'data_dir: /sandbox/.defenseclaw'),                  # /guard is not writable inside the sandbox
+    ('base_url: http://127.0.0.1:18888', None),                           # the per-operation provider fence is not used on a node
+    ('forward_custom_headers: false', 'forward_custom_headers: true'),       # else the proxy drops anthropic-version (Anthropic 400)
+)
+
+
+def render_node_config(path=None):
+    """The node guard configuration: the qualified file with exactly the NODE_DEVIATIONS (everything else byte for byte,
+    including mode action, hook_fail_mode closed, regex-only detection, strict rule pack, no inline key)."""
+    text = render_config(path).decode('utf-8', 'strict')
+    lines = text.splitlines(keepends=True)
+    for old, new in NODE_DEVIATIONS:
+        hits = [i for i, line in enumerate(lines) if line.strip() == old.strip()]
+        need(hits, 'node_deviation_not_applicable')
+        for i in reversed(hits):   # whole lines only: indentation of neighbours is never touched
+            if new is None:
+                del lines[i]
+            else:
+                lines[i] = lines[i][:len(lines[i]) - len(lines[i].lstrip())] + new.strip() + '\n'
+    text = ''.join(lines)
+    for line in ('  mode: action\n', '  hook_fail_mode: closed\n', '  scanner_mode: local\n', '  detection_strategy: regex_only\n'):
+        need(line in text, 'guard_config_posture_missing')
+    raw = text.encode('utf-8')
+    need(SECRET_LIKE.search(raw) is None, 'guard_config_inline_secret_refused')
     return raw
 
 
@@ -89,7 +118,12 @@ def render(out_dir):
     fd = os.open(out / 'guard-config.yaml', os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
     with os.fdopen(fd, 'wb') as stream:
         stream.write(raw)
-    return {'config_sha256': hashlib.sha256(raw).hexdigest(), 'bytes': len(raw), 'out': str(out)}
+    node_raw = render_node_config()
+    fd = os.open(out / 'node-guard-config.yaml', os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(fd, 'wb') as stream:
+        stream.write(node_raw)
+    return {'config_sha256': hashlib.sha256(raw).hexdigest(), 'node_config_sha256': hashlib.sha256(node_raw).hexdigest(),
+            'bytes': len(raw), 'out': str(out)}
 
 
 def main(argv=None):

@@ -173,6 +173,16 @@ def main():
                     time.sleep(1)
                 if prepare_ingress():
                     start_ingress()
+        script = ctl / 'run-script'
+        if script.exists():
+            # lab-only (R09A): run an uploaded script with this process's environment, which holds the OpenShell provider
+            # placeholders; output goes to logs/script.log. Never used in a production node.
+            body = script.read_text()
+            script.unlink()
+            with open(LOGS / 'script.log', 'ab', buffering=0) as out:
+                out.write(b'--- script start ---\n')
+                subprocess.run(['bash', '-c', body], stdout=out, stderr=out, stdin=subprocess.DEVNULL, timeout=600, cwd='/sandbox')
+                out.write(b'--- script end ---\n')
         write_posture(node)
         time.sleep(3)
     for p in procs.values():
