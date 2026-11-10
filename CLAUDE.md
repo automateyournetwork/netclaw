@@ -1,6 +1,6 @@
 # netclaw Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2026-11-08
+Auto-generated from all feature plans. Last updated: 2026-11-10
 
 Spec153 installer (source 1.12.0 / extension 1.2.0): [new setup](docs/GETTING-STARTED-VSCODE.md), [Claw Plan/CLI](docs/CLAW-PLAN.md), [assistant flow](docs/ASSISTANT-INSTALL.md), and [deployment Spec Kit](docs/SPEC-KIT-CLAWS.md) share a private, exact-review engine. Use `installer/assistant-skills/netclaw-install/SKILL.md` for end-user deployment; `.agents/skills/speckit-*` remain repository development tools. Native Windows is a read-only WSL gate; actual installation targets local macOS and supported WSL2 Ubuntu. No real-installation or publication qualification is implied by fixture success. See `specs/153-ide-installer/verification.md`.
 
@@ -156,6 +156,8 @@ Spec153 installer (source 1.12.0 / extension 1.2.0): [new setup](docs/GETTING-ST
 - Existing JSON, SQLite, ChromaDB, filesystem and GAIT; no new operational datastore. (124-flagship-audit)
 - Python 3.10+ (Border source `mcp-servers/protocol-mcp/bgp/federation/ha/*`, contrac + etcd (3 voters, per Spec 179), lego (ACME DNS-01), GoDaddy API (Personal Access (182-multi-region-ha-borders)
 - Existing etcd/SQLite/GAIT stores; per-Border persistent disk. No new datastore. (182-multi-region-ha-borders)
+- Python 3.10+ (Border source, role launcher, tooling; contract env 3.12 inside the image), Node 24 (HUD ingress, workspace backend), Bash, YAML policies, Dockerfile. + NVIDIA OpenShell 0.1.7 (Debian package, Docker compute driver), Docker >= 28, Cisco DefenseClaw 1.0.4 (pinned, checksum-verified), OpenClaw 2026.7.1-2 (qualified), etcd 3.6.x, existing R09 tooling (`labs/ha/r09_*.py`, `scripts/ha-r09-*.sh`), qualified R04A Anthropic guard configuration. (183-openshell-defenseclaw-gcp)
+- per-node persistent disk; sandbox state volume for the Border home; DefenseClaw audit SQLite on the node, exported on demand. (183-openshell-defenseclaw-gcp)
 
 - Python 3.10+ + FastMCP (MCP framework), grpcio + grpcio-tools (gRPC transport), pygnmi (gNMI client library), protobuf, cryptography (TLS handling) (003-gnmi-mcp-server)
 
@@ -175,9 +177,9 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python 3.10+: Follow standard conventions
 
 ## Recent Changes
+- 183-openshell-defenseclaw-gcp: Added Python 3.10+ (Border source, role launcher, tooling; contract env 3.12 inside the image), Node 24 (HUD ingress, workspace backend), Bash, YAML policies, Dockerfile. + NVIDIA OpenShell 0.1.7 (Debian package, Docker compute driver), Docker >= 28, Cisco DefenseClaw 1.0.4 (pinned, checksum-verified), OpenClaw 2026.7.1-2 (qualified), etcd 3.6.x, existing R09 tooling (`labs/ha/r09_*.py`, `scripts/ha-r09-*.sh`), qualified R04A Anthropic guard configuration.
 - 182-multi-region-ha-borders: Added Python 3.10+ (Border source `mcp-servers/protocol-mcp/bgp/federation/ha/*`, contrac + etcd (3 voters, per Spec 179), lego (ACME DNS-01), GoDaddy API (Personal Access
 - 124-flagship-audit: Added Python 3.10+ source (contract environments use 3.12), Node.js ES modules, Bash, Dart/Flutter and Swift mobile code. + Existing MCP/FastMCP, httpx, cryptography, ChromaDB; Express/ws/Vite/React/Three.js HUD; per-component dependency isolation.
-- 122-worldlabs-topology-viz: Added Python 3.10+ (matches every existing NetClaw MCP server and skill; no new + FastMCP (`worldlabs-marble-mcp`, matching repo convention), `httpx`
 
 
 <!-- MANUAL ADDITIONS START -->
