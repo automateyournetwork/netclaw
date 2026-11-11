@@ -528,7 +528,12 @@ async def n2n_audit(peer: Optional[str] = None, limit: int = 20) -> str:
 async def n2n_config(peer: str, chat_enabled: Optional[bool] = None,
                      daily_requests: Optional[int] = None,
                      daily_tokens: Optional[int] = None,
-                     rate_per_min: Optional[int] = None) -> str:
+                     rate_per_min: Optional[int] = None,
+                     limit_action: Optional[str] = None,
+                     warn_threshold: Optional[float] = None,
+                     restart_timer_s: Optional[int] = None,
+                     reset_limits: bool = False,
+                     clear_hold_down: bool = False) -> str:
     """Configure per-peer federation settings.
 
     Args:
@@ -537,6 +542,12 @@ async def n2n_config(peer: str, chat_enabled: Optional[bool] = None,
         daily_requests: Daily request budget for this peer
         daily_tokens: Daily token budget for this peer
         rate_per_min: Requests per minute rate limit
+        limit_action: What to do when a limit is exceeded: refuse (default, keep channel),
+            warn (allow, audit only) or teardown (refuse, close channel, hold-down timer)
+        warn_threshold: Fraction (0,1] of the daily limit that raises one warning per day
+        restart_timer_s: Hold-down seconds before a torn-down peer may reconnect
+        reset_limits: Reset today's counters, rate window, warnings and hold-down
+        clear_hold_down: End a teardown hold-down early
     """
     body = {"peer": peer}
     if chat_enabled is not None:
@@ -547,6 +558,14 @@ async def n2n_config(peer: str, chat_enabled: Optional[bool] = None,
         body["daily_tokens"] = daily_tokens
     if rate_per_min is not None:
         body["rate_per_min"] = rate_per_min
+    for key, val in (("limit_action", limit_action), ("warn_threshold", warn_threshold),
+                     ("restart_timer_s", restart_timer_s)):
+        if val is not None:
+            body[key] = val
+    if reset_limits:
+        body["reset_limits"] = True
+    if clear_hold_down:
+        body["clear_hold_down"] = True
     data = await _post("/n2n/config", body)
     return _gcf_dumps(data)
 
