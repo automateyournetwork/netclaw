@@ -185,9 +185,9 @@ def allowing(*entries):
     (allowing('READ'), "'READ': not an OpenClaw built-in tool"),
     (allowing('prometheus-mcp__query', 'prometheus-mcp__QUERY'), "'prometheus-mcp__QUERY': listed more than once"),
     (allowing('PROMETHEUS-MCP__query'), "'PROMETHEUS-MCP' is not one of this member's servers"),
-    (changed(model='openai/gpt-5'), 'model must be null or an Anthropic model id'),
-    (changed(model=5), 'model must be null or an Anthropic model id'),
-    (changed(model=''), 'model must be null or an Anthropic model id'),
+    (changed(model='openai/gpt-5'), "provider 'openai' is not configured on the Border"),
+    (changed(model=5), 'model must be null or a string'),
+    (changed(model=''), 'model must be null, an Anthropic model id'),
 ])
 def test_each_format_error(profiles, template, data, message):
     with pytest.raises(profiles.MemberSpecError) as caught:

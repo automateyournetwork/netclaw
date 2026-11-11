@@ -168,13 +168,14 @@ def main():
     for name, (_path, spec) in specs.items():
         mdir = os.path.join(members_dir, name)
         os.makedirs(mdir, exist_ok=True, mode=0o700)
-        slice_keys = prof.spec_env_slice_keys(spec, set(live_env.keys()), border_servers)
+        slice_keys = prof.spec_env_slice_keys(spec, set(live_env.keys()), border_servers,
+                                              prof.border_template_providers(runtime.config))
         summary.append(_stage_member(args, mdir, name, f"{args.risk}/{name}", name in hot, spec["scope"],
                                      [live_env[k] for k in slice_keys], len(slice_keys),
                                      # The model in2n-member-home.py configures (the spec's, else the
                                      # member tier): the member passes it as --model, and its agent
                                      # accepts only that model.
-                                     model=spec["model"] or prof.model_tier(name)))
+                                     model=prof.spec_model_binding(spec, prof.model_tier(name))))
 
     # Border additions (role only — comms secrets stay in ~/.openclaw/.env)
     with open(os.path.join(staging, "border.env.additions"), "w") as fh:
@@ -201,7 +202,8 @@ def _load_specs(prof, paths, config, offered, allow_dangerous=False):
     try:
         servers = prof.border_template_servers(config)
         for path in paths:
-            spec, warnings = prof.load_member_spec(path, servers, allow_dangerous=allow_dangerous)
+            spec, warnings = prof.load_member_spec(path, servers, allow_dangerous=allow_dangerous,
+                                                   providers=prof.border_template_providers(config))
             for warning in warnings:
                 print(f"WARNING: {path}: {warning}", file=sys.stderr)
             if spec["name"] in specs or spec["name"] in offered:
@@ -234,7 +236,7 @@ def _stage_member(args, mdir, name, member_id, always_on, skills, env_lines, key
         f"OPENCLAW_CONFIG_PATH={os.path.expanduser('~/.openclaw-' + args.risk + '-' + name)}/openclaw.json",
         f"OPENCLAW_STATE_DIR={os.path.expanduser('~/.openclaw-' + args.risk + '-' + name)}",
         f"N2N_MEMBER_SCOPE={_scope_json(skills)}",
-        *(["# The member spec's model:", f"N2N_MEMBER_MODEL=anthropic/{model}"] if model else [
+        *(["# The member spec's model:", f"N2N_MEMBER_MODEL={model}"] if model else [
         "# Pick THIS member's provider/model (any provider incl local/Ollama):",
         "N2N_MEMBER_MODEL=anthropic/claude-sonnet-5   # <-- edit per member"]),
         "# ANTHROPIC_API_KEY / OPENAI_API_KEY / OLLAMA_HOST as needed for the model above",
