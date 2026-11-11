@@ -79,7 +79,7 @@ def test_anthropic_models_keep_the_built_in_api_key_provider(profiles, template)
     (dict(model='nowhere/m1'), "provider 'nowhere' is not configured on the Border"),
     (dict(model='ollama-cloud/qwen3.5:9b'), "does not list model 'qwen3.5:9b' (it lists: minimax-m3, minimax-m2.7)"),
     (dict(model='llama-cpp/local'), 'starts a local service (localService)'),
-    (dict(model='leaky/m1'), 'holds literal secrets'),
+    (dict(model='leaky/m1'), 'not a literal'),
     (dict(model='ollama-cloud/bad id'), 'the model id is not valid'),
     (dict(auth='oauth'), "auth must be 'api-key' (the default) or 'subscription'"),
     (dict(auth='subscription'), "auth 'subscription' needs a model"),
@@ -224,3 +224,93 @@ def test_member_home_validates_with_installed_openclaw(tmp_path, data):
     result = subprocess.run([node, str(cli), 'config', 'validate'], env=env, cwd=tmp_path,
                             capture_output=True, text=True, timeout=180)
     assert result.returncode == 0, result.stdout + result.stderr
+
+
+# ── Review round 1 ──
+
+def providers_with(**entries):
+    return {**PROVIDERS, **entries}
+
+
+@pytest.mark.parametrize('entry,message', [
+    ({**CLOUD, 'apiKey': {'source': 'file', 'provider': 'default', 'id': '/border/key'}}, 'file, exec and vault SecretRefs'),
+    ({**CLOUD, 'apiKey': {'source': 'exec', 'provider': 'default', 'id': 'cat'}}, 'file, exec and vault SecretRefs'),
+    ({**CLOUD, 'apiKey': 'sk-literal-value'}, 'not a literal'),
+    ({**CLOUD, 'baseUrl': 'https://gw.example/v1?key=AIzaLITERAL'}, 'without credentials, query or fragment'),
+    ({**CLOUD, 'baseUrl': 'https://user:pw@gw.example/v1'}, 'without credentials, query or fragment'),
+    ({**CLOUD, 'baseUrl': 'ftp://gw.example'}, 'http(s) URL'),
+    ({**CLOUD, 'baseUrl': 'https://${HOST}/v1'}, 'one ${NAME} reference or plain text'),
+    ({**CLOUD, 'headers': {'X-Vendor-Key': 'LITERALVALUE'}}, "header 'X-Vendor-Key' must hold only"),
+    ({**CLOUD, 'headers': {'X-Auth': '${TOKEN:-fallback}'}}, "header 'X-Auth' must hold only"),
+    ({**CLOUD, 'request': {'proxy': 'http://p'}}, 'fields a member entry does not carry: request'),
+    ({**CLOUD, 'headers': {'Authorization': 'Bearer ${SLACK_BOT_TOKEN}'}}, 'variables a member never receives: SLACK_BOT_TOKEN'),
+    ({**CLOUD, 'apiKey': '${GAIT_DIR}'}, 'variables a member never receives: GAIT_DIR'),
+    ({**CLOUD, 'timeoutSeconds': 'soon'}, 'timeoutSeconds'),
+])
+def test_provider_entry_is_built_from_allowed_fields_only(profiles, template, entry, message):
+    with pytest.raises(profiles.MemberSpecError) as caught:
+        profiles.load_member_spec(spec(model='edge/minimax-m3'), template, installed=[],
+                                  providers=providers_with(edge=entry))
+    assert message in str(caught.value)
+    assert 'LITERAL' not in str(caught.value) and 'pw@' not in str(caught.value)
+
+
+def test_provider_entry_keeps_references_env_secretref_and_whitelisted_model_keys(profiles, template):
+    entry = {'api': 'openai-completions', 'baseUrl': '${EDGE_URL}', 'authHeader': True, 'timeoutSeconds': 120,
+             'apiKey': {'source': 'env', 'provider': 'default', 'id': 'EDGE_KEY'},
+             'headers': {'X-Org': '${EDGE_ORG}', 'Authorization': 'Bearer ${EDGE_TOKEN}'},
+             'models': [{'id': 'vendor/model-1', 'name': 'M1', 'contextWindow': 1000, 'secret_note': 'x'},
+                        {'id': 'other'}]}
+    result, _ = profiles.load_member_spec(spec(model='edge/vendor/model-1'), template, installed=[],
+                                          providers=providers_with(edge=entry))
+    assert (result['provider'], result['model']) == ('edge', 'vendor/model-1')
+    built = profiles.spec_provider_entry(result, providers_with(edge=entry))
+    assert built['models'] == [{'id': 'vendor/model-1', 'name': 'M1', 'contextWindow': 1000}]
+    assert built['apiKey'] == entry['apiKey'] and built['headers'] == entry['headers']
+    env = {'EDGE_URL', 'EDGE_KEY', 'EDGE_ORG', 'EDGE_TOKEN', 'OLLAMA_API_KEY', 'ANTHROPIC_API_KEY'}
+    keys = set(profiles.spec_env_slice_keys(result, env, template, providers_with(edge=entry)))
+    assert {'EDGE_URL', 'EDGE_KEY', 'EDGE_ORG', 'EDGE_TOKEN'} <= keys
+    assert not {'OLLAMA_API_KEY', 'ANTHROPIC_API_KEY'} & keys
+
+
+def test_border_providers_named_like_built_ins(profiles, template):
+    border = providers_with(anthropic={'api': 'anthropic-messages', 'baseUrl': 'https://proxy.example',
+                                       'apiKey': '${PROXY_KEY}', 'models': [{'id': 'claude-sonnet-5'}]},
+                            openai={'api': 'openai-responses', 'apiKey': '${OPENAI_API_KEY}',
+                                    'models': [{'id': 'gpt-6.1-sol'}]})
+    # api-key Anthropic specs keep NetClaw's built-in provider, never the Border's anthropic entry.
+    result, _ = profiles.load_member_spec(spec(model='anthropic/claude-sonnet-5', auth='api-key'), template,
+                                          installed=[], providers=border)
+    assert result['provider'] is None and profiles.spec_provider_entry(result, border) is None
+    # A Border openai entry is a provider like any other with api-key auth...
+    result, _ = profiles.load_member_spec(spec(model='openai/gpt-6.1-sol'), template, installed=[], providers=border)
+    assert result['provider'] == 'openai' and profiles.spec_provider_entry(result, border)['apiKey'] == '${OPENAI_API_KEY}'
+    # ...and ignored for a subscription: no entry, no key.
+    result, _ = profiles.load_member_spec(spec(model='openai/gpt-6.1-sol', auth='subscription'), template,
+                                          installed=[], providers=border)
+    assert profiles.spec_provider_entry(result, border) is None
+    assert 'OPENAI_API_KEY' not in profiles.spec_env_slice_keys(result, {'OPENAI_API_KEY'}, template, border)
+    with pytest.raises(profiles.MemberSpecError, match="provider 'Anthropic' is not configured"):
+        profiles.load_member_spec(spec(model='Anthropic/claude-sonnet-5'), template, installed=[], providers=border)
+
+
+def test_member_home_refuses_model_override_for_every_spec(tmp_path):
+    border(tmp_path, 'ANTHROPIC_API_KEY=fixture\nPFSENSE_URL=https://fw\nPFSENSE_API_KEY=k\n')
+    spec_file = tmp_path / 'investigator.json'
+    spec_file.write_text(json.dumps(spec(model=None)))
+    staged = T184.run_migrate(tmp_path, '--spec', str(spec_file), '--specs-only', '--hot', '')
+    command = next(l.strip() for l in staged.stdout.splitlines() if 'in2n-member-home.py' in l)
+    run = subprocess.run([sys.executable, *shlex.split(command)[1:], '--model', 'claude-opus-x'],
+                         env=clean_env(tmp_path), capture_output=True, text=True, timeout=60)
+    assert run.returncode != 0 and "--model cannot override a member spec's model" in run.stderr
+
+
+def test_member_record_names_provider_and_auth_and_export_lines_count(tmp_path):
+    border(tmp_path, 'OLLAMA_API_KEY=fixture\nPFSENSE_URL=https://fw\nPFSENSE_API_KEY=k\n')
+    written, envfile, staged, out, command = provision(tmp_path, spec(model='ollama-cloud/minimax-m3'))
+    record = json.loads((tmp_path / '.openclaw-lab-alert-investigator/netclaw-member-spec.json').read_text())
+    assert (record['provider'], record['model'], record['auth']) == ('ollama-cloud', 'minimax-m3', 'api-key')
+    member_home = T184.load(ROOT / 'scripts/in2n-member-home.py', 'spec185_member_home')
+    exported = tmp_path / 'exported.env'
+    exported.write_text('export OLLAMA_API_KEY=x\n  OTHER = y\n# COMMENTED=z\n')
+    assert member_home._env_names(exported) == {'OLLAMA_API_KEY', 'OTHER'}

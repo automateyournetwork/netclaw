@@ -429,9 +429,10 @@ def _env_names(env_path):
     names = set()
     try:
         for line in open(os.path.expanduser(env_path)):
-            name = line.split("=", 1)[0].strip()
-            if "=" in line and re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", name):
-                names.add(name)
+            # The same assignment forms write-env.py loads (an optional `export`).
+            match = re.match(r"^(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=", line.strip())
+            if match:
+                names.add(match[1])
     except OSError:
         pass
     return names
@@ -755,9 +756,11 @@ def _provision_openclaw(args, runtime, name, spec=None):
     args.border_config=args.border_config or str(runtime.config)
     args.anthropic_key_from=args.anthropic_key_from or str(runtime.env_file)
     prof = _profiles()
-    if spec and args.model and spec.get("provider"):
-        raise SystemExit("error: --model cannot override the model of a spec that names a provider; "
-                         "change the spec's model instead")
+    if spec and args.model:
+        # The staged N2N_MEMBER_MODEL (the member's --model) comes from the spec; a different
+        # configured model would make the agent reject every task (spec 185 review).
+        raise SystemExit("error: --model cannot override a member spec's model; change the spec's "
+                         "model and stage it again")
     model = args.model or (spec or {}).get("model") or prof.model_tier(name)
     border = json.load(open(args.border_config))
     m = copy.deepcopy(border)
@@ -846,8 +849,8 @@ def _provision_openclaw(args, runtime, name, spec=None):
         workspace = private_dir(Path(mh) / "workspace")
         for skill, source in sources.items():
             copy_skill(source, workspace / "skills" / skill)
-        record = {k: spec[k] for k in ("version", "name", "description", "servers", "skills", "tools",
-                                       "model", "spec_file")}
+        record = {k: spec.get(k) for k in ("version", "name", "description", "servers", "skills", "tools",
+                                           "model", "provider", "auth", "spec_file")}
         record.update(base_skills=spec["base_skills"], base_servers=spec["base_servers"],
                       skill_allowlist=skills, tool_policy=m["tools"],
                       dangerous_tools_allowed=spec["dangerous_tools"],
