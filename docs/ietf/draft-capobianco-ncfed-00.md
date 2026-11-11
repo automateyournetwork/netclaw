@@ -637,7 +637,8 @@ n2n/inventory, n2n/inventory_get:
 
 n2n/tools/call:
 : MCP-style {{MCP}} invocation of a named remote tool with JSON arguments, subject
-  to the callee's per-peer authorization policy.
+  to the callee's per-peer authorization policy, including the grant's access class
+  ({{access-class}}).
 
 n2n/tasks/submit, n2n/tasks/status, n2n/tasks/result, n2n/tasks/cancel:
 : A2A-style {{A2A}} asynchronous task delegation and retrieval.
@@ -717,6 +718,194 @@ MEMBER_ID_TAKEN (-32022) reports an enrollment whose member identifier is alread
 pinned to a different key. A key-possession failure at `in2n/hello` or
 `in2n/enroll` is reported as MEMBER_NOT_TRUSTED (-32023).
 
+# Peer Limits {#limits}
+
+This section specifies what the limits behind BUDGET_EXHAUSTED (-32004) and
+RATE_LIMITED (-32005) ({{errors}}) count, their scope, what a receiver does when a
+peer exceeds them, and how counters recover. Limits are enforced by the receiver and
+are local policy: they are not negotiated and add no method, field, or error code to
+the wire. A receiver that implements none of this section behaves as a peer that
+always refuses on exceed ({{limits-exceed}}), which is the behavior of this
+document's reference implementation by default.
+
+The operator practice of a BGP maximum-prefix limit -- a warning threshold, a hard
+limit, and a choice between logging, discarding, or tearing down the session with a
+restart timer -- is used here only as an analogy for the design. This document does
+not claim that the mechanisms are equivalent or reproduce any BGP specification's
+wording.
+
+## What counts {#limits-count}
+
+A receiver counts one *request unit* against the sending peer, and one slot in that
+peer's per-minute rate window, for each inbound request that causes it to do work or
+spend model tokens: `n2n/tools/call`, skill invocation, `n2n/tasks/submit`,
+`n2n/chat/message`, `n2n/knowledge/query`, and every knowledge-replication request
+(`n2n/knowledge/replicate_manifest` and each `n2n/knowledge/replicate_batch` page).
+A receiver additionally counts tokens consumed on the peer's behalf against a
+separate token budget.
+
+The following are not counted: `n2n/hello`, heartbeats, capability-card and
+inventory exchange, `n2n/tasks/status`, `n2n/tasks/result`, `n2n/tasks/cancel`, and
+chat open/close. They are bookkeeping on work already admitted, or carry no work.
+A refused request is never debited against a budget; it remains subject to the rate
+check.
+
+## Scope and recovery {#limits-scope}
+
+Limits are per peer: a sliding 60-second request rate, a request budget per UTC day,
+and a token budget per UTC day, evaluated against the receiver's own clock. A
+receiver MAY additionally enforce an aggregate cap on the UTC-day request and token
+budgets summed across all peers; this is off unless configured. Counters recover
+as follows: the rate window slides; budgets reset at the UTC day boundary; a
+teardown hold-down ({{limits-exceed}}) ends when its restart timer expires; and an
+operator MAY reset a peer's counters, warning state, and hold-down explicitly. An
+operator reset is a local audited action with no wire representation.
+
+## Warning threshold {#limits-warn}
+
+A receiver MAY raise a warning when a peer's usage crosses a configured fraction of
+a daily limit (reference default: 0.8). A warning is edge-triggered, once per limit
+per UTC day, and is observable only to the operator (audit and status); it never
+changes the response to the peer.
+
+## Exceed actions {#limits-exceed}
+
+On exceeding a limit the receiver applies one of three actions, selectable per peer:
+
+refuse:
+: The request is refused with RATE_LIMITED or BUDGET_EXHAUSTED and the channel is
+  kept. This is the default and is the only behavior this document's wire protocol
+  requires of a limit-enforcing receiver.
+
+warn:
+: The request proceeds; the receiver records the event and continues counting. No
+  wire signal is produced. Under this action the rate limit is also advisory.
+
+teardown:
+: The request is refused as for `refuse`; the receiver then closes the channel and
+  refuses new channels from that peer until a restart timer expires (reference
+  default: 300 seconds). Requests received during the hold-down are answered
+  SEVERED (-32007) if a channel exists, and an inbound channel attempt is closed.
+  The hold-down is local state and SHOULD be persisted so that a receiver restart
+  does not clear it. A teardown does not revoke consent ({{trust-en2n}}); the peer
+  remains federated and may re-establish the channel when the timer expires.
+  Teardown applies to eN2N peers only; an iN2N channel ({{trust-in2n}}) is never
+  torn down by a limit.
+
+A peer SHOULD treat RATE_LIMITED and BUDGET_EXHAUSTED as back-pressure and not retry
+before the rate window or UTC day allows, and MUST NOT interpret a channel closure
+as loss of federation consent. A limit being met on the aggregate cap applies the
+action configured for the peer whose request crossed it; other peers' channels are
+not affected.
+
+# Grant Access Class {#access-class}
+
+This section separates permission to look at state from permission to change it on a
+per-peer grant. It is local callee policy: it is not negotiated, and it adds no
+method and no error code to the wire. The default-deny model of {{trust-en2n}} is
+unchanged: a peer still needs a grant for every tool, skill, or knowledge collection.
+A receiver that implements none of this section behaves as if every grant had the
+class `read_write` ({{access-default}}).
+
+## Classes {#access-classes}
+
+A grant carries an *access class*, which is a ceiling:
+
+read:
+: The grant authorizes only targets whose effective class ({{access-target}}) is
+  `read`.
+
+read_write:
+: The grant authorizes any granted target. This is the behavior of a grant that
+  carries no access class.
+
+An *effective class* is computed by the callee for each target, and takes one of
+`read`, `write`, or `unclassified`. A target is `read` only if it is known not to
+change state of the callee or of anything the callee operates. `unclassified` is not
+`read`: a target MUST NOT be treated as `read` merely because nothing says otherwise.
+
+## Decision table {#access-table}
+
+A receiver that implements this section MUST decide as follows, after the grant has
+been found and before the checks of {{limits}} and before any approval:
+
+| Grant class | Target `read` | Target `write` | Target `unclassified` |
+|-------------|---------------|----------------|-----------------------|
+| read        | authorize     | refuse         | refuse                |
+| read_write  | authorize     | authorize      | authorize             |
+{: title="Access-class decision"}
+
+A refusal is reported as NOT_ALLOWLISTED (-32001) with the same reason text as a
+target for which no grant exists, so that a peer cannot learn from the response
+whether a target exists or how it is classified. The distinction is recorded in the
+receiver's audit trail only. The check MUST be repeated whenever the receiver
+revalidates a request after waiting (for example after an approval), so that
+reclassification or a changed grant takes effect at the next admission; work already
+admitted is not interrupted.
+
+## Default {#access-default}
+
+A grant created without an access class, and every grant that existed before a
+receiver implemented this section, has the class `read_write`. An operator MAY
+configure a different default for new grants; the class is then stored explicitly on
+each new grant, and existing grants are unchanged. A grant that differs only in class
+from an active grant for the same peer, target type, and target name replaces it.
+
+## Classifying targets {#access-target}
+
+The effective class of a tool is determined by the callee, in this order: an operator
+override; an annotation the operator has imported from the tool's MCP definition
+(`readOnlyHint` true gives `read`, false gives `write`; an absent hint gives nothing);
+otherwise `unclassified`. A receiver MUST NOT take a classification from a peer, from
+a card ({{cards}}), or from the content of a request. An imported annotation is a
+hint from the tool's author, not proof; the operator's explicit import (or override) is
+the act that makes it policy.
+
+The effective class of a skill is `read` only if the operator has classified that
+skill `read`; otherwise it is `unclassified`. The text of a delegation request
+(`n2n/tasks/submit`) MUST NOT influence the class: a skill that may change
+infrastructure is covered by a `read` grant only if the operator has asserted that it
+does not, regardless of whether a particular request reads as a query. A receiver
+cannot verify such an assertion at the federation layer; enforcement inside the
+skill's own agent turn remains with the receiver's execution controls
+({{seccons-deleg}}).
+
+Knowledge targets (`knowledge` and `knowledge_replica` grants) never change the
+receiver's state and are always `read`. They remain separate grants: a `knowledge`
+grant does not authorize replication. Capability-card and inventory exchange are not
+grant-controlled and remain governed only by card visibility ({{cards}}).
+
+## Interaction with other controls {#access-interaction}
+
+Approval:
+: `requires_approval` is orthogonal. The class check runs first; a refused request
+  never creates an approval, and an approval never widens the class.
+
+Limits:
+: Reads and writes count identically against the limits of {{limits}}. A request
+  refused by the class check is not debited, takes no rate slot, and never starts an
+  exceed action.
+
+Card visibility:
+: Visibility ({{cards}}) controls what is advertised and is unchanged. A card entry
+  MAY carry an advisory access hint ({{access-card}}); a receiver MUST NOT authorize
+  from a hint.
+
+iN2N:
+: The check applies unchanged to internal channels ({{trust-in2n}}), because grants
+  are evaluated for every caller. A Border does not forward a peer's class to a member
+  in this revision; a capability the Border aggregates from its members is
+  `unclassified` unless the operator classifies it, and therefore needs a `read_write`
+  grant.
+
+## Advisory card hints {#access-card}
+
+A card MAY carry, for each entry of `mcp_servers`, a `tool_access` object mapping a
+tool name to `read` or `write`, and for each entry of `skills` an `access` member with
+the same values. Tools and skills with no classification carry no hint, which means
+`unclassified`. The hints let a peer choose which grant to ask for; they have no
+authorizing effect, and an older endpoint ignores them.
+
 # Version Signaling and Capability Advertisement {#negotiation}
 
 NCFED features are advertised in-band at `n2n/hello`, not in the binary handshake.
@@ -763,6 +952,7 @@ An endpoint advertises its capabilities in a card exchanged via `n2n/inventory` 
 * `skills` and `mcp_servers`: the capabilities the endpoint is willing to expose to
   this peer, after applying the per-peer visibility/authorization policy (not the
   endpoint's full local set);
+* optionally, advisory access hints on those entries ({{access-card}});
 * `badges`: coarse capability tags;
 * `posture`: the advertiser's operational security posture, as
   `{ "mode", "state", "controls" }` (e.g., mode `production`, state `enforced`, and
@@ -824,7 +1014,9 @@ grant has been recorded so far, not on a fixed order.
 Only `n2n/hello` is accepted before `federated`. Remote tool invocation is
 default-deny: a tool call is rejected (NOT_ALLOWLISTED) unless a per-peer grant
 authorizes it, and grants MAY carry approval requirements, budgets, and rate limits
-(reflected in the error codes of {{errors}}). Severing revokes the local grant and
+(reflected in the error codes of {{errors}}; the semantics of those limits are
+specified in {{limits}}); a grant also carries an access class that separates
+permission to read from permission to change state ({{access-class}}). Severing revokes the local grant and
 drops the channel (the operator kill switch); re-consent restores the local grant,
 returning the peer to `not_federated`, from which it may re-federate. As noted in
 {{handshake}}, the numerically lower AS initiates the channel.
@@ -923,6 +1115,11 @@ application-layer mutual authentication above.
 
 * A standalone claw is a degenerate risk of one that is its own Border; no protocol
   change is required for that case.
+
+* Peer limits: operators SHOULD review per-peer limits for peers that replicate
+  knowledge collections, since each batch page counts as a request ({{limits-count}}).
+  A teardown hold-down is local state and SHOULD be persisted across restarts
+  ({{limits-exceed}}).
 
 * Endpoint mobility: peers reached over ephemeral transports (tunnels whose public
   address rotates) change address routinely. An implementation SHOULD persist the
@@ -1091,6 +1288,14 @@ at the request of a remote AI agent. Deployments:
 * MUST treat content returned across the federation boundary (tool results, task
   output) as untrusted input to the local agent, which can carry prompt-injection
   payloads; such content SHOULD NOT be interpreted as instructions;
+* SHOULD grant `read` rather than `read_write` to peers that only need to observe, and
+  classify tools and skills deliberately ({{access-class}}); an unclassified target is
+  never covered by a `read` grant. A class refusal is not counted against the limits
+  of {{limits}}, so a peer can probe for classified targets without consuming budget;
+  the receiver's audit trail records each probe and SHOULD be reviewed;
+* SHOULD enforce the per-peer limits of {{limits}}; exceeding a limit SHOULD be
+  visible to the operator, and persistent abusers MAY be torn down with a restart
+  timer;
 * SHOULD log every federated invocation at the Border for audit, and MAY gate
   execution behind a production-mode guardrail that inspects model input/output;
 * SHOULD bound delegation depth to prevent loops when federated agents can themselves
@@ -1115,8 +1320,9 @@ could hold a reassembly buffer open indefinitely with a drip of legal zero-lengt
 fragments, each of which also resets the liveness accounting of {{heartbeat}} --
 the size bound alone does not close that hole. The heartbeat mechanism ({{heartbeat}}) and
 cold-start ({{operational}}) can be abused as resource-exhaustion vectors; operators
-SHOULD apply the per-peer rate/approval controls above and the port protections of
-{{seccons-port}}.
+SHOULD apply the per-peer rate/approval controls above, the limit semantics of
+{{limits}} (including, where a peer repeatedly exceeds its limits, the teardown
+action with a restart timer), and the port protections of {{seccons-port}}.
 
 ## Capability-card privacy {#seccons-priv}
 
@@ -1583,6 +1789,28 @@ Changes in internal `-02` (July 2026, from internal `-01`):
 * Operational Considerations ({{operational}}): endpoint persistence guidance --
   persist the last successfully authenticated endpoint; never overwrite it on a
   failed dial.
+
+Changes for issue #343 (unreleased edit of the working source):
+
+* New {{limits}} ("Peer Limits"): normative statement of what counts toward
+  BUDGET_EXHAUSTED/RATE_LIMITED, per-peer scope with an optional aggregate cap,
+  warning threshold, the refuse/warn/teardown exceed actions, and counter recovery.
+  No wire change; the default remains refuse-and-keep-channel. Cross-references
+  added from {{trust-en2n}}, {{operational}}, {{seccons-deleg}} and {{seccons-dos}}.
+
+Changes for issue #344 (unreleased edit of the working source):
+
+* New {{access-class}} ("Grant Access Class"): a per-grant access class (`read`,
+  `read_write`) as a ceiling, a decision table over grant class and target class,
+  default `read_write` so existing grants are unchanged, tool classification (operator
+  override, then imported `readOnlyHint`, else unclassified), skills read only by
+  operator assertion with request text never inspected, knowledge targets always read,
+  and advisory card hints. No wire method or error code is added; a class refusal is
+  NOT_ALLOWLISTED. Cross-references added from {{trust-en2n}}, {{cards}} and
+  {{seccons-deleg}}.
+* The rendered text and XML copies under `docs/ietf/rendered/` were not regenerated
+  for this change (kdrfc/xml2rfc are not installed in the authoring environment); the
+  Markdown source is authoritative until they are.
 
 # Acknowledgments
 {:numbered="false"}

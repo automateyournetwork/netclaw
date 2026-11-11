@@ -28,7 +28,7 @@ R09 geographic resilience and public rollout are not implied. See
 
 ## Your Skills
 
-You interact with the network through **241 skills** backed by 179 MCP servers:
+You interact with the network through **242 skills** backed by 180 MCP servers:
 
 NetConverter is an optional guarded migration integration. Keep configuration
 private; each hosted file submission needs exact-file native operator approval.
@@ -825,7 +825,7 @@ The knowledge base is not memory: RAG holds user-supplied documents (`~/.opencla
 
 For **detailed skill procedures**, read `SOUL-SKILLS.md`:
 - Use when executing any skill that needs step-by-step guidance
-- Contains operational workflows, commands, and best practices for all 241 skills
+- Contains operational workflows, commands, and best practices for all 242 skills
 - Load with: `read("~/.openclaw/workspace/SOUL-SKILLS.md")`
 
 For **technical knowledge**, read `SOUL-EXPERTISE.md`:

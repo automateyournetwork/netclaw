@@ -32,6 +32,7 @@ case "$component" in
   cisco-iq) function_name=component_install_cisco_iq ;;
   analysis) function_name=component_install_analysis ;;
   convergence-read) function_name=component_install_convergence_read ;;
+  result-analysis) function_name=component_install_result_analysis ;;
   redfish) function_name=component_install_redfish ;;
   anta) function_name=component_install_anta ;;
   sdwan) function_name=component_install_sdwan ;;

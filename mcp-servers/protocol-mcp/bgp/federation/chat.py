@@ -75,10 +75,10 @@ class ChatManager:
             raise RpcError(ERR_SEVERED, "chat not enabled")
         session_id = params.get("session_id")
         self._require_session(session_id, peer, "received")
-        if not self.authz._check_rate(peer):
-            raise RpcError(ERR_RATE_LIMITED, "chat rate limit exceeded")
-        if not self.authz.reserve_request(peer):
-            raise RpcError(ERR_BUDGET_EXHAUSTED, "daily budget exhausted")
+        admitted = self.authz.admit_chat(peer)
+        if not admitted.allowed:
+            raise RpcError({"rate_limited": ERR_RATE_LIMITED, "severed": ERR_SEVERED}.get(
+                admitted.code, ERR_BUDGET_EXHAUSTED), admitted.reason)
         session_id = params.get("session_id")
         text = params.get("text", "")
         self._append(session_id, f"[{peer}] {text}")

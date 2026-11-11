@@ -160,6 +160,10 @@ Spec153 installer (source 1.12.0 / extension 1.2.0): [new setup](docs/GETTING-ST
 - per-node persistent disk; sandbox state volume for the Border home; DefenseClaw audit SQLite on the node, exported on demand. (185-openshell-defenseclaw-gcp)
 - Python 3.10+ (stdlib only), Bash wrapper + none new. Reuses semantics of `scripts/write-env.py` (private atomic dotenv writes; value from stdin only) (191-cisco-iq-mcp)
 - runtime `~/.openclaw/.env` (key, region), runtime `~/.openclaw/openclaw.json` (registration), private backups (0600) beside them; no database (191-cisco-iq-mcp)
+- Python 3.10+ source (tests run on 3.12 venv) + stdlib only (sqlite3, time, os, asyncio); existing FederationManager/Auditor/FederationService (189-peer-limit-semantics)
+- existing `~/.openclaw/n2n/federation.db`; new additive tables (see data-model.md); `CREATE TABLE IF NOT EXISTS`, idempoten (189-peer-limit-semantics)
+- Python 3.10+ (tests on 3.12 venv) + stdlib only (sqlite3, json); existing FederationManager, Authorizer, Auditor, InventoryBuilder (190-grant-access-class)
+- existing `federation.db`; additive: `ALTER TABLE invocation_grant ADD COLUMN access_class TEXT NOT NULL DEFAULT 'read_write'` through the existing try/except ALTER list, and `CREATE TABLE IF NOT EXISTS tool_classification` (SCHEMA_190) (190-grant-access-class)
 
 - Python 3.10+ + FastMCP (MCP framework), grpcio + grpcio-tools (gRPC transport), pygnmi (gNMI client library), protobuf, cryptography (TLS handling) (003-gnmi-mcp-server)
 
@@ -182,6 +186,9 @@ Python 3.10+: Follow standard conventions
 - 191-cisco-iq-mcp: Added Python 3.10+ (stdlib only), Bash wrapper + none new. Reuses semantics of `scripts/write-env.py` (private atomic dotenv writes; value from stdin only)
 - 185-openshell-defenseclaw-gcp: Added Python 3.10+ (Border source, role launcher, tooling; contract env 3.12 inside the image), Node 24 (HUD ingress, workspace backend), Bash, YAML policies, Dockerfile. + NVIDIA OpenShell 0.1.7 (Debian package, Docker compute driver), Docker >= 28, Cisco DefenseClaw 1.0.4 (pinned, checksum-verified), OpenClaw 2026.7.1-2 (qualified), etcd 3.6.x, existing R09 tooling (`labs/ha/r09_*.py`, `scripts/ha-r09-*.sh`), qualified R04A Anthropic guard configuration.
 - 182-multi-region-ha-borders: Added Python 3.10+ (Border source `mcp-servers/protocol-mcp/bgp/federation/ha/*`, contrac + etcd (3 voters, per Spec 179), lego (ACME DNS-01), GoDaddy API (Personal Access
+- 190-grant-access-class: Added Python 3.10+ (tests on 3.12 venv) + stdlib only (sqlite3, json); existing FederationManager, Authorizer, Auditor, InventoryBuilder
+- 189-peer-limit-semantics: Added Python 3.10+ source (tests run on 3.12 venv) + stdlib only (sqlite3, time, os, asyncio); existing FederationManager/Auditor/FederationService
+- 185-openshell-defenseclaw-gcp: Added Python 3.10+ (Border source, role launcher, tooling; contract env 3.12 inside the image), Node 24 (HUD ingress, workspace backend), Bash, YAML policies, Dockerfile. + NVIDIA OpenShell 0.1.7 (Debian package, Docker compute driver), Docker >= 28, Cisco DefenseClaw 1.0.4 (pinned, checksum-verified), OpenClaw 2026.7.1-2 (qualified), etcd 3.6.x, existing R09 tooling (`labs/ha/r09_*.py`, `scripts/ha-r09-*.sh`), qualified R04A Anthropic guard configuration.
 
 
 <!-- MANUAL ADDITIONS START -->

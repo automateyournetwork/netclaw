@@ -189,6 +189,43 @@ CREATE TABLE IF NOT EXISTS mobile_enrollment_offer (
 
 # feature 060: claw-certification tables. Kept separate from SCHEMA so the
 # migration path (executescript after column ALTERs) is explicit and idempotent.
+SCHEMA_190 = """
+CREATE TABLE IF NOT EXISTS tool_classification (
+    target_type TEXT NOT NULL,              -- tool | skill
+    target_name TEXT NOT NULL,              -- server/tool or skill name
+    access      TEXT NOT NULL,              -- read | write
+    source      TEXT NOT NULL,              -- operator | annotation
+    updated_at  TEXT NOT NULL,
+    PRIMARY KEY (target_type, target_name, source)
+);
+"""
+
+SCHEMA_189 = """
+CREATE TABLE IF NOT EXISTS peer_limit_policy (
+    peer_identity   TEXT PRIMARY KEY,       -- '*' = node-wide defaults + global aggregate caps
+    rate_per_min    INTEGER,
+    daily_requests  INTEGER,
+    daily_tokens    INTEGER,
+    action          TEXT,
+    warn_threshold  REAL,
+    restart_timer_s INTEGER,
+    updated_at      TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS limit_hold_down (
+    peer_identity TEXT PRIMARY KEY,
+    until_epoch   REAL NOT NULL,
+    reason        TEXT NOT NULL,
+    started_at    TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS limit_warning (
+    peer_identity TEXT NOT NULL,
+    day           TEXT NOT NULL,
+    limit_name    TEXT NOT NULL,
+    warned_at     TEXT NOT NULL,
+    PRIMARY KEY (peer_identity, day, limit_name)
+);
+"""
+
 SCHEMA_060 = """
 CREATE TABLE IF NOT EXISTS credential (
     credential_id    INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -307,6 +344,9 @@ class FederationManager:
             # _recompute_state/PeerState.
             ("federation_peer", "transport", "TEXT NOT NULL DEFAULT 'ngrok'"),
             ("federation_peer", "edge_gate", "TEXT NOT NULL DEFAULT 'none'"),
+            # spec 190: access-class ceiling on a grant. Legacy rows take
+            # 'read_write' (today's behavior); see authorization.py.
+            ("invocation_grant", "access_class", "TEXT NOT NULL DEFAULT 'read_write'"),
         ]:
             try:
                 self._conn.execute(f"ALTER TABLE {table} ADD COLUMN {col} {decl}")
@@ -315,6 +355,8 @@ class FederationManager:
         # feature 060: new tables (credential registry, rotation audit, per-source
         # failed-auth rate limiting). additive + idempotent (data-model.md §1/4/5).
         self._conn.executescript(SCHEMA_060)
+        self._conn.executescript(SCHEMA_189)  # spec 189: peer limit policy (additive)
+        self._conn.executescript(SCHEMA_190)  # spec 190: tool/skill classification (additive)
         self._conn.execute('CREATE UNIQUE INDEX IF NOT EXISTS task_request_owner ON delegated_task(direction,peer_identity,client_request) WHERE client_request IS NOT NULL')
         self._conn.commit()
         logger.info("FederationManager ready (db=%s)", self.db_path)

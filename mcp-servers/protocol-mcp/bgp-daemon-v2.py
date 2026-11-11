@@ -75,6 +75,19 @@ _speaker = None
 _injected = {}
 
 
+def _limits_summary(fed, ident):
+    """Compact peer-limit state for /n2n/status and the HUD (spec 189); never raises."""
+    try:
+        st = fed.authz.limit_status(ident)
+        pol = st["policy"]
+        return {"action": pol["action"], "requests_used": st["requests_used"],
+                "requests_limit": pol["daily_requests"], "tokens_used": st["tokens_used"],
+                "tokens_limit": pol["daily_tokens"], "warned": st["warned"],
+                "hold_down_remaining_s": st["hold_down_remaining_s"]}
+    except Exception:
+        return None
+
+
 def federation_ready(runtime):
     if not N2N_ENABLED or _federation is None:
         return False
@@ -263,6 +276,7 @@ async def handle_n2n(method, path, body):
                     "inventory_version": (meta or {}).get("inventory", {}).get("version") if meta else None,
                     "inventory_received_at": (meta or {}).get("received_at") if meta else None,
                     "stale": (meta or {}).get("stale") if meta else None,
+                    "limits": _limits_summary(fed, p["identity"]),   # spec 189 (additive)
                 })
             return 200, {"enabled": True, "identity": fed.local_identity, "peers": peers,
                          "endpoint_registry": fed.endpoint_status()}
@@ -318,6 +332,7 @@ async def handle_n2n(method, path, body):
             if not peer:
                 return 404, {"error": "unknown peer"}
             peer["budget"] = fed.authz.budget_status(ident)
+            peer["limits"] = fed.authz.limit_status(ident)   # spec 189
             return 200, peer
 
         if len(parts) == 4 and parts[1] == "peers" and parts[3] == "refresh" and method == "POST":
@@ -331,15 +346,39 @@ async def handle_n2n(method, path, body):
             for k in ("peer", "target_type", "target_name"):
                 if not body.get(k):
                     return 400, {"error": f"missing required field '{k}'"}
-            gid = fed.authz.grant(body["peer"], body["target_type"], body["target_name"],
-                                  bool(body.get("requires_approval", False)), body.get("timeout_s"))
+            try:   # spec 190: optional access_class (read | read_write)
+                gid = fed.authz.grant(body["peer"], body["target_type"], body["target_name"],
+                                      bool(body.get("requires_approval", False)), body.get("timeout_s"),
+                                      access_class=body.get("access_class"))
+            except ValueError as e:
+                return 400, {"error": str(e)}
+            stored = next((g["access_class"] for g in fed.authz.list_grants(body["peer"]) if g["id"] == gid),
+                          None)
             # FR-012 / research D12: grant/revoke was never audited before feature
             # 065 (verified during /speckit.analyze) — fixed generically here, for
             # every target_type, not just the new "knowledge_replica" one.
             fed.audit.record(direction="local", peer_identity=body["peer"],
                              target_type=body["target_type"], target_name=body["target_name"],
-                             decision="granted", outcome="success")
-            return 200, {"grant_id": gid}
+                             decision="granted",
+                             outcome="success" if stored in (None, "read_write") else f"success:{stored}")  # spec 190
+            return 200, {"grant_id": gid, "access_class": stored}
+
+        # spec 190: target classification (operator override / annotation import)
+        if path == "/n2n/classifications" and method == "GET":
+            return 200, {"classifications": fed.authz.list_classifications()}
+
+        if path == "/n2n/classifications" and method == "POST":
+            try:
+                if body.get("server"):
+                    return 200, fed.authz.import_annotations(body["server"], body.get("tools"))
+                if not body.get("target_type") or not body.get("target_name"):
+                    return 400, {"error": "missing required field 'target_type' or 'target_name'"}
+                access = None if body.get("clear") else body.get("access")
+                fed.authz.classify(body["target_type"], body["target_name"], access)
+            except ValueError as e:
+                return 400, {"error": str(e)}
+            return 200, {"target_type": body["target_type"], "target_name": body["target_name"],
+                         "class": fed.authz.effective_class(body["target_type"], body["target_name"])}
 
         if len(parts) == 3 and parts[1] == "grants" and method == "DELETE":
             grants_before = {g["id"]: g for g in fed.authz.list_grants()}
@@ -408,8 +447,29 @@ async def handle_n2n(method, path, body):
             ident = body["peer"]
             if "chat_enabled" in body:
                 mgr.set_chat_enabled(ident, bool(body["chat_enabled"]))
-            return 200, {"success": True, "peer": ident,
-                         "chat_enabled": bool(mgr.get_peer(ident)["chat_enabled"])}
+            # spec 189: per-peer limit policy (the 052 n2n_config budget/rate overrides)
+            limit_fields = {k: body[k] for k in ("rate_per_min", "daily_requests", "daily_tokens",
+                                                 "limit_action", "warn_threshold", "restart_timer_s")
+                            if k in body}
+            if "limit_action" in limit_fields:
+                limit_fields["action"] = limit_fields.pop("limit_action")
+            limits = None
+            try:
+                if limit_fields:
+                    limits = fed.authz.set_policy(ident, **limit_fields)
+                if body.get("reset_limits"):
+                    fed.authz.reset_limits(ident, actor="n2n_config")
+                if body.get("clear_hold_down"):
+                    fed.authz.clear_hold_down(ident, actor="n2n_config")
+            except ValueError as e:
+                return 400, {"error": str(e)}
+            resp = {"success": True, "peer": ident}
+            row = mgr.get_peer(ident)
+            if row:
+                resp["chat_enabled"] = bool(row["chat_enabled"])
+            if limits is not None or body.get("reset_limits") or body.get("clear_hold_down"):
+                resp["limits"] = fed.authz.limit_status(ident)
+            return 200, resp
 
         # ---- US3: chat ----
         if path in ("/n2n/chat/open", "/n2n/chat/send") and method == "POST":
@@ -621,9 +681,14 @@ async def handle_n2n(method, path, body):
             if body.get("chat", True):
                 mgr.set_chat_enabled(ident, True)
             granted = []
+            try:   # spec 190: validate once so a bad class changes nothing
+                if body.get("access_class") not in (None, "read", "read_write"):
+                    raise ValueError("access_class must be one of ('read', 'read_write')")
+            except ValueError as e:
+                return 400, {"error": str(e)}
             for tgt in (body.get("tools") or []):
                 ttype = "tool" if "/" in tgt else "skill"
-                fed.authz.grant(ident, ttype, tgt)
+                fed.authz.grant(ident, ttype, tgt, access_class=body.get("access_class"))
                 granted.append(tgt)
             return 200, {"peer": ident, "chat_enabled": True, "granted": granted}
 

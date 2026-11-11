@@ -326,3 +326,9 @@ value-per-effort; every item traces to a verified draft state.
 - **Watch the `agentproto` charter.** Scope was rejected 38–124 and is being rewritten toward *context
   propagation across trust boundaries*, which is **closer to NCFED's contribution** than the original
   session-layer framing. NCFED's fit improves if it lands there.
+
+---
+
+## Addendum (spec 189, issue #343): peer limit semantics
+
+The -00 text left what counts toward BUDGET_EXHAUSTED/RATE_LIMITED, per-peer vs global scope, the over-limit action and counter recovery unspecified. Section "Peer Limits" now specifies them (refuse default, warn, teardown with a persisted restart timer, optional aggregate cap, warning threshold). No wire change. Open for -01: whether a global rate cap and a wire-visible hold-down signal are wanted; both were deliberately left out.

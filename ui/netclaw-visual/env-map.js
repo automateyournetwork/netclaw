@@ -14231,6 +14231,7 @@ export const COMPONENT_SETTINGS = {
       ]
     }
   ],
+  "result-analysis": [],
   "cisco-iq": [
     {
       "key": "CISCO_IQ_API_KEY",

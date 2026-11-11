@@ -131,7 +131,7 @@ class Invoker:
         if not decision.allowed:
             self.audit.record(direction="inbound", peer_identity=peer, target_type=target_type,
                               target_name=target, request_id=request_id,
-                              decision=decision.code, outcome="denied")
+                              decision=(decision.audit_code or decision.code), outcome="denied")
             raise RpcError(_CODE_MAP.get(decision.code, -32000), decision.reason)
 
     # ---- inbound: a peer asks US to run something ----------------------
@@ -164,7 +164,7 @@ class Invoker:
 
         if not decision.allowed and decision.code != "approval_required":
             self.audit.record(direction="inbound", peer_identity=peer, target_type="tool",
-                              target_name=tool, request_id=req_id, decision=decision.code, outcome="denied")
+                              target_name=tool, request_id=req_id, decision=(decision.audit_code or decision.code), outcome="denied")
             raise RpcError(_CODE_MAP.get(decision.code, -32000), decision.reason)
 
         if decision.code == "approval_required":
@@ -217,7 +217,7 @@ class Invoker:
 
         if not decision.allowed and decision.code != "approval_required":
             self.audit.record(direction="inbound", peer_identity=peer, target_type="skill",
-                              target_name=skill, request_id=req_id, decision=decision.code, outcome="denied")
+                              target_name=skill, request_id=req_id, decision=(decision.audit_code or decision.code), outcome="denied")
             raise RpcError(_CODE_MAP.get(decision.code, -32000), decision.reason)
 
         deadline=params.get('deadline')
@@ -366,7 +366,7 @@ class Invoker:
         if not decision.allowed and decision.code != "approval_required":
             self.audit.record(direction="inbound", peer_identity=peer, target_type="knowledge",
                               target_name=collection_id, request_id=req_id,
-                              decision=decision.code, outcome="denied")
+                              decision=(decision.audit_code or decision.code), outcome="denied")
             raise RpcError(_CODE_MAP.get(decision.code, -32000), decision.reason)
         if decision.code == "approval_required":
             inv_id = self.audit.record(direction="inbound", peer_identity=peer,
@@ -461,7 +461,7 @@ class Invoker:
         if not decision.allowed and decision.code != "approval_required":
             self.audit.record(direction="inbound", peer_identity=peer,
                               target_type="knowledge_replica", target_name=collection_id,
-                              request_id=req_id, decision=decision.code, outcome="denied")
+                              request_id=req_id, decision=(decision.audit_code or decision.code), outcome="denied")
             raise RpcError(_CODE_MAP.get(decision.code, -32000), decision.reason)
         if decision.code == "approval_required":
             inv_id = self.audit.record(direction="inbound", peer_identity=peer,

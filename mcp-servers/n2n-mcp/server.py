@@ -6,7 +6,7 @@ Provides operator-facing tools for claw-to-claw federation:
   Status:     n2n_status
   Consent:    n2n_consent, n2n_kill
   Capability: n2n_peer_capabilities, n2n_compare_capabilities, n2n_set_visibility
-  Grants:     n2n_grant, n2n_revoke_grant, n2n_list_grants
+  Grants:     n2n_grant, n2n_revoke_grant, n2n_list_grants, n2n_classify, n2n_import_annotations, n2n_list_classifications
   Invoke:     n2n_invoke
   Chat:       n2n_chat
   Approvals:  n2n_approvals, n2n_approve, n2n_deny
@@ -356,7 +356,8 @@ async def n2n_set_visibility(item_type: str, item_name: str, visibility: str,
 
 @mcp.tool()
 async def n2n_grant(peer: str, target_type: str, target_name: str,
-                    requires_approval: bool = False, timeout_s: Optional[int] = None) -> str:
+                    requires_approval: bool = False, timeout_s: Optional[int] = None,
+                    access_class: Optional[str] = None) -> str:
     """Allowlist a tool, skill, or knowledge collection for a peer to invoke.
 
     Args:
@@ -372,13 +373,62 @@ async def n2n_grant(peer: str, target_type: str, target_name: str,
             default-deny either way)
         requires_approval: If True, each invocation requires explicit approval
         timeout_s: Optional grant expiry in seconds
+        access_class: 'read' (only targets classified read are callable) or
+            'read_write' (any granted target; the default, same as grants made
+            before this option existed). Unclassified tools/skills are NOT read;
+            classify them with n2n_classify. knowledge targets are always read.
     """
     body = {"peer": peer, "target_type": target_type, "target_name": target_name,
             "requires_approval": requires_approval}
+    if access_class:
+        body["access_class"] = access_class
     if timeout_s:
         body["timeout_s"] = timeout_s
     data = await _post("/n2n/grants", body)
     return _gcf_dumps(data)
+
+
+@mcp.tool()
+async def n2n_classify(target_type: str, target_name: str, access: Optional[str] = None) -> str:
+    """Operator override of a tool's or skill's access class for read-only grants.
+
+    Args:
+        target_type: 'tool' or 'skill'
+        target_name: 'server/tool' or skill name
+        access: 'read' or 'write'; omit to clear the override (an imported
+            annotation, if any, then applies; otherwise unclassified, which a
+            read-only grant refuses)
+    """
+    body = {"target_type": target_type, "target_name": target_name}
+    if access:
+        body["access"] = access
+    else:
+        body["clear"] = True
+    return _gcf_dumps(await _post("/n2n/classifications", body))
+
+
+@mcp.tool()
+async def n2n_import_annotations(server: str, tools_json: str) -> str:
+    """Import MCP tool annotations for one local server (operator action).
+
+    Args:
+        server: MCP server id, e.g. 'cml-mcp'
+        tools_json: JSON list from an MCP tools/list result, e.g.
+            '[{"name":"list_labs","annotations":{"readOnlyHint":true}}]'.
+            readOnlyHint true -> read, false -> write, absent -> not stored.
+            An operator override from n2n_classify always wins.
+    """
+    try:
+        tools = json.loads(tools_json)
+    except ValueError as e:
+        return _gcf_dumps({"error": f"tools_json is not valid JSON: {e}"})
+    return _gcf_dumps(await _post("/n2n/classifications", {"server": server, "tools": tools}))
+
+
+@mcp.tool()
+async def n2n_list_classifications() -> str:
+    """List tool/skill access classifications (operator overrides and imported annotations)."""
+    return _gcf_dumps(await _get("/n2n/classifications"))
 
 
 @mcp.tool()
@@ -528,7 +578,12 @@ async def n2n_audit(peer: Optional[str] = None, limit: int = 20) -> str:
 async def n2n_config(peer: str, chat_enabled: Optional[bool] = None,
                      daily_requests: Optional[int] = None,
                      daily_tokens: Optional[int] = None,
-                     rate_per_min: Optional[int] = None) -> str:
+                     rate_per_min: Optional[int] = None,
+                     limit_action: Optional[str] = None,
+                     warn_threshold: Optional[float] = None,
+                     restart_timer_s: Optional[int] = None,
+                     reset_limits: bool = False,
+                     clear_hold_down: bool = False) -> str:
     """Configure per-peer federation settings.
 
     Args:
@@ -537,6 +592,12 @@ async def n2n_config(peer: str, chat_enabled: Optional[bool] = None,
         daily_requests: Daily request budget for this peer
         daily_tokens: Daily token budget for this peer
         rate_per_min: Requests per minute rate limit
+        limit_action: What to do when a limit is exceeded: refuse (default, keep channel),
+            warn (allow, audit only) or teardown (refuse, close channel, hold-down timer)
+        warn_threshold: Fraction (0,1] of the daily limit that raises one warning per day
+        restart_timer_s: Hold-down seconds before a torn-down peer may reconnect
+        reset_limits: Reset today's counters, rate window, warnings and hold-down
+        clear_hold_down: End a teardown hold-down early
     """
     body = {"peer": peer}
     if chat_enabled is not None:
@@ -547,6 +608,14 @@ async def n2n_config(peer: str, chat_enabled: Optional[bool] = None,
         body["daily_tokens"] = daily_tokens
     if rate_per_min is not None:
         body["rate_per_min"] = rate_per_min
+    for key, val in (("limit_action", limit_action), ("warn_threshold", warn_threshold),
+                     ("restart_timer_s", restart_timer_s)):
+        if val is not None:
+            body[key] = val
+    if reset_limits:
+        body["reset_limits"] = True
+    if clear_hold_down:
+        body["clear_hold_down"] = True
     data = await _post("/n2n/config", body)
     return _gcf_dumps(data)
 
@@ -790,7 +859,8 @@ async def n2n_set_edge_gate(peer: str, edge_gate: str) -> str:
 
 
 @mcp.tool()
-async def n2n_trust(peer: str, tools: str = "", chat: bool = True) -> str:
+async def n2n_trust(peer: str, tools: str = "", chat: bool = True,
+                    access_class: Optional[str] = None) -> str:
     """One-step trust: enable chat and grant a set of tools/skills to a peer in a
     single call (instead of separate consent + grant + config steps).
 
@@ -798,8 +868,11 @@ async def n2n_trust(peer: str, tools: str = "", chat: bool = True) -> str:
         peer: peer identity
         tools: comma-separated tool/skill names to grant (e.g. 'cml-lab-lifecycle,cml-mcp/list_labs')
         chat: enable claw-to-claw chat with this peer (default True)
+        access_class: optional 'read' or 'read_write' applied to every granted name
     """
     body = {"peer": peer, "chat": chat}
+    if access_class:
+        body["access_class"] = access_class
     if tools:
         body["tools"] = [t.strip() for t in tools.split(",") if t.strip()]
     return _gcf_dumps(await _post("/n2n/trust", body))

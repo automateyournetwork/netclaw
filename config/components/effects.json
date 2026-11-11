@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "sourceSha256": "777775a89c8b40ad87edc4987d5bbb5a66265f5c628e007616f9baed9dc4cb5c",
+  "sourceSha256": "97976ae50430c47da5dcb42df63c2588e23ca5eb0f6ec5ee6cffb2e88baf4d50",
   "components": [
     {
       "id": "hermes-hud",
@@ -1022,6 +1022,15 @@
       "reason": "Install pinned connector dependencies in its own runtime; no external service changes or credentials used during install.",
       "postcondition": "selected-registration-artifacts-and-discovery",
       "source": "scripts/lib/install-steps.sh#component_install_convergence_read"
+    },
+    {
+      "id": "result-analysis",
+      "function": "component_install_result_analysis",
+      "sha256": "0cfbc12cadc5a50f901f0055b006864b392ac8bd7b4fa25a0bd017c82337c16e",
+      "adapter": "isolated-shell",
+      "reason": "Install pinned dependencies for the result-analysis MCP and create a private retained-result directory; no external service changes or credentials used during install.",
+      "postcondition": "selected-registration-artifacts-and-discovery",
+      "source": "scripts/lib/install-steps.sh#component_install_result_analysis"
     },
     {
       "id": "cisco-iq",

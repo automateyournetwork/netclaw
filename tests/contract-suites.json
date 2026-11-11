@@ -962,6 +962,27 @@
         "description": "opt-in Cisco IQ connectivity check with a real user-principal key"
       },
       "timeout_seconds": 120
+    },
+    "result-analysis": {
+      "kind": "pytest",
+      "paths": [
+        "tests/result-analysis"
+      ],
+      "environment": {
+        "path": ".contract-test-envs/result-analysis",
+        "requirements": [
+          "mcp-servers/result-analysis-mcp/requirements.txt"
+        ],
+        "packages": [
+          "pytest>=8,<9"
+        ],
+        "required_imports": [
+          "mcp",
+          "pytest"
+        ],
+        "prepend_path": false
+      },
+      "timeout_seconds": 300
     }
   }
 }
