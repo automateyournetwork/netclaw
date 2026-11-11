@@ -1,4 +1,4 @@
-"""Spec 185: a member spec's model may use a provider the Border configures, or a subscription login.
+"""Spec 186: a member spec's model may use a provider the Border configures, or a subscription login.
 
 Source and fixture checks only: no gateway, provider, daemon or MCP server is started.
 """
@@ -23,7 +23,7 @@ def load(path, name):
     return module
 
 
-T184 = load(ROOT / 'tests/n2n/test_member_spec_184.py', 'spec185_t184')
+T184 = load(ROOT / 'tests/n2n/test_member_spec_184.py', 'spec186_t184')
 EXAMPLE, clean_env, slice_keys = T184.EXAMPLE, T184.clean_env, T184.slice_keys
 
 CLOUD = {'api': 'ollama', 'baseUrl': 'https://ollama.com', 'apiKey': '${OLLAMA_API_KEY}',
@@ -40,7 +40,7 @@ PROVIDERS = {
 
 @pytest.fixture(scope='module')
 def profiles():
-    return load(ROOT / 'scripts/in2n-profiles.py', 'spec185_profiles')
+    return load(ROOT / 'scripts/in2n-profiles.py', 'spec186_profiles')
 
 
 @pytest.fixture(scope='module')
@@ -310,7 +310,7 @@ def test_member_record_names_provider_and_auth_and_export_lines_count(tmp_path):
     written, envfile, staged, out, command = provision(tmp_path, spec(model='ollama-cloud/minimax-m3'))
     record = json.loads((tmp_path / '.openclaw-lab-alert-investigator/netclaw-member-spec.json').read_text())
     assert (record['provider'], record['model'], record['auth']) == ('ollama-cloud', 'minimax-m3', 'api-key')
-    member_home = T184.load(ROOT / 'scripts/in2n-member-home.py', 'spec185_member_home')
+    member_home = T184.load(ROOT / 'scripts/in2n-member-home.py', 'spec186_member_home')
     exported = tmp_path / 'exported.env'
     exported.write_text('export OLLAMA_API_KEY=x\n  OTHER = y\n# COMMENTED=z\n')
     assert member_home._env_names(exported) == {'OLLAMA_API_KEY', 'OTHER'}

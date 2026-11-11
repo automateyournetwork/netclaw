@@ -1,6 +1,6 @@
-# Spec 185: A member spec's model may use a Border provider or a subscription login
+# Spec 186: A member spec's model may use a Border provider or a subscription login
 
-Created 2026-11-11; branch `185-member-spec-providers`, stacked on `183-member-scoping`
+Created 2026-11-11 as spec 185 (renumbered: upstream took 185); branch `186-member-spec-providers`, on main
 (specs 183/184, 1.21.0); status: implementation and verification.
 
 ## Problem

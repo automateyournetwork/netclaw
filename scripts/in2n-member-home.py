@@ -261,7 +261,7 @@ def spec_store_overrides(servers, home, border_home):
 #                `openclaw agent --local`), never a chat channel;
 #   tools        spec_tool_policy + the narrowed sandbox layer;
 #   skills       spec_skills_section (Workshop off);
-#   models       one provider (spec 185): NetClaw's Anthropic provider with apiKey
+#   models       one provider (spec 186): NetClaw's Anthropic provider with apiKey
 #                "${ANTHROPIC_API_KEY}" (from the member's .env slice, never a literal key);
 #                or a copy of the Border's entry for the spec's provider with only its
 #                model (key references only); or, with "auth": "subscription", no entry:
@@ -297,7 +297,7 @@ def _member_env_values(member_env):
 def _resolve_base_url(entry, member_env):
     """A referenced baseUrl (${NAME}) is written as its literal URL from the member's own env:
     the production model guard classifies a provider by its baseUrl host, and an unresolved
-    reference has none, so a LAN model server would pass as non-local (spec 185 review round 2).
+    reference has none, so a LAN model server would pass as non-local (spec 186 review round 2).
     A URL is not a secret; it must still carry no credentials, query or fragment."""
     url = entry.get("baseUrl")
     match = re.fullmatch(r"\$\{([A-Za-z_][A-Za-z0-9_]*)\}", url) if isinstance(url, str) else None
@@ -313,7 +313,7 @@ def _resolve_base_url(entry, member_env):
 
 
 def spec_member_providers(border, spec, prof, model, member_env=None):
-    """The member's models.providers (spec 185): see SPEC_MEMBER_TOP_KEYS."""
+    """The member's models.providers (spec 186): see SPEC_MEMBER_TOP_KEYS."""
     if spec.get("auth") == "subscription":
         return {}
     if spec.get("provider"):
@@ -787,7 +787,7 @@ def _provision_openclaw(args, runtime, name, spec=None):
     prof = _profiles()
     if spec and args.model:
         # The staged N2N_MEMBER_MODEL (the member's --model) comes from the spec; a different
-        # configured model would make the agent reject every task (spec 185 review).
+        # configured model would make the agent reject every task (spec 186 review).
         raise SystemExit("error: --model cannot override a member spec's model; change the spec's "
                          "model and stage it again")
     model = args.model or (spec or {}).get("model") or prof.model_tier(name)
@@ -905,7 +905,7 @@ def _provision_openclaw(args, runtime, name, spec=None):
         where = args.member_env or f"{mh}/.env"
         binding = f"{spec.get('provider') or 'anthropic'}/{model}"
         if spec.get("auth") == "subscription":
-            # Spec 185: the member signs in itself; the login lives in its own home.
+            # Spec 186: the member signs in itself; the login lives in its own home.
             print(f"  model: {binding}  (subscription: sign this member in once, before its first task:")
             print(f"    OPENCLAW_STATE_DIR={shlex.quote(mh)} OPENCLAW_CONFIG_PATH={shlex.quote(mh + '/openclaw.json')} "
                   f"openclaw models auth login --provider {spec['provider']})")

@@ -16,5 +16,5 @@
   `run.sh` exec line.
 - Docs: docs/N2N-RISK.md "Member spec" (model and auth rules, providers, subscriptions, guard
   note); release notes 1.22.0.
-- Tests: `tests/n2n/test_member_spec_providers_185.py`; spec 184 error cases updated for the new
+- Tests: `tests/n2n/test_member_spec_providers_186.py`; spec 184 error cases updated for the new
   messages.

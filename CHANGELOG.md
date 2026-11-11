@@ -4,7 +4,7 @@ NetClaw source releases use `1.x.y`. Feature specs increment the minor version a
 
 ## [1.22.0] - 2026-11-11
 
-Spec [185-member-spec-providers](specs/185-member-spec-providers/spec.md). See [release notes](docs/releases/1.22.0.md).
+Spec [186-member-spec-providers](specs/186-member-spec-providers/spec.md). See [release notes](docs/releases/1.22.0.md).
 
 - Member specs may name any provider the Border configures (`<provider>/<model>`, key references only) or a Claude/ChatGPT subscription login (`"auth": "subscription"`); staged members run on the federation runtime instead of the system `python3`.
 

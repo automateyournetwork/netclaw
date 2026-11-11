@@ -366,7 +366,7 @@ def component_env_keys(entry):
 MEMBER_SPEC_VERSION = 1
 MEMBER_SPEC_REQUIRED = ("version", "name", "servers", "tools")
 MEMBER_SPEC_KEYS = frozenset(MEMBER_SPEC_REQUIRED + ("description", "skills", "model", "auth"))
-# Spec 185: built-in providers a member may reach with its own subscription login
+# Spec 186: built-in providers a member may reach with its own subscription login
 # ("auth": "subscription"); OpenClaw keeps that login in the member home's auth profiles.
 SUBSCRIPTION_PROVIDERS = frozenset({"anthropic", "openai"})
 SAFE_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,63}")
@@ -436,7 +436,7 @@ def load_member_spec(source, servers, installed=None, allow_dangerous=False, pro
     custom` path yields; `installed` defaults to the installed skills), "base_skills"
     and "base_servers" (SPEC_BASE_SKILLS whose server the Border has) and
     "dangerous_tools" (allowed only with `allow_dangerous`). `providers` is the Border's
-    models.providers (spec 185): a `<provider>/<model>` model must name one of them, or use
+    models.providers (spec 186): a `<provider>/<model>` model must name one of them, or use
     "auth": "subscription" with a built-in provider. The result also carries "provider"
     (None for NetClaw's built-in Anthropic API-key provider) and "auth". Raises
     MemberSpecError naming every problem."""
@@ -548,7 +548,7 @@ def load_member_spec(source, servers, installed=None, allow_dangerous=False, pro
     elif not isinstance(model, str):
         errors.append("model must be null or a string")
     elif auth == "subscription":
-        # Spec 185: a built-in provider, signed in on the member home itself; no key.
+        # Spec 186: a built-in provider, signed in on the member home itself; no key.
         if prefix not in SUBSCRIPTION_PROVIDERS or not MODEL_ID.fullmatch(rest):
             errors.append("with auth 'subscription', model must be 'anthropic/<id>' or 'openai/<id>'")
         else:
@@ -561,7 +561,7 @@ def load_member_spec(source, servers, installed=None, allow_dangerous=False, pro
         else:
             model = bare
     else:
-        # Spec 185: a provider the Border configures (models.providers), by reference only.
+        # Spec 186: a provider the Border configures (models.providers), by reference only.
         problem = provider_problem(providers, prefix, rest)
         if problem:
             errors.append(f"model {model!r}: {problem}")
@@ -585,7 +585,7 @@ def load_member_spec(source, servers, installed=None, allow_dangerous=False, pro
     return spec, warnings
 
 
-# Spec 185 review round 1: a provider member's entry is BUILT from these fields of the
+# Spec 186 review round 1: a provider member's entry is BUILT from these fields of the
 # Border's entry, never copied whole; anything else is refused with its name.
 PROVIDER_FIELDS = ("api", "baseUrl", "apiKey", "authHeader", "headers", "timeoutSeconds", "models")
 PROVIDER_MODEL_FIELDS = ("id", "name", "api", "reasoning", "input", "cost", "contextWindow", "maxTokens", "compat")
@@ -710,7 +710,7 @@ def provider_problem(providers, name, model):
 
 
 def spec_provider_entry(spec, providers):
-    """The one models.providers entry a spec member registers (spec 185), built from
+    """The one models.providers entry a spec member registers (spec 186), built from
     PROVIDER_FIELDS of the Border's entry with only its model; None for the built-in
     providers (Anthropic API key, subscriptions)."""
     if not spec.get("provider") or spec.get("auth") == "subscription":
@@ -845,9 +845,9 @@ def spec_env_slice_keys(spec, env_keys, servers, providers=None):
     the Border's memory/GAIT store locations (SPEC_MEMBER_STORE_KEYS)."""
     keys = set(_slice([], spec_member_servers(spec, servers), env_keys)) - SPEC_MEMBER_STORE_KEYS
     if spec.get("auth") == "subscription":
-        pass  # the member's own login, in its home; no key in its environment (spec 185)
+        pass  # the member's own login, in its home; no key in its environment (spec 186)
     elif spec.get("provider"):
-        # Spec 185: the variables the copied provider entry references, e.g. ${OLLAMA_API_KEY}.
+        # Spec 186: the variables the copied provider entry references, e.g. ${OLLAMA_API_KEY}.
         # Filtered like server references (provider_problem already refuses denied ones).
         entry = spec_provider_entry(spec, providers or {}) or {}
         keys |= {k for k in provider_entry_refs(entry)
@@ -1123,7 +1123,7 @@ def _main(argv):
 
 
 def border_template_providers(config):
-    """The Border template's models.providers (spec 185); {} when it has none."""
+    """The Border template's models.providers (spec 186); {} when it has none."""
     try:
         providers = (json.loads(Path(config).read_text()).get("models") or {}).get("providers")
     except (OSError, ValueError, AttributeError):

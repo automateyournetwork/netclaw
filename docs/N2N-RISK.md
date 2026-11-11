@@ -155,7 +155,7 @@ Validation is strict and reports every problem at once:
 - `skills`: a skill that is not installed (in NetClaw's `workspace/skills` or the Border's)
   is a warning, not an error. The member's
   scope follows `scope custom`: the installed ones, or all listed if none is installed.
-- `model` (spec 185): one of
+- `model` (spec 186): one of
   - `null` (the default member tier) or an Anthropic model id, optionally `anthropic/<id>`:
     NetClaw's Anthropic provider with `${ANTHROPIC_API_KEY}`;
   - `<provider>/<model>` for a provider in the Border's `models.providers`, for example
