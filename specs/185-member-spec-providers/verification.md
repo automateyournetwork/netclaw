@@ -2,7 +2,7 @@
 
 ## Tests
 
-`tests/n2n/test_member_spec_providers_185.py` (21 tests):
+`tests/n2n/test_member_spec_providers_185.py` (38 tests):
 
 - a Border provider model is accepted by reference; the copied entry keeps only the chosen model
   and the Border's entry is unchanged;
@@ -27,7 +27,33 @@
 Spec 184's three model error cases now expect the new messages; all other 183/184 tests are
 unchanged.
 
-Results: `test_member_spec_providers_185.py` 21 passed, `test_member_spec_184.py` 146 passed,
+## Review round 1 (read-only Claude reviewer)
+
+Eight findings, no critical one; all fixed in e053de56 with tests
+(`test_provider_entry_is_built_from_allowed_fields_only`,
+`test_provider_entry_keeps_references_env_secretref_and_whitelisted_model_keys`,
+`test_border_providers_named_like_built_ins`, `test_member_home_refuses_model_override_for_every_spec`,
+`test_member_record_names_provider_and_auth_and_export_lines_count`):
+
+1. The provider entry was copied whole, so a file/exec SecretRef or an unknown field reached the
+   member: it is now built from `PROVIDER_FIELDS`; `apiKey` is a `${NAME}` or a default env
+   SecretRef; other fields are refused by name.
+2. A key in a `baseUrl` query or in an unusual header name passed: `baseUrl` may carry no
+   credentials, query or fragment; every header value must be reference-only.
+3. Provider references skipped the deny lists and store keys: denied names are refused and
+   filtered from the slice.
+4. `--model` on an Anthropic spec desynced the staged model: refused for every spec run.
+5. The chosen model object was copied unscanned: only `PROVIDER_MODEL_FIELDS` are kept.
+6. The member record lacked `provider` and `auth`: recorded.
+7. Model ids with `/` were refused: accepted for Border providers (`PROVIDER_MODEL_ID`); the
+   production Border's `ollama` provider lists `voytas26/openclaw-qwen3vl-8b-opt`, and a spec
+   naming it validates.
+8. `export NAME=` lines were reported MISSING: the report uses write-env.py's assignment form.
+
+The live alert loop was re-run on the hardened code (case resolved by the member; Border agent
+calls: `case_get`, `n2n_route`, `n2n_task_wait` ×2).
+
+Results: `test_member_spec_providers_185.py` 38 passed, `test_member_spec_184.py` 146 passed,
 `test_member_mcp_mappings_183.py` 50 passed (`NETCLAW_TEST_OPENCLAW_DIST` set to the installed
 OpenClaw). Full `tests/n2n` (fastmcp4 runtime): 32 failed, 2192 passed, 16 skipped, 179 errors;
 the failing and erroring test ids are identical to upstream main e21d867c's on this host (modules
