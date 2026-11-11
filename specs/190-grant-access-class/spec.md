@@ -95,7 +95,7 @@ The access class is an additional check in front of the existing ones. It never 
 
 1. **Given** a `read` grant with `requires_approval` on a write-classified tool, **Then** the call is refused before any approval is created.
 2. **Given** a `read` grant with `requires_approval` on a read-classified tool, **Then** approval is required exactly as today and approving does not widen the class.
-3. **Given** a card, **Then** each advertised MCP server carries an advisory per-tool class map and each skill carries an advisory class, and visibility rules are unchanged.
+3. **Given** a card, **Then** each advertised MCP server carries an advisory per-tool class map and each skill carries an advisory class, for classified targets only, and visibility rules are unchanged.
 4. **Given** spec 189 limits, **Then** read and write calls count identically against the same budgets, and access-class refusals are not debited and are not counted toward rate or limit actions.
 
 ### User Story 6 - Knowledge and inventory stay on their own controls (Priority: P2)
@@ -135,7 +135,7 @@ Capability-card pull (`n2n/inventory_get`) stays controlled only by visibility. 
 - **FR-007**: `requires_approval` MUST remain orthogonal: it applies only to calls that pass the class check, and an approval never widens the class.
 - **FR-008**: `knowledge` and `knowledge_replica` targets MUST be intrinsically read. `n2n/inventory_get` and card exchange MUST stay controlled by visibility only. No change to grant distinctness between `knowledge` and `knowledge_replica`.
 - **FR-009**: The class check MUST be re-evaluated at admission after any wait, so reclassification or a grant change takes effect on the next admission.
-- **FR-010**: The capability card MUST add an optional advisory per-tool class map for each advertised MCP server and an optional advisory class for each skill. The map MUST be ignored for authorization by receivers and MUST be absent-tolerant for older peers. Visibility semantics MUST NOT change.
+- **FR-010**: The capability card MUST add an optional advisory per-tool class map for each advertised MCP server and an optional advisory class for each skill. Targets with no classification carry no hint (absence means unclassified). The hints MUST be ignored for authorization by receivers and MUST be absent-tolerant for older peers. Visibility semantics MUST NOT change.
 - **FR-011**: The grant API (`n2n_grant`, `POST /n2n/grants`, one-step trust) MUST accept an optional access class, validate it, reject invalid values with HTTP 400 changing nothing, and return it in grant listings. Classification management (list, set override, clear override, import annotations) MUST be available to the operator through the daemon and the n2n MCP server.
 - **FR-012**: The same class check MUST apply to internal (iN2N, `already_trusted`) channels, because grants and classification are evaluated unconditionally.
 - **FR-013**: Audit MUST record class-denied calls, grant creation with its class, and classification changes.

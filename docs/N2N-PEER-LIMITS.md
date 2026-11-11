@@ -60,4 +60,4 @@ Invalid values (negative numbers, threshold outside (0,1], unknown action) retur
 
 ## Relationship to issue #344 (read/write grants)
 
-Both changes touch `Authorizer.authorize()` / `admit()` in `bgp/federation/authorization.py`. Spec 189 adds helper methods and one additive `Decision.teardown` field, and leaves `invocation_grant` and the `_find_grant` signature alone. If #344 splits grants into read and write, the counted-operation table above is where read versus write classes attach.
+Spec 190 adds an access class to grants (`docs/N2N-GRANT-ACCESS-CLASS.md`). The class check sits after the grant lookup and before the counted-operation gates above: reads and writes are counted identically, and a request refused by the class check is not debited, takes no rate slot and never starts a warn or teardown action. Separate per-class budgets are not provided.

@@ -15,7 +15,7 @@
 `n2n_grant(..., access_class: Optional[str])`, `n2n_classify(target_type, target_name, access)`, `n2n_import_annotations(server, tools_json)`, `n2n_list_classifications()`.
 
 ## Wire
-No new methods or error codes. Denied class check returns -32001 NOT_ALLOWLISTED. Card adds optional `mcp_servers[].tool_access` and `skills[].access`.
+No new methods or error codes. Denied class check returns -32001 NOT_ALLOWLISTED. Card adds optional (classified targets only) `mcp_servers[].tool_access` and `skills[].access`.
 
 ## Audit
-`decision=access_class_denied, outcome=denied` per refused call; `decision=granted` rows for grants (existing) with target unchanged; `decision=classified|classification_cleared` with `target_type=classification`.
+`decision=access_class_denied, outcome=denied` per refused call; `decision=granted` rows for grants (existing; outcome `success:read` when the class is read); `decision=classified|classification_cleared` with `target_type=classification`.

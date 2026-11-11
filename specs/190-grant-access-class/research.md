@@ -23,7 +23,7 @@ Only operator override can make a skill read. No SKILL.md self-declaration. Requ
 Check sits after grant lookup and before rate, budget, approval. Refusal uses NOT_ALLOWLISTED with the same reason text as an ungranted target; audit decision `access_class_denied` records the truth locally. No new error code (avoids an oracle and avoids a wire change).
 
 ## R6 Card
-Advisory optional fields: per `mcp_servers[]` entry `tool_access: {tool: read|write|unclassified}`, per `skills[]` entry `access: read|write|unclassified`. Receivers MUST NOT authorize from them. Old peers ignore unknown members (the card already carries extension members such as `invocable_tools`, `qualification`). The card secret-scan still runs.
+Advisory optional fields: per `mcp_servers[]` entry `tool_access: {tool: read|write}` (unclassified tools omitted), per `skills[]` entry `access: read|write` (omitted when unclassified). Receivers MUST NOT authorize from them. Old peers ignore unknown members (the card already carries extension members such as `invocable_tools`, `qualification`). The card secret-scan still runs.
 
 ## R7 Duplicate grants
 A new grant with a different class than an active grant for the same (peer, type, name) revokes the old one. Same class keeps today's insertion behavior.
