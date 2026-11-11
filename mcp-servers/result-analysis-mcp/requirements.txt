@@ -1,0 +1,5 @@
+# Same FastMCP/MCP pins as the other NetClaw-authored servers; retention/query/stream are stdlib.
+fastmcp==4.0.11
+fastmcp-tasks==4.0.11
+fastmcp-slim==4.0.11
+mcp==2.3.0

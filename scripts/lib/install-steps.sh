@@ -1087,6 +1087,19 @@ log_info "Reads Zeek/Suricata output from nsm-mcp; run nsm_analyze first to have
 echo ""
 }
 
+component_install_result_analysis() {
+log_step "Installing Large Result Analysis MCP Server..."
+echo "  NetClaw-authored: mcp-servers/result-analysis-mcp (7 tools, spec 187)"
+echo "  Read-only, declarative analysis of complete results retained server-side; no code execution."
+
+netclaw_pip_install -r "$NETCLAW_DIR/mcp-servers/result-analysis-mcp/requirements.txt" || \
+    log_error "result-analysis-mcp dependencies install FAILED — the server will not start"
+mkdir -p "$HOME/.openclaw/results" && chmod 700 "$HOME/.openclaw/results"
+log_info "Retained-result store: $HOME/.openclaw/results (private, 1h TTL, size-capped)"
+
+echo ""
+}
+
 # ── Step 28.5: Zeek + Suricata NSM (spec 091, roadmap R13) ──────
 component_install_anta() {
 log_step "Installing Arista ANTA Validation MCP Server..."

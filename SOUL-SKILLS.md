@@ -802,6 +802,12 @@ invalid-checksum packets by default; measured, that produced **no http.log at al
 conn.log with 3 rows instead of 2. NetClaw's own capture skills produce such captures, so the
 server defaults to ignoring checksums and always reports which mode it used.
 
+### result-analysis
+Complete read-only analysis of results a tool returned as a handle envelope (spec 187):
+- `result_count` / `result_select` / `result_lines` / `result_text_search` over the whole retained result
+- Every answer has a coverage block; quote a total only when `coverage.complete` is true
+- No code execution, SQL, regex, device access or command re-run
+
 ### network-data-analysis
 Ad-hoc read-only SQL over exported network data via DuckDB (spec 092):
 - Cross-log joins on Zeek `uid` — the session pivot, aggregated
