@@ -2,6 +2,12 @@
 
 NetClaw source releases use `1.x.y`. Feature specs increment the minor version and reset the patch; fixes, documentation and maintenance increment the patch. Every release records its numbered specs. Component and mobile distribution versions are independent.
 
+## [1.22.0] - 2026-11-11
+
+Spec [185-member-spec-providers](specs/185-member-spec-providers/spec.md). See [release notes](docs/releases/1.22.0.md).
+
+- Member specs may name any provider the Border configures (`<provider>/<model>`, key references only) or a Claude/ChatGPT subscription login (`"auth": "subscription"`); staged members run on the federation runtime instead of the system `python3`.
+
 ## [1.21.0] - 2026-11-10
 
 - Members get the MCP servers their skills call (35 of 42 profiles), and an env slice with exactly the variables those servers reference; never ServiceNow/comms secrets, never the Border's `.env` or home.

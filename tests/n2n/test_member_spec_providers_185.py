@@ -200,3 +200,27 @@ def test_staged_member_runs_on_the_recorded_federation_runtime(tmp_path):
     assert T184.run_migrate(tmp_path, '--spec', str(spec_file), '--specs-only', '--hot', '').returncode == 0
     argv = shlex.split(runner.read_text().splitlines()[-1])
     assert argv[:2] == ['exec', str(python)] and argv[2].endswith('scripts/in2n-member.py')
+
+
+@pytest.mark.parametrize('data', [dict(model='ollama-cloud/minimax-m3'),
+                                  dict(model='openai/gpt-6.1-sol', auth='subscription'),
+                                  dict(model='anthropic/claude-sonnet-5', auth='subscription')])
+def test_member_home_validates_with_installed_openclaw(tmp_path, data):
+    """When OpenClaw is installed: `openclaw config validate` accepts a provider member's home
+    (the copied provider entry) and a subscription member's home (no provider entry, a built-in
+    provider model as primary)."""
+    import shutil
+    dist = T184.openclaw_dist()
+    cli = dist.parent / 'openclaw.mjs' if dist else None
+    node = shutil.which('node')
+    if not (cli and cli.is_file() and node):
+        pytest.skip('OpenClaw is not installed globally')
+    border(tmp_path, 'OLLAMA_API_KEY=fixture\nPFSENSE_URL=https://fw\nPFSENSE_API_KEY=k\n')
+    provision(tmp_path, spec(**data))
+    home = tmp_path / '.openclaw-lab-alert-investigator'
+    env = {'PATH': str(Path(node).parent) + ':/usr/bin:/bin', 'HOME': str(tmp_path),
+           'OPENCLAW_STATE_DIR': str(home), 'OPENCLAW_CONFIG_PATH': str(home / 'openclaw.json'),
+           'OLLAMA_API_KEY': 'fixture'}
+    result = subprocess.run([node, str(cli), 'config', 'validate'], env=env, cwd=tmp_path,
+                            capture_output=True, text=True, timeout=180)
+    assert result.returncode == 0, result.stdout + result.stderr

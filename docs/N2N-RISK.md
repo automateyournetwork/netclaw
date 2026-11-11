@@ -139,7 +139,7 @@ python3 scripts/in2n-member-home.py --runtime openclaw --risk my-risk \
 Validation is strict and reports every problem at once:
 
 - Keys: `version` (must be `1`), `name`, `servers` and `tools` are required;
-  `description`, `skills` and `model` are optional; any other key is an error.
+  `description`, `skills`, `model` and `auth` are optional; any other key is an error.
 - `name`: `[A-Za-z0-9][A-Za-z0-9_.-]{0,63}`, not any profile id, `convergence`, `custom` or `spec`.
   It is the member name; `in2n-member-home.py --member`, if given, must equal it.
 - `servers`: each must be in the Border template's `mcp.servers` (the selected runtime
@@ -155,13 +155,32 @@ Validation is strict and reports every problem at once:
 - `skills`: a skill that is not installed (in NetClaw's `workspace/skills` or the Border's)
   is a warning, not an error. The member's
   scope follows `scope custom`: the installed ones, or all listed if none is installed.
-- `model`: `null` (the default member tier) or an Anthropic model id, optionally
-  `anthropic/<id>`; generic members register only the Anthropic provider.
+- `model` (spec 185): one of
+  - `null` (the default member tier) or an Anthropic model id, optionally `anthropic/<id>`:
+    NetClaw's Anthropic provider with `${ANTHROPIC_API_KEY}`;
+  - `<provider>/<model>` for a provider in the Border's `models.providers`, for example
+    `ollama-cloud/minimax-m3`. The provider must list the model, hold its keys as `${VAR}`
+    references (a literal key is refused, named by path) and start no local service
+    (`localService` is refused). The member registers a copy of that one entry, with only its
+    model, and its slice carries the variables the entry references (`OLLAMA_API_KEY`), not
+    `ANTHROPIC_API_KEY`;
+  - with `"auth": "subscription"`, `anthropic/<id>` or `openai/<id>`: the member signs in with
+    its own Claude or ChatGPT login and registers no provider entry or key.
+    `in2n-member-home.py` prints the exact command to run once, before its first task:
+    `OPENCLAW_STATE_DIR=<home> OPENCLAW_CONFIG_PATH=<home>/openclaw.json openclaw models auth login --provider openai`.
+    OpenClaw keeps the login in the member home's state database only.
+- `auth`: `"api-key"` (default) or `"subscription"` (see `model`).
+
+In production posture the DefenseClaw plugin route refuses models on loopback or private
+providers (`controls.guarded_model_route`), so a member on a LAN model server runs only in
+testing posture. Staged members run on the federation runtime the mesh daemon uses
+(`python-runtimes/records/n2n`), not the system `python3`.
 
 A spec member's `openclaw.json` is **built, not copied** from the Border's: only `mcp`
-(its servers), `channels: {}`, `tools`, `skills`, `models` (the Anthropic provider with
-`apiKey: "${ANTHROPIC_API_KEY}"`, resolved from the member's `.env`, which the spec slice
-gives `ANTHROPIC_API_KEY`), `agents` (`defaults` with its workspace, model, skills and a
+(its servers), `channels: {}`, `tools`, `skills`, `models` (one provider as `model`
+describes: the Anthropic provider with `apiKey: "${ANTHROPIC_API_KEY}"`, resolved from the
+member's `.env`, which the spec slice gives `ANTHROPIC_API_KEY`; or the copied Border entry; or
+none for a subscription), `agents` (`defaults` with its workspace, model, skills and a
 reduced sandbox; one agent, `main`), `memory.search.enabled: false`, `hooks` and `cron`
 disabled, and `plugins` only when the Border has the DefenseClaw guard plugin (that plugin
 alone, as for the Convergence member). The Border's `gateway`, `env.vars`, other providers
