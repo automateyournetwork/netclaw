@@ -41,3 +41,6 @@ No Mobile change is required by this stage: the app reaches a Border over the sa
 
 ## Cost
 VMs ran from 17:17Z to the end of validation (about 5 h): about $0.20/h estimated, so about $1.0 of compute plus a few cents of egress against the $1.8 six-hour estimate; Anthropic usage was a handful of short turns. Teardown follows this document.
+
+## Teardown (2026-11-11)
+Removed exactly the owned resources: instances `nc183-border-a`, `nc183-border-b`, `nc183-witness` with disks; addresses `nc183-ip-a`, `nc183-ip-b`; firewalls `nc183-allow-iap-ssh`, `nc183-allow-mesh`, `nc183-allow-public`; subnet `nc183-sub`; network `nc183-r09a`; GoDaddy A records `nne1-387185`, `nne2-737761`, `nne1-e19e5e`, `nne2-a97585` (each verified to point at this stage's IPs first). A follow-up listing by label and by `nc183-` prefix returned nothing. Local run directories with keys and bundles were deleted; the raw audit exports remain in `~/.local/share/netclaw/r09a-evidence`. Unrelated `netclaw.spec` Docker objects from spec R05 were left alone.
