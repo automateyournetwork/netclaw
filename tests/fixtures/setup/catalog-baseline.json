@@ -671,6 +671,12 @@
       "Observability & Telemetry",
       "Convergence evidence",
       "Optional retained flow rankings, same-window evidence and advisory VM Security findings (3 read-only tools)"
+    ],
+    [
+      "cisco-iq",
+      "Fabric & Orchestration",
+      "Cisco IQ",
+      "Official remote MCP — assets, lifecycle/coverage, bugs (administrator-selected region, read-only policy)"
     ]
   ],
   "profiles": {
@@ -926,7 +932,8 @@
       "jev",
       "humanrail",
       "netconverter",
-      "convergence-read"
+      "convergence-read",
+      "cisco-iq"
     ]
   },
   "skillIds": [
@@ -964,6 +971,7 @@
     "catc-inventory",
     "catc-troubleshoot",
     "checkpoint",
+    "cisco-iq",
     "cisco-psirt-advisories",
     "clab-lab-management",
     "claroty-asset-inventory",

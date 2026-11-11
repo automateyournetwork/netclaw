@@ -29,6 +29,7 @@ case "$component" in
   nso) function_name=component_install_nso ;;
   itential) function_name=component_install_itential ;;
   meraki) function_name=component_install_meraki ;;
+  cisco-iq) function_name=component_install_cisco_iq ;;
   analysis) function_name=component_install_analysis ;;
   convergence-read) function_name=component_install_convergence_read ;;
   redfish) function_name=component_install_redfish ;;

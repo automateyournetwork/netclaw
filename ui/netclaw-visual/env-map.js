@@ -14230,5 +14230,45 @@ export const COMPONENT_SETTINGS = {
         }
       ]
     }
+  ],
+  "cisco-iq": [
+    {
+      "key": "CISCO_IQ_API_KEY",
+      "label": "Cisco IQ Api Key",
+      "help": "Cisco IQ API key owned by a user principal (service-account keys receive no tools). Set via scripts/cisco-iq-enable.sh (stdin or hidden prompt); sent as Authorization: Bearer.",
+      "classification": "secret",
+      "valueType": "string",
+      "required": "always",
+      "condition": null,
+      "example": "",
+      "sharedWith": [],
+      "input": "user",
+      "provenance": [
+        {
+          "source": "scripts/cisco_iq.py",
+          "checkedAt": "2026-11-11",
+          "note": "Variables managed by scripts/cisco-iq-enable.sh."
+        }
+      ]
+    },
+    {
+      "key": "CISCO_IQ_REGION",
+      "label": "Cisco IQ Region",
+      "help": "Explicit account region: emea, us or apjc. Never inferred.",
+      "classification": "public",
+      "valueType": "string",
+      "required": "always",
+      "condition": null,
+      "example": "us",
+      "sharedWith": [],
+      "input": "user",
+      "provenance": [
+        {
+          "source": "scripts/cisco_iq.py",
+          "checkedAt": "2026-11-11",
+          "note": "Variables managed by scripts/cisco-iq-enable.sh."
+        }
+      ]
+    }
   ]
 };

@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "sourceSha256": "02fedc78bd0243edd494ce270bbf750e2a932a9ee913d5cb5931432826df547b",
+  "sourceSha256": "777775a89c8b40ad87edc4987d5bbb5a66265f5c628e007616f9baed9dc4cb5c",
   "components": [
     {
       "id": "hermes-hud",
@@ -1022,6 +1022,15 @@
       "reason": "Install pinned connector dependencies in its own runtime; no external service changes or credentials used during install.",
       "postcondition": "selected-registration-artifacts-and-discovery",
       "source": "scripts/lib/install-steps.sh#component_install_convergence_read"
+    },
+    {
+      "id": "cisco-iq",
+      "function": "component_install_cisco_iq",
+      "sha256": "0b6a53607c76ced63051c2fbd09c3133852a169a336354851da97938dfe0390f",
+      "adapter": "isolated-shell",
+      "reason": "Prints administrator instructions only; no install, download or credential access during setup. Registration is written by scripts/cisco-iq-enable.sh.",
+      "postcondition": "selected-registration-artifacts-and-discovery",
+      "source": "scripts/lib/install-steps.sh#component_install_cisco_iq"
     }
   ]
 }
