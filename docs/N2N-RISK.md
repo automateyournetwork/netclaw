@@ -603,11 +603,11 @@ Decomposing a real monolith into a risk surfaced details worth writing down:
   `specs/057-in2n-production-enforcement/` (production enforcement + durable runtime) ·
   `specs/059-ncfed-internet-draft/` (the NCFED I-D)
 
-## Sandboxed Borders (R09A, spec 183)
+## Sandboxed Borders (R09A, spec 185)
 
 Each Border of an HA risk can run in an OpenShell sandbox with the DefenseClaw guard in the same sandbox. Authority is unchanged:
 it remains etcd-based, so cutting only the Border-to-Border peer port (7443) did not move leadership, while cutting a Border
 from the etcd quorum made it report `no_quorum` within seconds and the other Border took authority; the isolated Border
 rejoined as a follower. A two-Border cluster needs the third (witness) etcd voter: one Border plus the witness is a majority,
 one Border alone is not. Posture (`GET /api/hud/posture`, VS Code "NetClaw: Show Node Posture") lists each component inside
-or outside the sandbox and the guard state. Evidence and gaps: `specs/183-openshell-defenseclaw-gcp/verification.md`.
+or outside the sandbox and the guard state. Evidence and gaps: `specs/185-openshell-defenseclaw-gcp/verification.md`.

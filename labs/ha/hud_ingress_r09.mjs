@@ -29,7 +29,7 @@
  *   cluster                      {cluster_id, generation, anchor_key_id}
  *   tls                          {cert_file, chain_file|null, key_file}  (cert_file = leaf or fullchain, EC P-256 key)
  *   state_dir                    private 0700 directory for pins, claims and listening records
- *   posture_file                 OPTIONAL absolute path of the node posture JSON (spec 183, contracts/node-posture.md). The
+ *   posture_file                 OPTIONAL absolute path of the node posture JSON (spec 185, contracts/node-posture.md). The
  *                                ingress itself serves it at GET /api/hud/posture (never proxied). Only the path is configured:
  *                                the content changes at runtime, so it is NOT hash-pinned; it is read per request, must be a
  *                                regular file owned by the ingress uid with no group/other access, at most 16 KiB, and is
@@ -269,7 +269,7 @@ export function bridgeUpgrade(request,socket,head,row,sockets) {
  * proxies each request over a loopback hop to the in-process product server, with Host rewritten
  * to the configured authority. The product handler is never given a spoofed peer address.
  */
-/** Node posture (spec 183, contracts/node-posture.md): strict, secret-free, never claims enforcement outside the sandbox. */
+/** Node posture (spec 185, contracts/node-posture.md): strict, secret-free, never claims enforcement outside the sandbox. */
 const POSTURE_MAX=16*1024;
 const POSTURE_STATES=new Set(['running','starting','stopped','failed','unknown']);
 const POSTURE_PHASES=new Set(['Ready','Provisioning','Starting','Stopped','Error','Unknown']);

@@ -1,6 +1,6 @@
 # Implementation Plan: GCP Borders and HA Mesh inside OpenShell and DefenseClaw (R09A)
 
-**Branch**: `183-openshell-defenseclaw-gcp` (stacked on `182-multi-region-ha-borders`, PR #340) | **Date**: 2026-11-10 | **Spec**: [spec.md](spec.md)
+**Branch**: `185-openshell-defenseclaw-gcp` (stacked on `182-multi-region-ha-borders`, PR #340) | **Date**: 2026-11-10 | **Spec**: [spec.md](spec.md)
 **Input**: spec.md; [research.md](research.md) (decisions D1-D9 and live experiment results E1/E2/E5/E8).
 
 ## Summary
@@ -51,7 +51,7 @@ Post-design re-check: PASS. The only new risk is D9a (qualified HA code); it is 
 ## Project Structure
 
 ```text
-specs/183-openshell-defenseclaw-gcp/
+specs/185-openshell-defenseclaw-gcp/
 ├── plan.md  research.md  data-model.md  quickstart.md  tasks.md
 ├── contracts/ sandbox-policy.md  node-posture.md  disposition-table.md
 └── checklists/requirements.md

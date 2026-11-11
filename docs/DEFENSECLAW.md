@@ -924,11 +924,11 @@ webhooks:
 - [Security Principles](SOUL-DEFENSE.md) - Security posture guidance
 - [DefenseClaw GitHub](https://github.com/cisco-ai-defense/defenseclaw) - Source code and issues
 
-## Layered node: Border and guard inside an OpenShell sandbox (R09A, spec 183)
+## Layered node: Border and guard inside an OpenShell sandbox (R09A, spec 185)
 
 A Border VM can run the Border role, the HUD ingress and the DefenseClaw sidecar **inside one OpenShell sandbox**
 (`netclaw-node`), with the Anthropic key held by OpenShell and never visible to the agent. Verified live on two GCP
-Borders (evidence: `specs/183-openshell-defenseclaw-gcp/verification.md`). What this layer is and is not:
+Borders (evidence: `specs/185-openshell-defenseclaw-gcp/verification.md`). What this layer is and is not:
 
 - **Credential**: an endpointless OpenShell provider profile (`auth_style: header`, `header_name: x-api-key`) plus a
   `credential_binding: {provider: <name>}` on the Anthropic endpoint in the node policy. The sandbox environment carries only

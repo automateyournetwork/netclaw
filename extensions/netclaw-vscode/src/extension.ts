@@ -139,7 +139,7 @@ export async function activate(context: vscode.ExtensionContext) {
   register("ownerSignOut", () => ownerWorkflow.signOut());
   register("ownerPrepare", () => ownerWorkflow.prepare());
   register("ownerRecover", () => ownerWorkflow.recover());
-  // Read-only node posture (spec 183 / R09A). Registered directly: it is a read of the already verified cloud origin and is
+  // Read-only node posture (spec 185 / R09A). Registered directly: it is a read of the already verified cloud origin and is
   // deliberately not part of the cloud command allow-list in views/owner.ts. It never implies enforcement.
   context.subscriptions.push(vscode.commands.registerCommand("netclaw.showNodePosture", async () => {
     try {

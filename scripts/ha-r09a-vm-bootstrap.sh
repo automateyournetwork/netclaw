@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# R09A (spec 183) node bootstrap. Run as root on a fresh Ubuntu 24.04 LTS amd64 nc183-* VM. Idempotent.
+# R09A (spec 185) node bootstrap. Run as root on a fresh Ubuntu 24.04 LTS amd64 nc183-* VM. Idempotent.
 #
 #   sudo NC183_USER=<operator> bash ha-r09a-vm-bootstrap.sh [all|base|openshell|defenseclaw|metadata|etcd|check]
 #
-# Facts this encodes (all verified live on a throwaway VM, see specs/183-openshell-defenseclaw-gcp/research.md):
+# Facts this encodes (all verified live on a throwaway VM, see specs/185-openshell-defenseclaw-gcp/research.md):
 #  - OpenShell needs Landlock ABI >= 3 (Ubuntu 24.04 GCE: kernel 7.0, ABI 8; Debian 12 / kernel 6.1 is unsuitable) and Docker >= 28.
 #  - OpenShell 0.1.7 installs as a Debian package; its gateway is a *user* service. The upstream installer exits non-zero on a
 #    headless host because the user service cannot start before linger, so success is judged by the installed package version.

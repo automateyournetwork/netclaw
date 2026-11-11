@@ -1,4 +1,4 @@
-# R09A (spec 183) — VS Code notes and G12 disposition
+# R09A (spec 185) — VS Code notes and G12 disposition
 
 ## What changed
 
@@ -10,7 +10,7 @@
 ## How it behaves
 
 - Applies only to a **cloud Border** connection (`mode === "remote-border"`); otherwise it says so.
-- Reads `GET <origin>/api/hud/posture` on the already verified HTTPS origin (the ingress serves it itself; see `labs/ha/hud_ingress_r09.mjs` and `specs/183-openshell-defenseclaw-gcp/contracts/node-posture.md`). Same fetch hygiene as the owner client: no redirects, no cache, no cookies, size cap (16 KiB), JSON only.
+- Reads `GET <origin>/api/hud/posture` on the already verified HTTPS origin (the ingress serves it itself; see `labs/ha/hud_ingress_r09.mjs` and `specs/185-openshell-defenseclaw-gcp/contracts/node-posture.md`). Same fetch hygiene as the owner client: no redirects, no cache, no cookies, size cap (16 KiB), JSON only.
 - Validates the payload strictly (exact keys, no secret-looking text, components outside the sandbox must carry a disposition and must not claim enforcement). A malformed or oversize payload is ignored with a clear message.
 - Shows a markdown summary: sandbox name/phase/policy version and hash/Landlock mode, components inside and outside the sandbox with dispositions, guard mode/state/fail-closed/last block, and the observation time. It states that this is the node's self-report and **not proof of enforcement**; components outside the sandbox are never described as OpenShell-enforced.
 - A Border without a posture (older builds) gives a 404 message that nothing is implied about its confinement.

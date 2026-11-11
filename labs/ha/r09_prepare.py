@@ -258,7 +258,7 @@ def prepare(args):
                            'certificate_file': f'{VM_STATE}/etcd-client/border.crt',
                            'private_key_file': f'{VM_STATE}/etcd-client/border.key',
                            'username': f'border{i}', 'password_file': f'{VM_STATE}/home/netclaw-federation/etcd-password'}}
-        if args.sandbox:  # sandbox loopback listeners; peers still dial the signed manifest addresses (spec 183, D9a)
+        if args.sandbox:  # sandbox loopback listeners; peers still dial the signed manifest addresses (spec 185, D9a)
             config['listen'] = {'cluster': {'host': '127.0.0.1', 'port': PORTS['cluster']}, 'in2n': {'host': '127.0.0.1', 'port': PORTS['in2n']}}
         private_canonical(state / 'ha-config.json', config)
         profile = {'schemaVersion': 2, 'role': 'border', 'identity': binding, 'access': {'mode': 'open-lab'},

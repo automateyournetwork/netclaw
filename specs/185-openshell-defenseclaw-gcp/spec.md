@@ -1,6 +1,6 @@
 # Feature Specification: GCP Borders and HA Mesh inside OpenShell and DefenseClaw (R09A)
 
-**Feature Branch**: `183-openshell-defenseclaw-gcp` (stacked on `182-multi-region-ha-borders`, PR #340)
+**Feature Branch**: `185-openshell-defenseclaw-gcp` (stacked on `182-multi-region-ha-borders`, PR #340)
 **Created**: 2026-11-09
 **Status**: Draft
 **Input**: Roadmap substep R09A, owner instruction 2026-11-09: "make absolutely sure the GCP Borders and HA mesh (two Borders in the same region is fine) run inside OpenShell and DefenseClaw". R09B (a survey of other GCP capabilities that make the deployment more complete) follows; Azure (R10) starts only after both.

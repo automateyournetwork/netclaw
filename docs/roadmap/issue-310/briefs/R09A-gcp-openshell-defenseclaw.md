@@ -3,7 +3,7 @@
 - **Roadmap item:** 4 (substep 1 of 2 before Azure)
 - **Depends on:** R09 (spec 182, PR #340)
 - **Gate:** human review before R09B
-- **Spec:** `specs/183-openshell-defenseclaw-gcp/`
+- **Spec:** `specs/185-openshell-defenseclaw-gcp/`
 
 ## Specify input
 
@@ -27,4 +27,4 @@ R09 left these gaps: no sandbox on any Border or member host; an unguarded Borde
 Two Borders and an etcd witness ran on GCP with the Border role, HUD ingress and DefenseClaw inside OpenShell sandboxes. Verified live:
 key injection by OpenShell, guarded chat turn, prompt/tool/skill blocks, fail-closed, 9/9 negative isolation cases on both nodes, HA
 fault matrix and node upgrade. Not done: member enrollment/member-executed operation, the OpenClaw gateway daemon and workspace
-backend inside the sandbox, a per-hop overhead measurement. See `specs/183-openshell-defenseclaw-gcp/verification.md`.
+backend inside the sandbox, a per-hop overhead measurement. See `specs/185-openshell-defenseclaw-gcp/verification.md`.

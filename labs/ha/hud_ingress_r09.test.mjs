@@ -430,7 +430,7 @@ test('the front serves over TLS 1.3 with the configured identity and refuses old
   } finally {front.close();front.closeAllConnections();product.server.close();product.server.closeAllConnections();fs.rmSync(dir,{recursive:true,force:true});}
 });
 
-// ---- spec 183 (R09A): node posture served by the ingress itself ----------------------------------------------------
+// ---- spec 185 (R09A): node posture served by the ingress itself ----------------------------------------------------
 const POSTURE={schema_version:1,node:'nne1',region:'northamerica-northeast1',
   sandbox:{name:'netclaw-node',phase:'Ready',policy_version:3,policy_sha256:'a'.repeat(64),landlock:'hard_requirement'},
   components:[{name:'border-role',inside_sandbox:true,state:'running'},{name:'hud-ingress',inside_sandbox:true,state:'running'},

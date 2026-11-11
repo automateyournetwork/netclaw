@@ -1,4 +1,4 @@
-/** Node posture (spec 183 / R09A, contracts/node-posture.md): what a Border reports about its own confinement.
+/** Node posture (spec 185 / R09A, contracts/node-posture.md): what a Border reports about its own confinement.
  *  Read-only. It is the node's self-report over the already verified HTTPS origin, never proof of enforcement. */
 import { regionLabel } from "./cluster";
 

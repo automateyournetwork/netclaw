@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# R09A (spec 183) infrastructure driver for the validation topology: 2 Border VMs + 1 etcd witness VM in ONE region.
+# R09A (spec 185) infrastructure driver for the validation topology: 2 Border VMs + 1 etcd witness VM in ONE region.
 #
 #   ha-r09a-deploy.sh plan                                   read-only: print every resource this stage would own
 #   ha-r09a-deploy.sh apply --confirm-cost --g1-file FILE    create (refused without BOTH the flag and an approval file)
@@ -10,7 +10,7 @@
 # Ownership: label `netclaw-spec=183` or name prefix `nc183-`. The default network, default-* firewall rules and anything
 # else are never touched. Nothing here prints a secret. `gcloud` is overridable via GCLOUD (tests use a stub).
 # G1 approval file: a private text file the owner (or the owner's instruction recorded by the agent) creates after
-# confirming specs/183-openshell-defenseclaw-gcp/cost-model.md; it must contain a line `G1: APPROVED`.
+# confirming specs/185-openshell-defenseclaw-gcp/cost-model.md; it must contain a line `G1: APPROVED`.
 set -euo pipefail
 
 GCLOUD="${GCLOUD:-gcloud}"
@@ -51,7 +51,7 @@ cmd_plan() {
   echo "R09A validation topology (project $PROJECT, region $REGION). Labels: $LABELS. Nothing is created by 'plan'."
   printf '%-22s %-10s %s\n' NAME KIND DETAIL
   resources | while IFS='|' read -r n k d; do printf '%-22s %-10s %s\n' "$n" "$k" "$d"; done
-  echo "Cost: see specs/183-openshell-defenseclaw-gcp/cost-model.md (apply requires --confirm-cost and --g1-file)."
+  echo "Cost: see specs/185-openshell-defenseclaw-gcp/cost-model.md (apply requires --confirm-cost and --g1-file)."
 }
 
 check_g1() {

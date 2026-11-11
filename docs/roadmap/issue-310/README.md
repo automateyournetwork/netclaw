@@ -66,7 +66,7 @@ The next milestones remain unchanged:
 | [R07](briefs/R07-recovery-gate.md) | Safe restart/outage/revocation/lost-reply/duplicate recovery without replay; required before multi-region work |
 | [R08](briefs/R08-border-ha-authority.md) | Exactly one execution authority, stale-leader refusal and no new protected execution without quorum; fixture and real-runtime evidence |
 | [R09](briefs/R09-gcp-multi-region.md) | Three-region GCP mesh across Americas/Europe/Asia-Pacific; four members attach to all three; single-region loss preserves service without replay |
-| [R09A](briefs/R09A-gcp-openshell-defenseclaw.md) | GCP Borders and HA mesh run inside OpenShell sandboxes with DefenseClaw guardrails; two Borders in one region is an acceptable validation topology (spec 183) |
+| [R09A](briefs/R09A-gcp-openshell-defenseclaw.md) | GCP Borders and HA mesh run inside OpenShell sandboxes with DefenseClaw guardrails; two Borders in one region is an acceptable validation topology (spec 185) |
 | [R09B](briefs/R09B-gcp-completeness-survey.md) | Survey of other GCP capabilities (load balancing, edge protection, secrets, logging, identity, networking) that make the deployment more complete; decide what to adopt |
 | [R10](briefs/R10-azure-single-region.md) | Azure Border, hosted-model NetBox and Ollama workloads with on-prem attachments, isolation, recovery, cost and teardown evidence |
 

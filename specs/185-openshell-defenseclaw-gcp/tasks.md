@@ -1,15 +1,15 @@
 # Tasks: GCP Borders and HA Mesh inside OpenShell and DefenseClaw (R09A)
 
-**Input**: `specs/183-openshell-defenseclaw-gcp/` (spec, plan, research, contracts). Tests are included because the spec demands adversarial and HA evidence.
+**Input**: `specs/185-openshell-defenseclaw-gcp/` (spec, plan, research, contracts). Tests are included because the spec demands adversarial and HA evidence.
 **Gates**: G1 = owner confirms the line-item cost estimate before any billed resource (T020). Nothing is published or pushed live without owner approval. Teardown only on the owner's request.
 **Format**: `- [ ] T### [P?] [US?] description with path` (P = parallel; US = user story from spec.md).
 
 ## Phase 1: Setup and research (done where checked)
 
-- [x] T001 Research OpenShell/DefenseClaw hosting and record decisions in `specs/183-openshell-defenseclaw-gcp/research.md`
+- [x] T001 Research OpenShell/DefenseClaw hosting and record decisions in `specs/185-openshell-defenseclaw-gcp/research.md`
 - [x] T002 Run experiments E1 (kernel/Landlock), E2a/E2b (TLS exporter in/out of a sandbox), E5 (DefenseClaw amd64), E8-partial on one throwaway VM and tear it down; append results to `research.md`
 - [x] T003 Write `plan.md`, `data-model.md`, `contracts/*`, `quickstart.md`
-- [x] T004 [P] Write `specs/183-openshell-defenseclaw-gcp/cost-model.md`: line items for 2 Border VMs + 1 witness (Ubuntu 24.04 e2-standard-2 vs e2-medium), disks, static IPs, egress; confirm prices with `gcloud` pricing data, not memory
+- [x] T004 [P] Write `specs/185-openshell-defenseclaw-gcp/cost-model.md`: line items for 2 Border VMs + 1 witness (Ubuntu 24.04 e2-standard-2 vs e2-medium), disks, static IPs, egress; confirm prices with `gcloud` pricing data, not memory
 
 ## Phase 2: Foundational code (blocks all stories)
 
@@ -50,7 +50,7 @@
 ## Phase 5: User Story 3 - Isolation under attack (P1)
 
 - [x] T028 [US3] Run `labs/ha/r09a_negative.py` on a deployed node: out-of-policy file read/write, frozen-source modification, metadata-server access, unapproved egress, provider-credential read, member-to-member connection
-- [x] T029 [US3] Record each result with its audit/OCSF evidence reference in `specs/183-openshell-defenseclaw-gcp/verification.md`; any success fails the release (SC-003)
+- [x] T029 [US3] Record each result with its audit/OCSF evidence reference in `specs/185-openshell-defenseclaw-gcp/verification.md`; any success fails the release (SC-003)
 
 ## Phase 6: User Story 4 - HA behavior survives confinement (P2)
 
@@ -73,7 +73,7 @@
 - [x] T040 [P] Update the roadmap brief `docs/roadmap/issue-310/briefs/R09A-gcp-openshell-defenseclaw.md` with the outcome
 - [x] T041 List every qualified-code change for owner review in the PR (FR-024); keep R09 carry-overs listed
 - [x] T042 Cost recorded against the estimate in `cost-model.md`
-- [x] T043 Evidence summary `specs/183-openshell-defenseclaw-gcp/verification.md`; memory and GAIT
+- [x] T043 Evidence summary `specs/185-openshell-defenseclaw-gcp/verification.md`; memory and GAIT
 - [ ] T044 Open the PR (stacked on #340 or retargeted after #340 merges); no publish/push-live without approval
 - [ ] T045 Teardown only on the owner's request: exact resource list (label `netclaw-spec=183`, prefix `nc183-`), separate confirmation
 
