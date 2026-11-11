@@ -108,6 +108,7 @@ def main():
     from bgp.federation.runtime import selected
     runtime=selected()
     args.live_env=args.live_env or str(runtime.env_file)
+    args.member_python=member_python(runtime.home)
     if runtime.kind=='hermes' and args.spec:
         raise SystemExit('error: member specs stage OpenClaw members; Hermes qualifies only the subnet member')
     if runtime.kind=='hermes':return stage_hermes(args,runtime)
@@ -256,9 +257,22 @@ def _stage_member(args, mdir, name, member_id, always_on, skills, env_lines, key
         fh.write("# Robust: the launcher parses the .env itself (values may contain\n")
         fh.write("# spaces/colons/JSON) — no fragile shell sourcing.\n")
         fh.write('export N2N_MEMBER_ENV_FILE="$(dirname "$0")/.env"\n')
-        fh.write(f"exec python3 {REPO}/scripts/in2n-member.py --idle-exit {idle}\n")
+        fh.write(f"exec {shlex.quote(getattr(args, 'member_python', 'python3'))} "
+                 f"{shlex.quote(os.path.join(REPO, 'scripts/in2n-member.py'))} --idle-exit {idle}\n")
     os.chmod(os.path.join(mdir, "run.sh"), 0o755)
     return (name, member_id, "always-on" if always_on else "on-demand", len(skills), key_count)
+
+
+def member_python(home):
+    """The interpreter a staged member runs on: the federation (n2n) component's recorded
+    runtime, which the mesh daemon itself runs on (federation-control.py), so the member has
+    the same packages (websockets, cryptography). `python3` when no runtime is recorded."""
+    record = Path(home) / 'python-runtimes/records/n2n'
+    try:
+        python = Path(record.read_text().strip())
+    except OSError:
+        return 'python3'
+    return str(python) if python.is_absolute() and os.access(python, os.X_OK) else 'python3'
 
 
 def _scope_json(skills):

@@ -179,3 +179,24 @@ def test_member_home_model_override_cannot_replace_a_provider_model(tmp_path):
                          env=clean_env(tmp_path), capture_output=True, text=True, timeout=60)
     assert run.returncode != 0 and '--model cannot override' in run.stderr
     assert not (tmp_path / '.openclaw-lab-alert-investigator/openclaw.json').exists()
+
+
+def test_staged_member_runs_on_the_recorded_federation_runtime(tmp_path):
+    """Found live: a member started with the system python3 lacked the federation runtime's
+    packages (websockets, a current cryptography) and failed every task. run.sh now execs the
+    n2n component's recorded interpreter, the one the mesh daemon runs on."""
+    path = border(tmp_path, 'OLLAMA_API_KEY=fixture\nPFSENSE_URL=https://fw\nPFSENSE_API_KEY=k\n')
+    spec_file = tmp_path / 'investigator.json'
+    spec_file.write_text(json.dumps(spec(model='ollama-cloud/minimax-m3')))
+    runner = tmp_path / 'stage/members/alert-investigator/run.sh'
+    assert T184.run_migrate(tmp_path, '--spec', str(spec_file), '--specs-only', '--hot', '').returncode == 0
+    assert shlex.split(runner.read_text().splitlines()[-1])[1] == 'python3'  # nothing recorded
+    python = tmp_path / 'runtime dir/bin/python'
+    python.parent.mkdir(parents=True)
+    python.write_text('#!/bin/sh\n')
+    python.chmod(0o755)
+    (path / 'python-runtimes/records').mkdir(parents=True, exist_ok=True)
+    (path / 'python-runtimes/records/n2n').write_text(f'{python}\n')
+    assert T184.run_migrate(tmp_path, '--spec', str(spec_file), '--specs-only', '--hot', '').returncode == 0
+    argv = shlex.split(runner.read_text().splitlines()[-1])
+    assert argv[:2] == ['exec', str(python)] and argv[2].endswith('scripts/in2n-member.py')
