@@ -32,10 +32,14 @@ class Decision:
     reason: str = ""
     approval_id: Optional[int] = None
     request_binding: Optional[str] = None
+    audit_code: Optional[str] = None   # spec 190: local-only audit decision (never on the wire)
     teardown: bool = False   # spec 189: this refusal started a limit teardown (informational)
 
 
 LIMIT_ACTIONS = ("refuse", "warn", "teardown")   # spec 189 (default: refuse)
+ACCESS_CLASSES = ("read", "read_write")           # spec 190: grant ceiling
+TARGET_CLASSES = ("read", "write", "unclassified")  # spec 190: effective class of a target
+_INTRINSIC_READ = ("knowledge", "knowledge_replica")  # never modify the callee's state
 GLOBAL = "*"                                      # peer_limit_policy / budget_counter row for node-wide scope
 _POLICY_INT_FIELDS = ("rate_per_min", "daily_requests", "daily_tokens", "restart_timer_s")
 
@@ -65,6 +69,11 @@ class Authorizer:
         # optional aggregate caps (None = off); a '*' policy row takes precedence
         self.global_daily_requests = self._env_opt_int("N2N_GLOBAL_DAILY_REQUESTS")
         self.global_daily_tokens = self._env_opt_int("N2N_GLOBAL_DAILY_TOKENS")
+        # spec 190: access class given to a NEW grant that does not state one.
+        # Existing rows are unaffected (the class is stored explicitly).
+        self.default_access_class = os.environ.get("N2N_GRANT_DEFAULT_ACCESS", "read_write")
+        if self.default_access_class not in ACCESS_CLASSES:
+            self.default_access_class = "read_write"
         # set by FederationService: Auditor (limit events) and channel-close hook
         self.audit = None
         self.teardown_hook = None   # callable(peer_identity, reason)
@@ -252,14 +261,106 @@ class Authorizer:
     # ---- grants (FR-012) ----------------------------------------------
 
     def grant(self, peer_identity: str, target_type: str, target_name: str,
-              requires_approval: bool = False, timeout_s: Optional[int] = None) -> int:
-        cur = self.manager._conn.execute(
+              requires_approval: bool = False, timeout_s: Optional[int] = None,
+              access_class: Optional[str] = None) -> int:
+        if access_class is None:
+            access_class = self.default_access_class
+        if access_class not in ACCESS_CLASSES:
+            raise ValueError(f"access_class must be one of {ACCESS_CLASSES}")
+        c = self.manager._conn
+        # spec 190: a grant with a different class supersedes the active one for
+        # the same (peer, type, name); same class keeps the pre-190 behavior.
+        c.execute("UPDATE invocation_grant SET revoked_at=? WHERE peer_identity=? AND target_type=? "
+                  "AND target_name=? AND revoked_at IS NULL AND access_class<>?",
+                  (_now(), peer_identity, target_type, target_name, access_class))
+        cur = c.execute(
             "INSERT INTO invocation_grant (peer_identity, target_type, target_name, "
-            "requires_approval, timeout_s, created_at) VALUES (?,?,?,?,?,?)",
+            "requires_approval, timeout_s, created_at, access_class) VALUES (?,?,?,?,?,?,?)",
             (peer_identity, target_type, target_name, 1 if requires_approval else 0,
-             timeout_s, _now()))
-        self.manager._conn.commit()
+             timeout_s, _now(), access_class))
+        c.commit()
         return cur.lastrowid
+
+    # ---- target classification (spec 190) -----------------------------
+
+    def effective_class(self, target_type: str, target_name: str) -> str:
+        """read | write | unclassified. knowledge targets are intrinsically read;
+        otherwise operator override, then imported annotation, else unclassified.
+        Request text and peer-supplied claims are never inputs."""
+        if target_type in _INTRINSIC_READ:
+            return "read"
+        if target_type not in ("tool", "skill"):
+            return "unclassified"
+        rows = {r["source"]: r["access"] for r in self.manager._conn.execute(
+            "SELECT source, access FROM tool_classification WHERE target_type=? AND target_name=?",
+            (target_type, target_name))}
+        return rows.get("operator") or rows.get("annotation") or "unclassified"
+
+    def _classification_event(self, decision, target_type, target_name, outcome="success"):
+        if self.audit is None:
+            return
+        try:
+            self.audit.record(direction="local", peer_identity="*", target_type="classification",
+                              target_name=f"{target_type}:{target_name}", request_id=None,
+                              decision=decision, outcome=outcome)
+        except Exception:
+            logger.exception("classification audit write failed")
+
+    def classify(self, target_type: str, target_name: str, access: Optional[str]):
+        """Operator override. access=None clears the override (annotation, if any, applies)."""
+        if target_type not in ("tool", "skill"):
+            raise ValueError("target_type must be 'tool' or 'skill'")
+        if not isinstance(target_name, str) or not target_name:
+            raise ValueError("target_name required")
+        c = self.manager._conn
+        if access is None:
+            c.execute("DELETE FROM tool_classification WHERE target_type=? AND target_name=? AND source='operator'",
+                      (target_type, target_name))
+            c.commit()
+            self._classification_event("classification_cleared", target_type, target_name)
+            return
+        if access not in ("read", "write"):
+            raise ValueError("access must be 'read' or 'write'")
+        c.execute("INSERT OR REPLACE INTO tool_classification (target_type, target_name, access, source, updated_at) "
+                  "VALUES (?,?,?,?,?)", (target_type, target_name, access, "operator", _now()))
+        c.commit()
+        self._classification_event("classified", target_type, target_name)
+
+    def import_annotations(self, server: str, tools: list) -> dict:
+        """Operator-submitted MCP tools/list payload: [{"name", "annotations": {"readOnlyHint": bool}}].
+        readOnlyHint true -> read, false -> write, absent -> nothing stored. Validates the whole
+        payload first so a bad entry changes nothing."""
+        if not isinstance(server, str) or not server or "/" in server:
+            raise ValueError("server must be a non-empty server id")
+        if not isinstance(tools, list):
+            raise ValueError("tools must be a list")
+        rows = []
+        for t in tools:
+            if not isinstance(t, dict) or not isinstance(t.get("name"), str) or not t["name"]:
+                raise ValueError("each tool needs a name")
+            ann = t.get("annotations")
+            if ann is None:
+                continue
+            if not isinstance(ann, dict):
+                raise ValueError("annotations must be an object")
+            hint = ann.get("readOnlyHint")
+            if hint is None:
+                continue
+            if not isinstance(hint, bool):
+                raise ValueError("readOnlyHint must be a boolean")
+            rows.append((f"{server}/{t['name']}", "read" if hint else "write"))
+        c = self.manager._conn
+        for name, access in rows:
+            c.execute("INSERT OR REPLACE INTO tool_classification (target_type, target_name, access, source, updated_at) "
+                      "VALUES ('tool',?,?,'annotation',?)", (name, access, _now()))
+        c.commit()
+        self._classification_event("classification_imported", "tool", f"{server}/*")
+        return {"imported": len(rows), "skipped": len(tools) - len(rows)}
+
+    def list_classifications(self) -> list:
+        return [dict(r) for r in self.manager._conn.execute(
+            "SELECT target_type, target_name, access, source, updated_at FROM tool_classification "
+            "ORDER BY target_type, target_name, source")]
 
     def revoke(self, grant_id: int):
         self.manager._conn.execute(
@@ -410,6 +511,15 @@ class Authorizer:
         if not grant:
             return Decision(False, "not_allowlisted",
                             reason=f"{target_type} '{target_name}' not allowlisted for {peer_identity}")
+        # spec 190: access-class ceiling, before rate/budget/approval so a refusal
+        # debits nothing, creates no approval and never starts a limit action.
+        if grant.get("access_class", "read_write") == "read" and \
+                self.effective_class(target_type, target_name) != "read":
+            # Same reason text as an ungranted target: no existence/classification oracle.
+            d = Decision(False, "not_allowlisted",
+                         reason=f"{target_type} '{target_name}' not allowlisted for {peer_identity}")
+            d.audit_code = "access_class_denied"   # the handler's denied-audit row carries the truth
+            return d
         if check_rate and not self._check_rate(peer_identity):
             refused = self._exceed(peer_identity, "rate", "peer", "per-minute rate limit exceeded",
                                    grant, already_trusted)

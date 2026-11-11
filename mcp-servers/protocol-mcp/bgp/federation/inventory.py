@@ -217,6 +217,11 @@ class InventoryBuilder:
         servers = [s for s in all_servers
                    if self._visibility("mcp_server", s["name"], peer_identity)]
         badges = _derive_badges([s["name"] for s in servers])
+        classes = self._class_map()   # spec 190: advisory access hints (absent = unclassified)
+        for sk in skills:
+            c = classes.get(("skill", sk["name"]))
+            if c:
+                sk["access"] = c
         # Feature 064: advertise local RAG collections as content-free knowledge
         # entries (one per collection), visibility-filtered per peer and secret-
         # scanned. Advertised by default (FR-003); collection hidden via
@@ -227,8 +232,7 @@ class InventoryBuilder:
             "issued_at": _now(),
             "version": self._version,
             "skills": skills,
-            "mcp_servers": [{"name": s["name"], "tools": s["tools"],
-                             "invocable_tools": s['invocable_tools'],'qualification':s['qualification']} for s in servers],
+            "mcp_servers": [self._server_entry(s, classes) for s in servers],
             "knowledge": knowledge,
             "badges": badges,
             "posture": self._posture_card(posture),
@@ -237,6 +241,34 @@ class InventoryBuilder:
         }
         self._assert_no_secrets(inv)
         return inv
+
+    def _class_map(self) -> dict:
+        """(target_type, name) -> read|write, operator override over annotation.
+        Advisory only: receivers must never authorize from these hints."""
+        try:
+            rows = self.manager._conn.execute(
+                "SELECT target_type, target_name, access, source FROM tool_classification").fetchall()
+        except Exception:
+            return {}
+        out, ops = {}, {}
+        for r in rows:
+            key = (r["target_type"], r["target_name"])
+            if r["source"] == "operator":
+                ops[key] = r["access"]
+            else:
+                out[key] = r["access"]
+        out.update(ops)
+        return out
+
+    @staticmethod
+    def _server_entry(s: dict, classes: dict) -> dict:
+        entry = {"name": s["name"], "tools": s["tools"],
+                 "invocable_tools": s['invocable_tools'], 'qualification': s['qualification']}
+        access = {t: classes[("tool", f"{s['name']}/{t}")] for t in (s["tools"] or [])
+                  if ("tool", f"{s['name']}/{t}") in classes}
+        if access:
+            entry["tool_access"] = access
+        return entry
 
     def _harness_card(self):
         from .runtime import local_harness
