@@ -159,17 +159,25 @@ Validation is strict and reports every problem at once:
   - `null` (the default member tier) or an Anthropic model id, optionally `anthropic/<id>`:
     NetClaw's Anthropic provider with `${ANTHROPIC_API_KEY}`;
   - `<provider>/<model>` for a provider in the Border's `models.providers`, for example
-    `ollama-cloud/minimax-m3`. The provider must list the model, hold its keys as `${VAR}`
-    references (a literal key is refused, named by path) and start no local service
-    (`localService` is refused). The member registers a copy of that one entry, with only its
-    model, and its slice carries the variables the entry references (`OLLAMA_API_KEY`), not
-    `ANTHROPIC_API_KEY`;
+    `ollama-cloud/minimax-m3` (the model id may itself contain `/`). The member's provider entry
+    is **built** from the Border's: `api` (a plain adapter name), `baseUrl` (http(s), no
+    credentials, query or fragment, or one `${NAME}`), `apiKey` (one `${NAME}` or a default env
+    SecretRef; file, exec and vault SecretRefs and literals are refused), `authHeader`,
+    `headers` (every value only `${NAME}` references, optionally after an auth scheme, so a
+    literal header such as `Content-Type` is refused), `timeoutSeconds`, and the chosen model's
+    inference fields. Any other field, `localService`, an unlisted model, or a reference to a
+    variable members never receive (comms secrets, the Border's store locations) is refused by
+    name. A referenced `baseUrl` is written as its literal URL from the member's own `.env`, so
+    the production model guard sees its host. The member's slice carries the variables the
+    entry references (`OLLAMA_API_KEY`), not `ANTHROPIC_API_KEY`;
   - with `"auth": "subscription"`, `anthropic/<id>` or `openai/<id>`: the member signs in with
     its own Claude or ChatGPT login and registers no provider entry or key.
     `in2n-member-home.py` prints the exact command to run once, before its first task:
     `OPENCLAW_STATE_DIR=<home> OPENCLAW_CONFIG_PATH=<home>/openclaw.json openclaw models auth login --provider openai`.
     OpenClaw keeps the login in the member home's state database only.
 - `auth`: `"api-key"` (default) or `"subscription"` (see `model`).
+- `in2n-member-home.py --model` is refused for a spec member: the model comes from the spec,
+  so the staged `N2N_MEMBER_MODEL` always matches the configured one.
 
 In production posture the DefenseClaw plugin route refuses models on loopback or private
 providers (`controls.guarded_model_route`), so a member on a LAN model server runs only in

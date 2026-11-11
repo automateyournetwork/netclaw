@@ -2,7 +2,7 @@
 
 ## Tests
 
-`tests/n2n/test_member_spec_providers_185.py` (38 tests):
+`tests/n2n/test_member_spec_providers_185.py` (44 tests):
 
 - a Border provider model is accepted by reference; the copied entry keeps only the chosen model
   and the Border's entry is unchanged;
@@ -50,10 +50,20 @@ Eight findings, no critical one; all fixed in e053de56 with tests
    naming it validates.
 8. `export NAME=` lines were reported MISSING: the report uses write-env.py's assignment form.
 
+## Review round 2 (confirmation pass)
+
+All eight round 1 fixes confirmed. New: (1) a `${NAME}` `baseUrl` hid the provider's host from
+the production guard (`controls._local_model_provider`), so a LAN model server passed as
+non-local: in2n-member-home.py now writes the literal URL from the member's own env and refuses
+an unresolved or unclean one (`test_referenced_base_url_is_written_literally_so_the_guard_sees_its_host`,
+`test_referenced_base_url_must_resolve_to_a_clean_url`); (2) the present/MISSING report now
+names env SecretRef ids; (3) N2N-RISK.md and the release notes describe the round 1 rules;
+(4) `api` must be a plain adapter name (`test_provider_api_must_be_a_plain_adapter_name`).
+
 The live alert loop was re-run on the hardened code (case resolved by the member; Border agent
 calls: `case_get`, `n2n_route`, `n2n_task_wait` ×2).
 
-Results: `test_member_spec_providers_185.py` 38 passed, `test_member_spec_184.py` 146 passed,
+Results: `test_member_spec_providers_185.py` 44 passed, `test_member_spec_184.py` 146 passed,
 `test_member_mcp_mappings_183.py` 50 passed (`NETCLAW_TEST_OPENCLAW_DIST` set to the installed
 OpenClaw). Full `tests/n2n` (fastmcp4 runtime): 32 failed, 2192 passed, 16 skipped, 179 errors;
 the failing and erroring test ids are identical to upstream main e21d867c's on this host (modules

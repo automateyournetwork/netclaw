@@ -314,3 +314,52 @@ def test_member_record_names_provider_and_auth_and_export_lines_count(tmp_path):
     exported = tmp_path / 'exported.env'
     exported.write_text('export OLLAMA_API_KEY=x\n  OTHER = y\n# COMMENTED=z\n')
     assert member_home._env_names(exported) == {'OLLAMA_API_KEY', 'OTHER'}
+
+
+# ── Review round 2 ──
+
+LAN = {'api': 'ollama', 'baseUrl': '${EDGE_URL}', 'apiKey': {'source': 'env', 'provider': 'default', 'id': 'EDGE_KEY'},
+       'models': [{'id': 'qwen3.5:9b'}]}
+
+
+def lan_border(tmp_path, env_text):
+    path = border(tmp_path, env_text)
+    config = json.loads((path / 'openclaw.json').read_text())
+    config['models']['providers']['lan'] = LAN
+    (path / 'openclaw.json').write_text(json.dumps(config))
+    return path
+
+
+def test_referenced_base_url_is_written_literally_so_the_guard_sees_its_host(tmp_path):
+    """A ${NAME} baseUrl has no host the production guard could classify; the member home gets
+    the literal URL from its own env, so a LAN model server is recognised as local."""
+    lan_border(tmp_path, 'EDGE_URL=http://192.168.100.32:11434\nEDGE_KEY=fixture\nPFSENSE_URL=https://fw\nPFSENSE_API_KEY=k\n')
+    written, envfile, staged, out, _ = provision(tmp_path, spec(model='lan/qwen3.5:9b'))
+    entry = written['models']['providers']['lan']
+    assert entry['baseUrl'] == 'http://192.168.100.32:11434' and entry['apiKey'] == LAN['apiKey']
+    assert {'EDGE_URL', 'EDGE_KEY'} <= slice_keys(envfile)
+    assert 'EDGE_KEY: present' in out and 'EDGE_URL: present' in out  # SecretRef ids are reported too
+    sys.path.insert(0, str(ROOT / 'mcp-servers/protocol-mcp'))
+    from bgp.federation import controls
+    assert controls._local_model_provider(written, [staged]) == 'lan/qwen3.5:9b'
+
+
+@pytest.mark.parametrize('url', ['', 'ftp://host', 'https://user:pw@host/v1', 'https://host/v1?key=x'])
+def test_referenced_base_url_must_resolve_to_a_clean_url(tmp_path, url):
+    lan_border(tmp_path, f'EDGE_URL={url}\nEDGE_KEY=fixture\nPFSENSE_URL=https://fw\nPFSENSE_API_KEY=k\n')
+    spec_file = tmp_path / 'investigator.json'
+    spec_file.write_text(json.dumps(spec(model='lan/qwen3.5:9b')))
+    staged = T184.run_migrate(tmp_path, '--spec', str(spec_file), '--specs-only', '--hot', '')
+    assert staged.returncode == 0, staged.stderr
+    command = next(l.strip() for l in staged.stdout.splitlines() if 'in2n-member-home.py' in l)
+    run = subprocess.run([sys.executable, *shlex.split(command)[1:]], env=clean_env(tmp_path),
+                         capture_output=True, text=True, timeout=60)
+    assert run.returncode != 0 and 'the provider baseUrl references EDGE_URL' in run.stderr
+    assert 'pw@' not in run.stderr and 'key=x' not in run.stderr
+    assert not (tmp_path / '.openclaw-lab-alert-investigator/openclaw.json').exists()
+
+
+def test_provider_api_must_be_a_plain_adapter_name(profiles, template):
+    with pytest.raises(profiles.MemberSpecError, match='api must be a plain adapter name'):
+        profiles.load_member_spec(spec(model='edge/m1'), template, installed=[],
+                                  providers=providers_with(edge={**CLOUD, 'api': '${API}', 'models': [{'id': 'm1'}]}))

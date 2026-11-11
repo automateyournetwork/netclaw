@@ -283,13 +283,42 @@ SPEC_MEMBER_TOP_KEYS = ("mcp", "channels", "tools", "skills", "models", "agents"
                         "plugins")
 
 
-def spec_member_providers(border, spec, prof, model):
+def _member_env_values(member_env):
+    """The member's own staged env values (write-env.py's parser), {} when absent."""
+    try:
+        text = Path(os.path.expanduser(str(member_env))).read_text()
+    except (OSError, TypeError):
+        return {}
+    spec = importlib.util.spec_from_file_location('literal_env', Path(REPO)/'scripts/write-env.py')
+    writer = importlib.util.module_from_spec(spec); spec.loader.exec_module(writer)
+    return writer.values(text)
+
+
+def _resolve_base_url(entry, member_env):
+    """A referenced baseUrl (${NAME}) is written as its literal URL from the member's own env:
+    the production model guard classifies a provider by its baseUrl host, and an unresolved
+    reference has none, so a LAN model server would pass as non-local (spec 185 review round 2).
+    A URL is not a secret; it must still carry no credentials, query or fragment."""
+    url = entry.get("baseUrl")
+    match = re.fullmatch(r"\$\{([A-Za-z_][A-Za-z0-9_]*)\}", url) if isinstance(url, str) else None
+    if not match:
+        return entry
+    value = _member_env_values(member_env).get(match[1], "")
+    parts = urlsplit(value) if value else None
+    if (not parts or parts.scheme not in ("http", "https") or not parts.hostname or parts.username is not None
+            or parts.password is not None or parts.query or parts.fragment):
+        raise SystemExit(f"error: the provider baseUrl references {match[1]}, which the member env "
+                         f"{member_env} does not set to an http(s) URL without credentials, query or fragment")
+    return {**entry, "baseUrl": value}
+
+
+def spec_member_providers(border, spec, prof, model, member_env=None):
     """The member's models.providers (spec 185): see SPEC_MEMBER_TOP_KEYS."""
     if spec.get("auth") == "subscription":
         return {}
     if spec.get("provider"):
         providers = (border.get("models") or {}).get("providers") or {}
-        return {spec["provider"]: prof.spec_provider_entry(spec, providers)}
+        return {spec["provider"]: _resolve_base_url(prof.spec_provider_entry(spec, providers), member_env)}
     return {"anthropic": {
         "baseUrl": "https://api.anthropic.com", "apiKey": "${ANTHROPIC_API_KEY}",
         "api": "anthropic-messages",
@@ -297,7 +326,7 @@ def spec_member_providers(border, spec, prof, model):
                     "contextWindow": 200000, "maxTokens": 64000}]}}
 
 
-def spec_member_config(border, servers, spec, prof, home, model):
+def spec_member_config(border, servers, spec, prof, home, model, member_env=None):
     """A spec member's openclaw.json, from SPEC_MEMBER_TOP_KEYS only."""
     from bgp.federation.controls import defenseclaw_plugin_config
     skills = prof.spec_skills(spec)
@@ -312,7 +341,7 @@ def spec_member_config(border, servers, spec, prof, home, model):
         "channels": {},
         "tools": spec_tools_section(None, prof.spec_tool_policy(spec)),
         "skills": spec_skills_section(border.get("skills"), skills),
-        "models": {"providers": spec_member_providers(border, spec, prof, model)},
+        "models": {"providers": spec_member_providers(border, spec, prof, model, member_env)},
         "agents": {"defaults": defaults, "entries": {"main": {}}},
         "memory": {"search": {"enabled": False}},
         "hooks": {"enabled": False},
@@ -796,7 +825,8 @@ def _provision_openclaw(args, runtime, name, spec=None):
         # Border (review round 2); its memory/GAIT stores live in its own home.
         stores = spec_store_overrides(m["mcp"]["servers"], mh, border_home)
         skills = prof.spec_skills(spec)
-        m = spec_member_config(border, m["mcp"]["servers"], spec, prof, mh, model)
+        m = spec_member_config(border, m["mcp"]["servers"], spec, prof, mh, model,
+                               member_env=args.member_env or Path(mh) / ".env")
         roots = [Path(w) / "skills" for w in (((border.get("agents") or {}).get("defaults") or {}).get("workspace"),)
                  if isinstance(w, str)] + [border_home / "workspace/skills", Path(REPO) / "workspace/skills"]
         sources = skill_sources(skills, roots)
@@ -880,7 +910,8 @@ def _provision_openclaw(args, runtime, name, spec=None):
             print(f"    OPENCLAW_STATE_DIR={shlex.quote(mh)} OPENCLAW_CONFIG_PATH={shlex.quote(mh + '/openclaw.json')} "
                   f"openclaw models auth login --provider {spec['provider']})")
         elif spec.get("provider"):
-            refs = sorted(prof.server_env_refs(m["models"]["providers"][spec["provider"]]))
+            refs = sorted(prof.provider_entry_refs(
+                prof.spec_provider_entry(spec, (border.get("models") or {}).get("providers") or {})))
             have = _env_names(where)
             state = ", ".join(f"{r}: {'present' if r in have else 'MISSING'}" for r in refs) or "no variables"
             print(f"  model: {binding}  (the Border's {spec['provider']} provider; {state} in {where})")

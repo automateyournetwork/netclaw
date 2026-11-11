@@ -12,4 +12,4 @@
 - [x] T010 Live: Convergence investigator on `ollama-cloud/minimax-m3` on a test Border, alert loop end to end.
 - [x] T011 Docs (N2N-RISK.md) and release metadata (1.22.0).
 - [x] T012 Review round 1 (read-only Claude reviewer): 8 findings fixed (verification.md).
-- [ ] T013 Review confirmation pass.
+- [x] T013 Review round 2: fixes confirmed; referenced baseUrl resolved for the guard, report, docs, api name.

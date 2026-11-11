@@ -621,7 +621,8 @@ def _provider_entry(name, entry, model):
                                + ", ".join(map(str, unknown)) + " (supported: " + ", ".join(PROVIDER_FIELDS[:-1]) + ")")
     built = {}
     if "api" in entry:
-        _ref_or_text("api", entry["api"])
+        if not isinstance(entry["api"], str) or not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,63}", entry["api"]):
+            raise _ProviderRefused("api must be a plain adapter name such as 'ollama' or 'openai-completions'")
         built["api"] = entry["api"]
     if "baseUrl" in entry:
         url = entry["baseUrl"]
