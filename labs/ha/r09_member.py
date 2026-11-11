@@ -71,7 +71,7 @@ TOOL_LIMITS = {'inference_timeout_ms': 60000, 'tool_timeout_ms': 30000, 'max_inf
                'max_tool_calls': 1, 'max_output_bytes': 262144}
 GUARD_ENV_VARIABLE = 'DEFENSECLAW_GATEWAY_TOKEN'
 GUARD_TOKEN_ENV = 'NETCLAW_R09_GUARD_TOKEN'
-FLAVORS = ('ollama', 'netbox', 'pyats')
+FLAVORS = ('ollama', 'netbox', 'pyats', 'subnet')
 # pyATS flavor (spec 182): the exact reviewed `show version` read of ONE IOS-XE IOL device (a CML node on the owner's LAN) over
 # strict-host-key SSH, as an HA member on the same hosted Sonnet profile. The pinned pyATS/genie/unicon 25.2 environment is
 # the R02 runtime already on this Mac; the effect runs behind the same HA effect admission as the other tools.
@@ -289,7 +289,7 @@ def cmd_identity(args):
     flavor = getattr(args, 'flavor', 'ollama')
     need(flavor in FLAVORS, 'flavor_refused')
     binding = {'installation_id': str(uuid.uuid4()),
-               'member_id': {'netbox': 'nc182-r09/netbox-', 'pyats': 'nc182-r09/pyats-'}.get(flavor, 'nc182-r09/mac-subnet-') + suffix,
+               'member_id': {'netbox': 'nc182-r09/netbox-', 'pyats': 'nc182-r09/pyats-', 'subnet': 'nc182-r09/hsubnet-'}.get(flavor, 'nc182-r09/mac-subnet-') + suffix,
                'key_id': c.key_id(certificate), 'enrollment_generation': str(uuid.uuid4())}
     c.validate_binding(binding, 'member')
     need(all(binding['installation_id'] != n['installation_id'] and binding['key_id'] != n['key_id']
@@ -714,12 +714,70 @@ def artifacts_pyats(root, state, args):
 
 
 # ---------------------------------------------------------------------------------------------- artifacts
+def artifacts_subnet(root, state, args):
+    """Hosted subnet-calculator member (spec 185): the qualified native summary calculator (stdlib `ipaddress`, no network,
+    no credential) behind the hosted Sonnet guard. Guard pieces as the NetBox flavor; MCP pieces as the Ollama flavor."""
+    need('freeze' in state['steps'], 'freeze_first')
+    use_source(root)
+    from bgp.federation.protected_calculator import SUMMARY_SOURCE_SHA256
+    from bgp.federation import protected_hosted as hosted
+    template = json.loads(Path(args.template or R05 / 'runtime-template.json').read_text())
+    runtime = copy.deepcopy(template['runtime'])
+    need(runtime['mcp']['kind'] == 'subnet_summary', 'qualified_native_template_required')
+    model = args.hosted_model
+    need(model in hosted.ALLOWED_MODELS and model == hosted.GUARD_IMAGE_MODEL, 'hosted_model_refused')
+    hosted.validate_profile(hosted_profile(model))
+    provider_key = secret_from_environment(PROVIDER_KEY_ENV)
+    artifacts = private_dir(root / 'artifacts')
+    guard_raw = hosted_guard_config(load_qualified_guard_config(), model)
+    need(provider_key.encode() not in guard_raw, 'provider_key_in_guard_config')
+    guard_sha = write_private(artifacts / 'guard-config.yaml', guard_raw)
+    os.chmod(artifacts / 'guard-config.yaml', 0o400)
+    token = secrets.token_urlsafe(32)
+    need(re.fullmatch('[A-Za-z0-9_-]{43}', token) and token != provider_key, 'guard_token_shape')
+    write_hosted_guard_env(artifacts / 'guard.env', provider_key, token)
+    write_private(artifacts / 'guard-capability', token.encode())
+    native_source = Path(runtime['mcp']['source_root']) / 'servers/subnetcalculator_mcp.py'
+    raw = native_source.read_bytes()
+    need(sha(raw) == SUMMARY_SOURCE_SHA256 == runtime['mcp']['source_sha256']['servers/subnetcalculator_mcp.py'], 'native_source_changed')
+    native = private_dir(artifacts / 'native-subnet/servers')
+    write_private(native / 'subnetcalculator_mcp.py', raw)
+    os.chmod(native / 'subnetcalculator_mcp.py', 0o400)
+    skill_dir = private_dir(artifacts / 'subnet-calculator')
+    skill = (REPO / 'workspace/skills/subnet-calculator/SKILL.md').read_bytes()
+    need(sha(skill) == runtime['mcp']['skill']['sha256'], 'skill_changed')
+    write_private(skill_dir / 'SKILL.md', skill)
+    os.chmod(skill_dir / 'SKILL.md', 0o400)
+    manifest = Path(runtime['mcp']['python_manifest']).read_bytes()
+    need(sha(manifest) == runtime['mcp']['python_manifest_sha256'], 'mcp_python_manifest_changed')
+    write_private(artifacts / 'mcp-python-manifest.json', manifest)
+    home = root / 'home'
+    runtime.pop('ollama', None)
+    runtime.update(state_dir=str(home / 'netclaw-federation/runtime'), guard_token_env=GUARD_TOKEN_ENV, hosted=hosted_profile(model))
+    runtime['guard'].update(config_file=str(artifacts / 'guard-config.yaml'), env_file=str(artifacts / 'guard.env'),
+                            config_sha256=guard_sha)
+    runtime['mcp'].update(source_root=str(artifacts / 'native-subnet'), python_manifest=str(artifacts / 'mcp-python-manifest.json'))
+    runtime['mcp']['skill'] = dict(runtime['mcp']['skill'], path=str(skill_dir / 'SKILL.md'))
+    runtime['model_profile'] = {'provider': 'anthropic', 'model': model, 'runtime_kind': 'openclaw',
+                                'runtime_version': HARNESS_VERSION, 'profile_id': hosted.profile_id(hosted_profile(model)),
+                                'guard_policy_sha256': '0' * 64, 'profile_revision': '0' * 64}
+    write_private(root / 'runtime-template.json', runtime)
+    state['hosted_model'] = model
+    state['steps'].append('artifacts')
+    save_state(root, state)
+    return {'artifacts': str(artifacts), 'hosted_model': model, 'guard_config_sha256': guard_sha,
+            'secrets': 'written 0600 to artifacts/guard.env; not printed or stored in state',
+            'model_namespace': 'none (hosted flavor): do not run qualify.py'}
+
+
 def cmd_artifacts(args):
     root, state = load_state(args.root)
     if state.get('flavor') == 'netbox':
         return artifacts_netbox(root, state, args)
     if state.get('flavor') == 'pyats':
         return artifacts_pyats(root, state, args)
+    if state.get('flavor') == 'subnet':
+        return artifacts_subnet(root, state, args)
     need('freeze' in state['steps'], 'freeze_first')
     use_source(root)
     from bgp.federation import protected_ollama as model
@@ -780,7 +838,7 @@ def cmd_materialize(args):
     root, state = load_state(args.root)
     flavor = state.get('flavor', 'ollama')
     netbox, pyats = flavor == 'netbox', flavor == 'pyats'
-    hosted_flavor = netbox or pyats
+    hosted_flavor = netbox or pyats or flavor == 'subnet'
     for step in ('identity', 'freeze', 'python-env', 'artifacts') + (('netbox-env',) if netbox else ()) + (('pyats-env',) if pyats else ()):
         need(step in state['steps'], step + '_first')
     if not hosted_flavor:
@@ -880,7 +938,7 @@ def cmd_validate(args):
         cfg = json.loads(read_private(contract))
         modules = ('bgp.federation.ha.factory, bgp.federation.ha.member, bgp.federation.protected_docker, '
                    'bgp.federation.protected_hosted, bgp.federation.ha.hosted_model_transport, bgp.federation.protected_mcp'
-                   if state.get('flavor') == 'netbox' else
+                   if state.get('flavor') in ('netbox', 'subnet') else
                    'bgp.federation.ha.factory, bgp.federation.ha.member, bgp.federation.protected_docker, '
                    'bgp.federation.protected_runtime, bgp.federation.protected_hosted, bgp.federation.ha.hosted_model_transport, '
                    'bgp.federation.ha.mcp_transport'
@@ -906,6 +964,12 @@ def cmd_plan(args):
             {'who': 'parent', 'step': 'ENROLL: stop 3 Borders, wait for lease expiry, one-shot enroll_member with identity/member.json, restart Montreal first'},
             {'who': 'owner', 'step': 'start the member with the production launcher on the Mac'},
             {'who': 'parent', 'step': 'verify 3 attachments, then prepare/approve pyats_run_show_command R1 `show version` from the HUD or VS Code'}]}
+    if getattr(args, 'flavor', 'ollama') == 'subnet':
+        return {'order': [
+            {'who': 'builder', 'step': 'identity --flavor subnet, freeze, python-env (offline)'},
+            {'who': 'owner', 'step': 'source ~/netclaw/.env (ANTHROPIC_API_KEY into this shell only), then artifacts: guard.env 0600; no model namespace'},
+            {'who': 'builder', 'step': 'materialize, validate'},
+            {'who': 'parent', 'step': 'ENROLL as for the other members, start the member, verify attachments, run subnet_calculator 192.0.2.0/26'}]}
     if getattr(args, 'flavor', 'ollama') == 'netbox':
         return {'order': [
             {'who': 'builder', 'step': 'identity --flavor netbox, freeze, python-env (offline)'},

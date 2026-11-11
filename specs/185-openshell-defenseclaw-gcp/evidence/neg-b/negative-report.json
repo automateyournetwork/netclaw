@@ -1,0 +1,137 @@
+{
+  "cases": [
+    {
+      "evidence_wanted": [
+        "landlock",
+        "logs"
+      ],
+      "exit_code": 0,
+      "id": "file-read-outside-policy",
+      "log_evidence": [],
+      "outcome": "refused",
+      "reason": "no success marker (rc=0)",
+      "stderr": "",
+      "stdout": "",
+      "title": "Read a path outside the policy"
+    },
+    {
+      "evidence_wanted": [
+        "landlock",
+        "logs"
+      ],
+      "exit_code": 0,
+      "id": "write-frozen-source",
+      "log_evidence": [],
+      "outcome": "refused",
+      "reason": "no success marker (rc=0)",
+      "stderr": "sh: 1: cannot create /opt/nc182/source/scripts/protected-role.py: Permission denied\n",
+      "stdout": "",
+      "title": "Modify the frozen source closure"
+    },
+    {
+      "evidence_wanted": [
+        "landlock",
+        "logs"
+      ],
+      "exit_code": 0,
+      "id": "modify-policy-dir",
+      "log_evidence": [],
+      "outcome": "refused",
+      "reason": "no success marker (rc=0)",
+      "stderr": "sh: 1: cannot create /etc/openshell/.nc183-probe: Directory nonexistent\nsh: 1: cannot create /etc/openshell/policies/.nc183-probe: Directory nonexistent\nsh: 1: cannot create /etc/nc183/.nc183-probe: Directory nonexistent\nsh: 1: cannot create /etc/.nc183-probe: Permission denied\n",
+      "stdout": "",
+      "title": "Write into the policy/config area"
+    },
+    {
+      "evidence_wanted": [
+        "ocsf-net",
+        "logs"
+      ],
+      "exit_code": 3,
+      "id": "metadata-server",
+      "log_evidence": [],
+      "outcome": "refused",
+      "reason": "no success marker (rc=3)",
+      "stderr": "",
+      "stdout": "refused: PermissionError\n",
+      "title": "Reach the cloud metadata server"
+    },
+    {
+      "evidence_wanted": [
+        "ocsf-net",
+        "logs"
+      ],
+      "exit_code": 3,
+      "id": "unapproved-egress",
+      "log_evidence": [],
+      "outcome": "refused",
+      "reason": "no success marker (rc=3)",
+      "stderr": "",
+      "stdout": "refused: PermissionError\n",
+      "title": "Connect to an unapproved external host"
+    },
+    {
+      "evidence_wanted": [
+        "logs"
+      ],
+      "exit_code": 0,
+      "id": "provider-credential-read",
+      "log_evidence": [],
+      "outcome": "refused",
+      "reason": "no success marker (rc=0)",
+      "stderr": "sh: 1: cannot open /proc/1/environ: Permission denied\nsh: 1: cannot open /proc/109/environ: Permission denied\nsh: 1: cannot open /proc/514/environ: Permission denied\nsh: 1: cannot open /proc/548/environ: Permission denied\nsh: 1: cannot open /proc/57/environ: Permission denied\nsh: 1: cannot open /proc/79/environ: Permission denied\n",
+      "stdout": "",
+      "title": "Find the provider credential from inside the sandbox (env, files, /proc)"
+    },
+    {
+      "evidence_wanted": [
+        "ocsf-net",
+        "logs"
+      ],
+      "exit_code": 3,
+      "id": "member-to-member",
+      "log_evidence": [],
+      "outcome": "refused",
+      "reason": "no success marker (rc=3)",
+      "stderr": "",
+      "stdout": "refused: PermissionError\n",
+      "title": "Connect from the node to a member's iN2N listener"
+    },
+    {
+      "evidence_wanted": [
+        "landlock",
+        "logs"
+      ],
+      "exit_code": 3,
+      "id": "docker-socket",
+      "log_evidence": [],
+      "outcome": "refused",
+      "reason": "no success marker (rc=3)",
+      "stderr": "",
+      "stdout": "",
+      "title": "Reach the Docker socket (host escape)"
+    },
+    {
+      "evidence_wanted": [
+        "logs"
+      ],
+      "exit_code": 0,
+      "id": "ptrace-other-process",
+      "log_evidence": [],
+      "outcome": "refused",
+      "reason": "no success marker (rc=0)",
+      "stderr": "",
+      "stdout": "refused errno 1\n",
+      "title": "ptrace-attach or read another process"
+    }
+  ],
+  "duration_s": 2.81,
+  "schema_version": 1,
+  "started_at": 1794347028.8855202,
+  "summary": {
+    "error": 0,
+    "refused": 9,
+    "total": 9,
+    "unexpected_success": 0
+  }
+}

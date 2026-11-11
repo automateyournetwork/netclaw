@@ -9,7 +9,7 @@ from ..protected_runtime import build_executor
 from .admission import MemberAdmission
 from .authority import Authority
 from .border import ClusterBorderOperations
-from .config import check, HAError, read_private, require_ha, verify_manifest
+from .config import check, HAError, listen_address, read_private, require_ha, validate_listen, verify_manifest
 from .internal import MemberAttachments, accept_member, border_binding
 from .member import ClusterMemberOperations
 from .node import ClusterNode
@@ -26,6 +26,8 @@ def load_configuration(reference, *, role):
     fields = 'schema_version role manifest_file anchor_certificate_file anchor_key_id transport_ca_file'
     fields += (' node_id transport_certificate_file private_key_file etcd' if role == 'border'
                else ' certificate_file private_key_file')
+    if role == 'border' and 'listen' in value:
+        fields += ' listen'
     c.exact(value, fields)
     check(type(value['schema_version']) is int and value['schema_version'] == 1 and value['role'] == role,
           'invalid_ha_configuration')
@@ -36,6 +38,8 @@ def load_configuration(reference, *, role):
             read_private(path)
     if role == 'border':
         c.uuid_field(value['node_id'])
+        if 'listen' in value:
+            validate_listen(value['listen'])
         c.exact(value['etcd'], 'endpoints ca_file certificate_file private_key_file username password_file')
         for key, path in value['etcd'].items():
             if key.endswith('_file'):
@@ -80,7 +84,8 @@ class HAServiceRuntime:
             await self.operations.start()
             if self.node:
                 address = self.manifest.node(self.node.node_id)['endpoints']['in2n']
-                self.server = await exporter_tls.start_server(self.accept_internal, address['host'], address['port'],
+                bind_host, bind_port = listen_address(self.config.get('listen'), 'in2n', address)
+                self.server = await exporter_tls.start_server(self.accept_internal, bind_host, bind_port,
                     cert_file=self.config['transport_certificate_file'], key_file=self.config['private_key_file'],
                     close_clients=True)
             else:
@@ -168,7 +173,8 @@ def from_service(service, profile):
             username=etcd['username'], password=read_private(etcd['password_file'], 256).decode().strip())
         authority = Authority(store, manifest, node_id)
         adapter.node = ClusterNode(authority, private_key=private_key, ca_file=config['transport_ca_file'],
-            cert_file=config['transport_certificate_file'], key_file=config['private_key_file'])
+            cert_file=config['transport_certificate_file'], key_file=config['private_key_file'],
+            listen=config.get('listen'))
         adapter.node.local_current = current
         operations = ClusterBorderOperations(adapter.node, state_dir=state, member_channels=service.member_channels,
                                              audit_writer=service.audit.protected, current=current)

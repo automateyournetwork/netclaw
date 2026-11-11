@@ -484,3 +484,20 @@ def test_netbox_artifacts_refuse_a_model_the_guard_image_does_not_pin(tmp_path, 
     finally:
         unfreeze(root)
         unfreeze(nb_env)
+
+
+def test_hosted_subnet_flavor_is_registered_and_planned(capsys):
+    """Spec 185: the hosted subnet-calculator member flavor exists and its plan never asks for a model namespace."""
+    import importlib
+    member = importlib.import_module('labs.ha.r09_member')
+    assert 'subnet' in member.FLAVORS
+    plan = member.cmd_plan(type('A', (), {'flavor': 'subnet'})())
+    steps = ' '.join(item['step'] for item in plan['order'])
+    assert 'no model namespace' in steps and 'qualify.py prepare' not in steps
+
+
+def test_member_topology_accepts_two_borders_plus_witness():
+    """Spec 185: the sandboxed cluster has 2 Borders (3rd voter is the etcd witness); the member validator allows 2..3 nodes."""
+    from pathlib import Path
+    text = (Path(__file__).resolve().parents[2] / 'scripts/lib/protected_role.py').read_text()
+    assert "2 <= len(value['nodes']) <= 3" in text and "len(value['nodes']) == 3" not in text

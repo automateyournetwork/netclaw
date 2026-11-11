@@ -923,3 +923,21 @@ webhooks:
 - [Upgrade Guide](UPGRADE-TO-DEFENSECLAW.md) - For existing users
 - [Security Principles](SOUL-DEFENSE.md) - Security posture guidance
 - [DefenseClaw GitHub](https://github.com/cisco-ai-defense/defenseclaw) - Source code and issues
+
+## Layered node: Border and guard inside an OpenShell sandbox (R09A, spec 185)
+
+A Border VM can run the Border role, the HUD ingress and the DefenseClaw sidecar **inside one OpenShell sandbox**
+(`netclaw-node`), with the Anthropic key held by OpenShell and never visible to the agent. Verified live on two GCP
+Borders (evidence: `specs/185-openshell-defenseclaw-gcp/verification.md`). What this layer is and is not:
+
+- **Credential**: an endpointless OpenShell provider profile (`auth_style: header`, `header_name: x-api-key`) plus a
+  `credential_binding: {provider: <name>}` on the Anthropic endpoint in the node policy. The sandbox environment carries only
+  an opaque placeholder; the supervisor substitutes the key at egress. Only `/usr/local/bin/defenseclaw-gateway` may reach
+  `api.anthropic.com`, so a stopped sidecar means **no provider call** (fail closed, proven by the OCSF log).
+- **Guard**: `defenseclaw-gateway start` inside the sandbox, `mode: action`, `hook_fail_mode: closed`. The node configuration is
+  the qualified R04A file with three documented deviations (`labs/ha/r09a_defenseclaw.py`). OpenClaw reaches the proxy through
+  the DefenseClaw plugin; prompt, tool-call and skill-scan findings are blocked and recorded in the sandbox audit database.
+- **Not inside**: the etcd voter (host network) and the member executor (Docker socket). Posture reports them with a
+  disposition and never as "enforced". DefenseClaw reduces risk; it does not prove an agent is safe.
+- **Operating**: `scripts/ha-r09a-node-recreate.sh`, `labs/ha/r09a_guard_up.sh`, `labs/ha/r09a_probe.py`,
+  `labs/ha/r09a_negative.py`. The runner's `CTL/run-script` hook is lab-only.

@@ -1,0 +1,205 @@
+{
+ "entered_via": "nne1 (leader)",
+ "operation": {
+  "allowed_actions": [
+   "reconcile",
+   "revoke"
+  ],
+  "approval": {
+   "approval_id": "419f6fa3-0b29-4428-b67e-f140d43d9473",
+   "digest": "39330dd5c685010338b72267b2782f22f49f3179643917fac8ebaca4a45a5de3",
+   "expires_at_ms": 1794415804960
+  },
+  "attempt_count": 1,
+  "authority": {
+   "cluster_id": "a02aaf7c-8cca-402e-9867-374db11b8e58",
+   "epoch": 8,
+   "generation": "55449b6d-3488-4d0d-97d4-ca4b3b083b47",
+   "mode": "cluster",
+   "observation_only": true,
+   "served_by": "a3197600-6a9f-479e-8d5e-816743c99927"
+  },
+  "client_nonce": "2b69eec6-e98e-43a3-811f-88374c003df0",
+  "error_code": null,
+  "may_have_executed": true,
+  "operation_id": "ade3cb06-4ae1-4e7d-8079-535aee27c6fe",
+  "reconciliation_required": false,
+  "result": {
+   "ack_delivery_pending": false,
+   "digest": "3d4287f38d2c901052d41b676d7e215fc2e106b451521868c4a12251e8a90e60",
+   "durable_ack": true,
+   "evidence": {
+    "approval_id": "419f6fa3-0b29-4428-b67e-f140d43d9473",
+    "approval_sha256": "39330dd5c685010338b72267b2782f22f49f3179643917fac8ebaca4a45a5de3",
+    "attempt_id": "a206a4cb-d256-445e-a1dc-51c19e5a31f5",
+    "audit_refs": {
+     "approval": "39330dd5c685010338b72267b2782f22f49f3179643917fac8ebaca4a45a5de3",
+     "dispatch": "39638e473a9860c3bdd2104e1f4125e203b88749",
+     "effect": "b9653c72441d92aedca9369672d1a94d42a9f25c",
+     "result": "9b8406810b8e4d76ed0b0e4fe70bd377948eaf84"
+    },
+    "border": {
+     "authority_generation": "55449b6d-3488-4d0d-97d4-ca4b3b083b47",
+     "identity": "nc182-r09-border-nne1",
+     "installation_id": "5a89cc2a-1eae-4a23-aaf1-2f31d806f11b",
+     "key_id": "af67aadbe30645846fe52a2feb6ffc7bd63b676bba936710dfa4f3585d7a0ec4"
+    },
+    "cluster": {
+     "authority_epoch": 8,
+     "cluster_id": "a02aaf7c-8cca-402e-9867-374db11b8e58",
+     "generation": "55449b6d-3488-4d0d-97d4-ca4b3b083b47",
+     "issuer_node_id": "a3197600-6a9f-479e-8d5e-816743c99927",
+     "manifest_revision": 1
+    },
+    "effect_status": "finished",
+    "error_code": null,
+    "finished_at_ms": 1794415658952,
+    "member": {
+     "enrollment_generation": "245c69ee-8926-4038-963e-de8ae9cafee9",
+     "installation_id": "1939c7e1-5f16-480a-af8b-4135b0d83fca",
+     "key_id": "85da5d95ee75bb1b7facf368a32675a685314222932e487e4beecd488e66eb97",
+     "member_id": "nc182-r09/hsubnet-c3408a"
+    },
+    "model_profile": {
+     "guard_policy_sha256": "280217ab8f006c8a20c5afed4be2de0d5623af3595b20216f9192f797407c274",
+     "model": "claude-sonnet-4-6",
+     "profile_id": "hosted-anthropic-claude-sonnet-4-6",
+     "profile_revision": "afd7b410784bccce0fcf62b9b6b7b36330ceafc2881b3d9ff85d97d2471123c4",
+     "provider": "anthropic",
+     "runtime_kind": "openclaw",
+     "runtime_version": "2026.7.1-2"
+    },
+    "operation_id": "ade3cb06-4ae1-4e7d-8079-535aee27c6fe",
+    "outcome": "succeeded",
+    "output": {
+     "model_answer": "Here's the evidence returned from the single tool call for **192.0.2.0/26**:\n\n| Field | Value |\n|---|---|\n| **Network** | 192.0.2.0/26 |\n| **Prefix Length** | /26 |\n| **Netmask** | 255.255.255.192 |\n| **Wildcard Mask** | 0.0.0.63 |\n| **Broadcast** | 192.0.2.63 |\n| **Total Addresses** | 64 |\n| **Usable Host Range** | 192.0.2.1 \u2013 192.0.2.62 |\n| **Usable Hosts** | 62 |\n| **Previous Subnet** | 192.0.1.192/26 |\n| **Next Subnet** | 192.0.2.64/26 |\n\n**Summary:** `192.0.2.0/26` is a 64-address IPv4 block spanning `192.0.2.0` through `192.0.2.63`. The network address is `192.0.2.0` and broadcast is `192.0.2.63`, leaving **62 usable host addresses** (`.1` through `.62`). The subnet mask is `255.255.255.192` (wildcard `0.0.0.63`). It sits between the `192.0.1.192/26` block before it and the `192.0.2.64/26` block after it. The result was independently verified by the tool (SHA-256 integrity checks passed, `mcp_calls: 1`).",
+     "tool": {
+      "arguments": {
+       "cidr": "192.0.2.0/26"
+      },
+      "captured_at_ms": 1794415642064,
+      "endpoint_sha256": "469e28d76a207cd55feeb5865857c66c560c9cfa73a07e5052b27aa8bb4dd937",
+      "independent_verification": true,
+      "mcp_calls": 1,
+      "mcp_schema_sha256": "9ffaa707cb607c81dc02e055b8d6aa81fe31c296ed0e8c505df788f51c44f14d",
+      "native_result_sha256": "15975ecb05a44b0e5d0511337a8842fbe0890635623cb5765f7e8dfa13867b2b",
+      "output": {
+       "address_count": "64",
+       "broadcast": "192.0.2.63",
+       "family": 4,
+       "first_address": "192.0.2.0",
+       "last_address": "192.0.2.63",
+       "netmask": "255.255.255.192",
+       "network": "192.0.2.0/26",
+       "next_subnet": "192.0.2.64/26",
+       "prefix_length": 26,
+       "previous_subnet": "192.0.1.192/26",
+       "schema_version": 1,
+       "usable_count": "62",
+       "usable_first": "192.0.2.1",
+       "usable_last": "192.0.2.62",
+       "wildcard_mask": "0.0.0.63"
+      },
+      "schemaVersion": 1,
+      "skill_sha256": "2a3e6646fe744d6c8051d9e426544061b60bb85ef4f9910fb09f4a819521c150",
+      "source_sha256": "48396934b5f29f90a9d5e93269920ee2fbcc0f7bca1d87f1201f7e2f06c8a844",
+      "tool": "subnet_calculator"
+     }
+    },
+    "output_sha256": "51b0bfa39c416a5af43e35369becc7d9a9cbef519eb30bfda028ead985cd5490",
+    "principal": {
+     "display_name": "Unauthenticated lab operator",
+     "issuer": "open-lab",
+     "roles": [
+      "lab-operator"
+     ],
+     "subject": "62d3b7a2-595f-57c3-88da-72cbe30fc697"
+    },
+    "receipt_id": "20acd4b2-cb56-439f-90b2-f7711bf2641d",
+    "started_at_ms": 1794415626069,
+    "tool_call_sha256": "458b27df40167781aba04b83893cbf827ba7c8dfc7c191777c4477a8cad95a17",
+    "tool_evidence_sha256": "fb88e7f0dbc1d3a2c067a4490a343b690689144ccf7afb8fb61b88da01489ebd",
+    "usage": {
+     "inference_calls": 2,
+     "provider_usage": "unavailable",
+     "tool_calls": 1
+    }
+   },
+   "verified": true
+  },
+  "result_reference": {
+   "artifact_id": "ade3cb06-4ae1-4e7d-8079-535aee27c6fe",
+   "digest": "3d4287f38d2c901052d41b676d7e215fc2e106b451521868c4a12251e8a90e60",
+   "effect_status": "finished",
+   "member": {
+    "enrollment_generation": "245c69ee-8926-4038-963e-de8ae9cafee9",
+    "installation_id": "1939c7e1-5f16-480a-af8b-4135b0d83fca",
+    "key_id": "85da5d95ee75bb1b7facf368a32675a685314222932e487e4beecd488e66eb97",
+    "member_id": "nc182-r09/hsubnet-c3408a"
+   },
+   "outcome": "succeeded",
+   "receipt_id": "20acd4b2-cb56-439f-90b2-f7711bf2641d"
+  },
+  "review": {
+   "border": {
+    "authority_generation": "55449b6d-3488-4d0d-97d4-ca4b3b083b47",
+    "identity": "nc182-r09-border-nne1",
+    "installation_id": "5a89cc2a-1eae-4a23-aaf1-2f31d806f11b",
+    "key_id": "af67aadbe30645846fe52a2feb6ffc7bd63b676bba936710dfa4f3585d7a0ec4"
+   },
+   "change_request_ref": null,
+   "cluster": {
+    "authority_epoch": 8,
+    "cluster_id": "a02aaf7c-8cca-402e-9867-374db11b8e58",
+    "generation": "55449b6d-3488-4d0d-97d4-ca4b3b083b47",
+    "issuer_node_id": "a3197600-6a9f-479e-8d5e-816743c99927",
+    "manifest_revision": 1
+   },
+   "limits": {
+    "expires_at_ms": 1794415804960,
+    "inference_timeout_ms": 60000,
+    "max_inference_calls": 2,
+    "max_output_bytes": 262144,
+    "max_tool_calls": 1,
+    "tool_timeout_ms": 30000
+   },
+   "member": {
+    "enrollment_generation": "245c69ee-8926-4038-963e-de8ae9cafee9",
+    "installation_id": "1939c7e1-5f16-480a-af8b-4135b0d83fca",
+    "key_id": "85da5d95ee75bb1b7facf368a32675a685314222932e487e4beecd488e66eb97",
+    "member_id": "nc182-r09/hsubnet-c3408a"
+   },
+   "model_profile": {
+    "guard_policy_sha256": "280217ab8f006c8a20c5afed4be2de0d5623af3595b20216f9192f797407c274",
+    "model": "claude-sonnet-4-6",
+    "profile_id": "hosted-anthropic-claude-sonnet-4-6",
+    "profile_revision": "afd7b410784bccce0fcf62b9b6b7b36330ceafc2881b3d9ff85d97d2471123c4",
+    "provider": "anthropic",
+    "runtime_kind": "openclaw",
+    "runtime_version": "2026.7.1-2"
+   },
+   "principal": {
+    "display_name": "Unauthenticated lab operator",
+    "issuer": "open-lab",
+    "roles": [
+     "lab-operator"
+    ],
+    "subject": "62d3b7a2-595f-57c3-88da-72cbe30fc697"
+   },
+   "tool_call": {
+    "arguments": {
+     "cidr": "192.0.2.0/26"
+    },
+    "arguments_sha256": "f247d44111b0a0a6043b771fd666c38107435aafedeb2ce995642e5498e551cd",
+    "device_ref": "192.0.2.0/26",
+    "endpoint_sha256": "469e28d76a207cd55feeb5865857c66c560c9cfa73a07e5052b27aa8bb4dd937",
+    "inventory_revision": "a6f5f6b16ce3a630d6beca7f7c77904709b82a5419ab003165b5ffe23f8d7174",
+    "tool": "subnet_calculator",
+    "tool_schema_sha256": "ee71c54b9f95cab18f90017bb827b6abcab15942e800ac64b1d30f5870f5ed2a"
+   }
+  },
+  "review_digest": "400ac965cec1a8cab20ec1cf3da4f9ff3cf375b1f3fdc9af732304e521c39025",
+  "revision": 8,
+  "state": "completed"
+ }
+}

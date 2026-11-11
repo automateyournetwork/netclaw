@@ -1,0 +1,22 @@
+{
+ "via_openshell_forward_7443_local": {
+  "n": 40,
+  "median_ms": 0.34,
+  "p95_ms": 1.24
+ },
+ "direct_host_etcd_12379_local": {
+  "n": 40,
+  "median_ms": 0.38,
+  "p95_ms": 0.74
+ },
+ "via_openshell_forward_7443_peer_node_b": {
+  "n": 40,
+  "median_ms": 0.65,
+  "p95_ms": 0.86
+ },
+ "direct_host_etcd_12379_peer_node_b": {
+  "n": 40,
+  "median_ms": 0.66,
+  "p95_ms": 0.91
+ }
+}

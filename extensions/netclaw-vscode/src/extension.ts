@@ -33,6 +33,7 @@ import {createPreset} from './setup/preset';
 import {inspectSetupConnection,SetupConnection} from './setup/connections';
 import { OwnerWorkflow, assertCloudCommand } from './views/owner';
 import { cloudInputOrigin, discoverCloudBorder, cloudExecutionMode, ownerCanonical } from './client/owner';
+import { fetchNodePosture, formatPosture } from './client/posture';
 import { remoteHudFeatures, remoteDomainFeature, remoteCommandFeature } from "./client/remote-hud";
 
 export async function activate(context: vscode.ExtensionContext) {
@@ -138,6 +139,18 @@ export async function activate(context: vscode.ExtensionContext) {
   register("ownerSignOut", () => ownerWorkflow.signOut());
   register("ownerPrepare", () => ownerWorkflow.prepare());
   register("ownerRecover", () => ownerWorkflow.recover());
+  // Read-only node posture (spec 185 / R09A). Registered directly: it is a read of the already verified cloud origin and is
+  // deliberately not part of the cloud command allow-list in views/owner.ts. It never implies enforcement.
+  context.subscriptions.push(vscode.commands.registerCommand("netclaw.showNodePosture", async () => {
+    try {
+      if (connection.profile?.mode !== "remote-border") throw Error("Select a cloud Border connection first; node posture is published by cloud Borders.");
+      const origin = cloudInputOrigin(connection.profile.url);
+      const posture = await fetchNodePosture(origin);
+      await vscode.window.showTextDocument(await vscode.workspace.openTextDocument({ language: "markdown", content: formatPosture(posture, origin) }), { preview: true });
+    } catch (error) {
+      void vscode.window.showErrorMessage(error instanceof Error ? error.message : "Node posture is unavailable.");
+    }
+  }));
   register('setupAssistant',()=>setupAssistant.enable());
   register('setupSkill',()=>distributeSetupSkill(context));
   register('setupSpec',()=>createPreset(context,local,setupWizard.snapshot().answers));

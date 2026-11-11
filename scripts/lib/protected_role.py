@@ -198,6 +198,8 @@ def validate_ha_profile(cfg, profile, home, root):
     config = json.loads(raw, object_pairs_hook=pairs)
     fields = 'schema_version role manifest_file anchor_certificate_file anchor_key_id transport_ca_file'
     fields += ' node_id transport_certificate_file private_key_file etcd' if cfg['role'] == 'border' else ' certificate_file private_key_file'
+    if cfg['role'] == 'border' and 'listen' in config:
+        fields += ' listen'  # optional private bind override (spec 183); absent keeps the signed address
     exact(config, fields)
     need(type(config['schema_version']) is int and config['schema_version'] == 1
          and config['role'] == cfg['role'], 'ha_configuration_invalid')
@@ -219,12 +221,20 @@ def validate_ha_profile(cfg, profile, home, root):
         need(len(nodes) == 1 and nodes[0]['installation_id'] == cfg['installation_id']
              and nodes[0]['key_id'] == profile['identity']['key_id']
              and nodes[0]['endpoints']['https'] == cfg['origin'], 'ha_node_mismatch')
+        if 'listen' in config:
+            listen = config['listen']
+            need(isinstance(listen, dict) and 1 <= len(listen) <= 2 and set(listen) <= {'cluster', 'in2n'}, 'ha_listen_invalid')
+            for entry in listen.values():
+                exact(entry, 'host port')
+                try: ipaddress.ip_address(entry['host'])
+                except (ValueError, TypeError): raise RoleRefused('ha_listen_invalid') from None
+                need(type(entry['port']) is int and 1 <= entry['port'] <= 65535, 'ha_listen_invalid')
         exact(config['etcd'], 'endpoints ca_file certificate_file private_key_file username password_file')
         for key, item in config['etcd'].items():
             if key.endswith('_file'): private_bytes(path(item))
     else:
-        need(cfg['origin'] is None and isinstance(value['nodes'], list) and len(value['nodes']) == 3,
-             'ha_outbound_topology_required')
+        need(cfg['origin'] is None and isinstance(value['nodes'], list) and 2 <= len(value['nodes']) <= 3,
+             'ha_outbound_topology_required')  # spec 185: the sandboxed cluster has 2 Borders plus an etcd witness
     return config
 
 
