@@ -671,6 +671,12 @@
       "Observability & Telemetry",
       "Convergence evidence",
       "Optional retained flow rankings, same-window evidence and advisory VM Security findings (3 read-only tools)"
+    ],
+    [
+      "result-analysis",
+      "Observability & Telemetry",
+      "Large Result Analysis",
+      "Read-only count/filter/page/search over retained complete diagnostic results with coverage metadata, no code execution (7 tools)"
     ]
   ],
   "profiles": {
@@ -926,7 +932,8 @@
       "jev",
       "humanrail",
       "netconverter",
-      "convergence-read"
+      "convergence-read",
+      "result-analysis"
     ]
   },
   "skillIds": [
@@ -1115,6 +1122,7 @@
     "pyats-troubleshoot",
     "radkit-remote-access",
     "rag",
+    "result-analysis",
     "rfc-lookup",
     "sdwan-ops",
     "servicenow-change-workflow",
