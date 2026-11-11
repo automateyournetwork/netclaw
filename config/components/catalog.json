@@ -22557,6 +22557,91 @@
         "note": "Only three fixed GET endpoints; no mutations or arbitrary queries.",
         "source": "mcp-servers/convergence-read-mcp/client.py"
       }
+    },
+    {
+      "id": "result-analysis",
+      "category": "Observability & Telemetry",
+      "title": "Large Result Analysis",
+      "description": "Read-only count/filter/page/search over retained complete diagnostic results with coverage metadata, no code execution (7 tools)",
+      "whenToChoose": "**Complete read-only analysis of results too large to return inline** — counts, distributions, filtered pages, log/text search and time windows over a server-side retained copy, 7 tools. Every answer carries coverage metadata (scanned, matched, complete or not, retention truncation, stream drops and gaps, source sha256). No code execution, SQL, regex, device access or command re-run (spec 187, issue #322)",
+      "order": 112,
+      "platforms": [
+        "macos",
+        "wsl2"
+      ],
+      "platformReason": "Target platform per installer-preflight policy; native dependencies and actual discovery are checked separately.",
+      "dependencies": [],
+      "prerequisites": [
+        "Python 3.10 or newer for the selected isolated component runtime."
+      ],
+      "installer": {
+        "function": "component_install_result_analysis",
+        "mode": "scoped",
+        "effects": [
+          "runtime-home",
+          "owned-source",
+          "download"
+        ],
+        "reason": "Uses the fixed component function with owned source/runtime paths; execution requires the scoped bridge and postcondition checks."
+      },
+      "servers": [
+        "result-analysis-mcp"
+      ],
+      "skills": [
+        "result-analysis"
+      ],
+      "settings": [],
+      "links": [
+        {
+          "role": "upstream",
+          "target": "https://github.com/automateyournetwork/netclaw/tree/main/mcp-servers/analysis-mcp",
+          "unavailableReason": ""
+        },
+        {
+          "role": "netclaw",
+          "target": "mcp-servers/analysis-mcp/README.md",
+          "unavailableReason": ""
+        },
+        {
+          "role": "vendor",
+          "target": "",
+          "unavailableReason": "Project/upstream documentation is authoritative for this integration; no separate vendor guide is declared."
+        }
+      ],
+      "verification": {
+        "adapter": "native-discovery",
+        "level": "discovery",
+        "reason": "Verify this component through its selected-harness registration; artifact presence alone is insufficient."
+      },
+      "estimate": {
+        "schemas": 3,
+        "method": "documented",
+        "source": "mcp-servers/analysis-mcp/README.md",
+        "reason": "Source description count; not a live tools/list measurement."
+      },
+      "provenance": [
+        {
+          "source": "scripts/lib/install-steps.sh#component_install_analysis",
+          "checkedAt": "2026-10-17",
+          "note": "Existing installer implementation and effect inventory."
+        },
+        {
+          "source": "config/installer-preflight.json",
+          "checkedAt": "2026-10-17",
+          "note": "Declared platform/interpreter prerequisites."
+        },
+        {
+          "source": "mcp-servers/analysis-mcp/README.md",
+          "checkedAt": "2026-10-17",
+          "note": "Integration documentation."
+        }
+      ],
+      "kind": "mcp-integration",
+      "access": {
+        "mode": "unknown",
+        "note": "Permissions depend on the selected tools and backend account. This entry is not a read-only guarantee; review tool behavior and access scope before use.",
+        "source": "scripts/lib/install-steps.sh#component_install_analysis"
+      }
     }
   ],
   "skills": [
@@ -29241,6 +29326,34 @@
         "mode": "unknown",
         "note": "A skill describes procedures. It does not enforce tool permissions or approve configuration changes. Review its linked instructions and available tools.",
         "source": "workspace/skills/convergence-setup/SKILL.md"
+      }
+    },
+    {
+      "id": "result-analysis",
+      "title": "result-analysis",
+      "description": "Complete, read-only counting, filtering, paging and text search over a large diagnostic result that a tool returned as a handle envelope (inline_complete false). Use when a result says it is too large to return inline, or when asked to count/group records (e.g. Tunnel interfaces by status), search a long show logging or routing table, or analyse a bounded time window, without ever presenting a partial result as complete",
+      "path": "workspace/skills/result-analysis/SKILL.md",
+      "sha256": "805bfbfb34a594050d208bae0ecb77957478cd70ee3e42918bfe05e0c7d3829e",
+      "components": [
+        "result-analysis"
+      ],
+      "servers": [
+        "result-analysis-mcp"
+      ],
+      "availability": "supported",
+      "reason": "Requires the explicitly listed components and their configured backends; discovery is verified separately.",
+      "links": [
+        {
+          "role": "skill",
+          "target": "workspace/skills/result-analysis/SKILL.md",
+          "unavailableReason": ""
+        }
+      ],
+      "kind": "skill",
+      "access": {
+        "mode": "unknown",
+        "note": "A skill describes procedures. It does not enforce tool permissions or approve configuration changes. Review its linked instructions and available tools.",
+        "source": "workspace/skills/result-analysis/SKILL.md"
       }
     }
   ],
