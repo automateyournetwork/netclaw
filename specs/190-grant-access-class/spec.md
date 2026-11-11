@@ -13,7 +13,15 @@
 
 ### Session 2026-11-11 (autonomous; no human available, defaults recorded)
 
-(Filled by the clarify step.)
+- Q: Duplicate grants for the same peer, type and name with different classes? -> A: Creating a grant whose class differs from an existing active grant for the same peer, type and name supersedes it: the older grant is revoked (audited) and the new one is the only active grant. Creating one with the same class behaves as today. This keeps the single-grant lookup deterministic and means narrowing a grant from `read_write` to `read` takes effect immediately without a separate revoke.
+- Q: Where does a skill's `read` declaration live? -> A: Only in the operator classification table (an override). There is no self-declaration in SKILL.md, because a skill file is content the peer-facing runtime loads and is not an authorization input. Unclassified skills count as write for a `read` grant. (This replaces the earlier "operator-approved declaration" wording; FR-004 is amended accordingly.)
+- Q: How do MCP annotations get in? -> A: By an explicit operator action that submits an MCP `tools/list` payload (or a map of tool to `readOnlyHint`) for a named server to the daemon; each tool is stored as `server/tool` with source `annotation`. The daemon never fetches annotations from a remote peer and never from the callee's MCP servers at call time in this feature (live ingestion is deferred). Absence of an imported annotation means unclassified.
+- Q: What error does an access-class refusal use on the wire? -> A: NOT_ALLOWLISTED (-32001) with a generic reason that is the same text as an ungranted target ("not allowlisted"), so a peer cannot learn whether a target exists or how it is classified. The distinction exists only in the callee's audit (`access_class_denied`) and operator tools.
+- Q: Ordering of the class check versus approval and limits? -> A: Order inside the gate: hold-down, federated, grant found, access-class check, rate, budget, approval. A class refusal creates no approval, charges no rate slot and no budget, and never triggers a limit action. At admission the same gate is re-run, so a mid-wait reclassification is caught.
+- Q: Separate budgets or rates for read and write? -> A: Out of scope. Reads and writes share the spec 189 limits and counted-operation table unchanged.
+- Q: Does the Border forward the class to an iN2N member? -> A: Out of scope. The class is evaluated by the node that holds the grant. An aggregate (member-specialty) skill advertised by a Border is unclassified unless the operator classifies it, so it needs a `read_write` grant. Forwarding is recorded as a limitation.
+- Q: A task or call already running when the target is reclassified? -> A: Not interrupted. Reclassification affects the next admission only (including approval-wait admission), consistent with how revoke already behaves for admitted work.
+- Q: Classification key for tools? -> A: The same `server/tool` string used by grants. Skills use the skill name, with the `skill` type. A classification row is (target_type, target_name, class, source, updated_at).
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -63,7 +71,7 @@ An operator, or an importer feeding MCP `tools/list` annotations, classifies eac
 
 ### User Story 4 - Skill delegation is write unless declared read (Priority: P1)
 
-A peer delegates a skill with free-form text. The callee does not interpret the text. A skill is read only if the operator classified it as read (or its own definition declares so and the operator has not overridden); otherwise it counts as write and a `read` grant does not cover it.
+A peer delegates a skill with free-form text. The callee does not interpret the text. A skill is read only if the operator classified it as read; otherwise it counts as write and a `read` grant does not cover it.
 
 **Why this priority**: This is issue question 5; the text of a request is attacker-controlled input and must never decide the class.
 
@@ -107,7 +115,7 @@ Capability-card pull (`n2n/inventory_get`) stays controlled only by visibility. 
 
 - A grant replaced or revoked while a request waits: existing admission revalidation applies, now including the class.
 - Classification changes while a task already running: not interrupted (only new admission re-checks); recorded limitation.
-- Two grants for the same target with different classes: the existing lookup returns one active grant; the most recently created active grant wins is NOT assumed. The system keeps today's rule (first active grant by lookup) and rejects creating a second active grant for the same peer, type and name with a different class by superseding (revoking) the older one.
+- Two grants for the same peer, type and name with different classes: the newer supersedes (revokes) the older (see Clarifications).
 - Peer-supplied claims about class (card from a remote peer, tool annotations on the caller side) are never used to authorize.
 - An unknown target type with a class: class is ignored for types other than tool, skill, knowledge, knowledge_replica.
 - Operator sets node default to `read` for new grants: existing rows stay unchanged because the stored class is explicit.
@@ -121,7 +129,7 @@ Capability-card pull (`n2n/inventory_get`) stays controlled only by visibility. 
 - **FR-001**: Every invocation grant MUST carry an access class, one of `read` or `read_write`. The class is a ceiling: `read` permits only targets classified read; `read_write` permits any granted target (today's behavior).
 - **FR-002**: Grants created before this feature, and grants created without a class, MUST be stored and reported as `read_write` unless the operator sets a node default of `read`, in which case the default applies only to new grants and is stored explicitly on each.
 - **FR-003**: The system MUST classify each tool as `read`, `write` or `unclassified`, resolved in this order: operator override, imported MCP annotation (`readOnlyHint: true` gives read; `false` gives write; absent gives unclassified), unclassified. Annotations are used only after an explicit operator import, never fetched from a peer.
-- **FR-004**: A skill MUST be classified `read` only by an operator override or by an operator-approved declaration; otherwise it is `unclassified`. The text of a delegation request MUST NOT influence the class.
+- **FR-004**: A skill MUST be classified `read` only by an operator override (no self-declaration in the skill file); otherwise it is `unclassified`. The text of a delegation request MUST NOT influence the class.
 - **FR-005**: Under a `read` grant, a call to a target classified `write` or `unclassified` MUST be refused with NOT_ALLOWLISTED (-32001). No new wire error code is added.
 - **FR-006**: An access-class refusal MUST happen before rate counting, budget reservation and approval creation, MUST NOT debit any counter, MUST NOT start a limit action, and MUST be audited with a distinct decision `access_class_denied`.
 - **FR-007**: `requires_approval` MUST remain orthogonal: it applies only to calls that pass the class check, and an approval never widens the class.
