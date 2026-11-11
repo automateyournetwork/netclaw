@@ -589,6 +589,25 @@ def test_migrate_stages_spec_member_and_command_works(tmp_path, staging):
     assert written['tools']['allow'] == EXAMPLE['tools']['allow'] + ['memory-mcp__*', 'gait-mcp__*']
 
 
+def test_null_model_stages_the_model_the_member_home_configures(tmp_path):
+    """model null: the staged N2N_MEMBER_MODEL (passed as --model) is the member tier that
+    in2n-member-home.py configures and allows, not a placeholder the agent would reject."""
+    border = tmp_path / '.openclaw'
+    border_with_pfsense(border, 'ANTHROPIC_API_KEY=fixture\nPFSENSE_URL=https://fw\nPFSENSE_API_KEY=k\n')
+    spec = write_spec(tmp_path / 'investigator.json', model=None)
+    result = run_migrate(tmp_path, '--spec', str(spec), '--specs-only', '--hot', '')
+    assert result.returncode == 0, result.stderr
+    envfile = tmp_path / 'stage/members/alert-investigator/.env'
+    staged = re.search(r'^N2N_MEMBER_MODEL=(\S+)\s*$', envfile.read_text(), re.M).group(1)
+    command = next(l.strip() for l in result.stdout.splitlines() if 'in2n-member-home.py' in l)
+    run = subprocess.run([sys.executable, *shlex.split(command)[1:]], env=clean_env(tmp_path),
+                         capture_output=True, text=True, timeout=60)
+    assert run.returncode == 0, run.stderr
+    written = json.loads((tmp_path / '.openclaw-lab-alert-investigator/openclaw.json').read_text())
+    assert written['agents']['defaults']['model']['primary'] == staged
+    assert staged in written['agents']['defaults']['models']
+
+
 def test_migrate_refuses_invalid_or_duplicate_spec(tmp_path):
     border = tmp_path / '.openclaw'
     border_with_pfsense(border, 'ANTHROPIC_API_KEY=fixture\n')

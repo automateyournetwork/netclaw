@@ -153,7 +153,12 @@ repository's), while in2n-member-home.py copies from the Border's workspace too.
 installed set is now the union of the repository's and the selected runtime's skills
 (`_all_installed_skills`; `test_skills_installed_only_on_the_border_count_as_installed`).
 
-Results on top of e21d867c: `test_member_spec_184.py` 145 passed, `test_member_mcp_mappings_183.py`
+A spec with `model: null` staged `N2N_MEMBER_MODEL=anthropic/claude-sonnet-5` (the profile
+placeholder) while in2n-member-home.py configured and allowed only the member tier, so the
+member's `--model` override would be rejected. in2n-migrate.py now stages the model the member
+home configures (`test_null_model_stages_the_model_the_member_home_configures`).
+
+Results on top of e21d867c: `test_member_spec_184.py` 146 passed, `test_member_mcp_mappings_183.py`
 50 passed (installed OpenClaw 2026.10.9). Full `tests/n2n` (fastmcp4 runtime): main 32 failed,
 1975 passed, 16 skipped, 179 errors; this branch the identical failing/erroring ids and 2163+
 passed. The failures and errors come from modules not installed on this host (for example

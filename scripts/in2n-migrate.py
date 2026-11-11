@@ -171,7 +171,10 @@ def main():
         slice_keys = prof.spec_env_slice_keys(spec, set(live_env.keys()), border_servers)
         summary.append(_stage_member(args, mdir, name, f"{args.risk}/{name}", name in hot, spec["scope"],
                                      [live_env[k] for k in slice_keys], len(slice_keys),
-                                     model=spec["model"]))
+                                     # The model in2n-member-home.py configures (the spec's, else the
+                                     # member tier): the member passes it as --model, and its agent
+                                     # accepts only that model.
+                                     model=spec["model"] or prof.model_tier(name)))
 
     # Border additions (role only — comms secrets stay in ~/.openclaw/.env)
     with open(os.path.join(staging, "border.env.additions"), "w") as fh:
