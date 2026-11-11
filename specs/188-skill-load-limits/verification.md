@@ -3,8 +3,8 @@
 Run on macOS, pytest 9.1.1, python3 3.14 (Homebrew), 2026-11-11.
 
 ## Real results
-- `pytest tests/skill_limits -q`: 31 passed (policy validation, raise-only merge, idempotence, Border `merge_config`, member config, CLI check, reconcile surface).
-- `pytest tests/n2n/test_member_spec_184.py tests/n2n/test_member_spec_providers_186.py tests/n2n/test_member_mcp_mappings_183.py tests/skill_limits -q`: 262 passed, 9 skipped (skips are pre-existing; baseline before this change on the 183/184/186 files was 231 passed, 9 skipped). One existing assertion in `test_member_spec_184.py` was updated because spec members now also carry `skills.limits`.
+- `pytest tests/skill-limits -q`: 31 passed (policy validation, raise-only merge, idempotence, Border `merge_config`, member config, CLI check, reconcile surface).
+- `pytest tests/n2n/test_member_spec_184.py tests/n2n/test_member_spec_providers_186.py tests/n2n/test_member_mcp_mappings_183.py tests/skill-limits -q`: 262 passed, 9 skipped (skips are pre-existing; baseline before this change on the 183/184/186 files was 231 passed, 9 skipped). One existing assertion in `test_member_spec_184.py` was updated because spec members now also carry `skills.limits`.
 - `python3 scripts/check-skill-limits.py`: exit 0, 240 shipped skills covered. A synthetic 401-skill directory exits 1 naming `maxSkillsLoadedPerSource 400 < 401`.
 - `python3 scripts/install-mcp-config.py ... --config <tmp>` run by hand twice: the first run raised limits and kept an operator value of 999; the second run created no new backup (idempotent).
 - `python3 scripts/reconcile-mcp.py` (exit code read directly, not through a pipe): rc=1 both before and after this change. Failures are the pre-existing ones only (humanrail dependency pin; `startup` surface on servers that cannot start on this host). The new `skill-limits` surface passes.

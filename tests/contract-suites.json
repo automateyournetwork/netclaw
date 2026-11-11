@@ -956,6 +956,24 @@
         "prepend_path": false
       },
       "timeout_seconds": 300
+    },
+    "skill-limits": {
+      "kind": "pytest",
+      "paths": [
+        "tests/skill-limits"
+      ],
+      "environment": {
+        "path": ".contract-test-envs/skill-limits",
+        "requirements": [],
+        "packages": [
+          "pytest>=8,<9"
+        ],
+        "required_imports": [
+          "pytest"
+        ],
+        "prepend_path": false
+      },
+      "timeout_seconds": 180
     }
   }
 }

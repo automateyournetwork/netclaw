@@ -28,7 +28,7 @@ Measured per shipped skill: len(name) + len(frontmatter description) + 120 overh
 `reconcile-mcp.py` runs scripts as subprocesses via a SURFACES map and CI runs it. Add `"skill-limits": ("check-skill-limits.py", ...)`. Findings are lines prefixed `skill-limits:` and must be added to the prefix list in `extract_findings` so they show.
 
 ## R6 Tests
-No central pytest config for tests/; n2n tests run with `python3 -m pytest tests/n2n`. New dir `tests/skill_limits/` run with `python3 -m pytest tests/skill_limits`.
+No central pytest config for tests/; n2n tests run with `python3 -m pytest tests/n2n`. New dir `tests/skill-limits/` run with `python3 -m pytest tests/skill-limits`.
 
 ## R7 Not verifiable here
 Real OpenClaw option behaviour (names per the issue) cannot be exercised on this host without a gateway; recorded in verification.md.

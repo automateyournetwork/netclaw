@@ -12,7 +12,7 @@ OpenClaw loads at most 200 skills per source and injects at most 150 skills / 18
 **Language/Version**: Python 3.10+, stdlib only
 **Primary Dependencies**: none new
 **Storage**: files only (`config/skill-limits.json`; runtime `openclaw.json` edited in place by the existing atomic private writer)
-**Testing**: pytest (`tests/skill_limits/`), plus `python3 scripts/reconcile-mcp.py --surface skill-limits`
+**Testing**: pytest (`tests/skill-limits/`), plus `python3 scripts/reconcile-mcp.py --surface skill-limits`
 **Target Platform**: macOS and Ubuntu/WSL installers; CI container
 **Project Type**: installer/tooling scripts
 **Performance Goals**: check completes in under 2 s (reads ~240 small files)
@@ -46,7 +46,7 @@ scripts/install-mcp-config.py            # merge_config applies limits (OpenClaw
 scripts/in2n-member-home.py              # spec_skills_section adds limits
 .github/workflows/mcp-reconciliation.yml # path triggers for workspace/skills/** and the policy
 docs/ADDING-AN-MCP.md                    # limits section, adjust not_loaded text
-tests/skill_limits/                      # NEW tests
+tests/skill-limits/                      # NEW tests
 ```
 
 **Structure Decision**: single shared library imported by both writers and the check, so the three can never disagree.
