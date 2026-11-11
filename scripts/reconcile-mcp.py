@@ -72,6 +72,10 @@ SURFACES = {
     # installs — unbounded pins on packages whose submodules are imported, bare
     # pip invocations, and ensurepip-dependent venv creation.
     "dependencies": ("check-dependency-pins.py", "dependency pins and install paths"),
+    # Added by spec 188 (issue #326): OpenClaw silently never loads skills past its per-source
+    # limit (200 by default) and hides eligible ones past its prompt limits. Fails when the
+    # shipped workspace skills exceed the limits NetClaw configures (config/skill-limits.json).
+    "skill-limits": ("check-skill-limits.py", "shipped skills fit configured OpenClaw limits"),
 }
 
 EXIT_OK = 0
@@ -107,7 +111,8 @@ def run_surface(name, warn_only):
         # predate it. Probing --help would be slower and no more reliable than
         # simply not forwarding it, since this wrapper enforces warn-only itself.
         if script in ("check-mcp-portability.py", "check-dependency-pins.py",
-                      "check-meraki-capability-ids.py", "check-package-references.py"):
+                      "check-meraki-capability-ids.py", "check-package-references.py",
+                      "check-skill-limits.py"):
             cmd.append("--warn-only")
 
     proc = subprocess.run(cmd, capture_output=True, text=True)
@@ -131,7 +136,7 @@ def extract_findings(output):
             findings.append(stripped[2:])
         elif stripped.startswith(("portability:", "unlocatable:", "flagged:", "note:",
                                   "ERROR:", "pins:", "bare-pip:", "venv:",
-                                  "startup:", "meraki-ids:", "packages:")):
+                                  "startup:", "meraki-ids:", "packages:", "skill-limits:")):
             findings.append(stripped)
         elif line.startswith("  ") and (
             "claims" in stripped or "no matching" in stripped or "no recorded state" in stripped
