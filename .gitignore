@@ -121,6 +121,7 @@ mcp-servers/multivendor-cli-mcp/.venv/
 !mcp-servers/catc-mcp/
 !mcp-servers/nsm-mcp/
 !mcp-servers/analysis-mcp/
+!mcp-servers/result-analysis-mcp/
 !mcp-servers/redfish-mcp/
 # Re-ignore the downloaded upstream binary: 75 MB, fetched at install and
 # verified against CHECKSUMS. The negation above would otherwise commit it (spec 084).
