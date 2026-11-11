@@ -3009,6 +3009,22 @@ fi
 echo ""
 }
 
+# ── Cisco IQ remote MCP (spec 191, issue #346) ─
+component_install_cisco_iq() {
+log_step "Preparing Cisco IQ (official remote MCP)..."
+echo "  Source: Cisco IQ remote MCP, Streamable HTTP (regions: emea, us, apjc)"
+echo "  Read-only by NetClaw policy; key must be owned by a user principal"
+
+# Nothing to clone or pip install. The registration needs an explicit region and a
+# credential, so it is written by the administrator script, never pre-seeded or guessed.
+log_info "Remote HTTP MCP — no local install. Enable it with:"
+echo "    printf '%s' \"\$CISCO_IQ_KEY\" | scripts/cisco-iq-enable.sh enable --region <emea|us|apjc> --key-stdin"
+echo "    scripts/cisco-iq-enable.sh diagnose    # also: rotate, update, disable, policy-check"
+echo "  Guide: docs/CISCO-IQ.md"
+
+echo ""
+}
+
 # ── DevNet Content Search MCP (spec 026, backfilled for catalog parity) ─
 component_install_devnet_content_search() {
 log_step "Configuring DevNet Content Search MCP..."

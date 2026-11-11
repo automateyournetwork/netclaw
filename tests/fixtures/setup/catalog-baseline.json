@@ -677,6 +677,12 @@
       "Observability & Telemetry",
       "Large Result Analysis",
       "Read-only count/filter/page/search over retained complete diagnostic results with coverage metadata, no code execution (7 tools)"
+    ],
+    [
+      "cisco-iq",
+      "Fabric & Orchestration",
+      "Cisco IQ",
+      "Official remote MCP — assets, lifecycle/coverage, bugs (administrator-selected region, read-only policy)"
     ]
   ],
   "profiles": {
@@ -933,7 +939,8 @@
       "humanrail",
       "netconverter",
       "convergence-read",
-      "result-analysis"
+      "result-analysis",
+      "cisco-iq"
     ]
   },
   "skillIds": [
@@ -971,6 +978,7 @@
     "catc-inventory",
     "catc-troubleshoot",
     "checkpoint",
+    "cisco-iq",
     "cisco-psirt-advisories",
     "clab-lab-management",
     "claroty-asset-inventory",

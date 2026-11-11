@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "cisco-iq-policy",
+  "type": "object",
+  "required": ["schema_version", "mode", "read_only", "allow", "deny_patterns"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "mode": {"const": "deny-by-default"},
+    "read_only": {"const": true},
+    "allow": {"type": "array", "items": {"type": "object", "required": ["name", "verified"],
+      "properties": {"name": {"type": "string", "minLength": 1}, "verified": {"type": "boolean"}, "note": {"type": "string"}}}},
+    "deny_patterns": {"type": "array", "items": {"type": "string"}},
+    "notes": {"type": "string"}
+  }
+}

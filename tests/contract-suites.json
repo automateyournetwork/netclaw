@@ -936,6 +936,33 @@
       },
       "timeout_seconds": 180
     },
+    "cisco-iq": {
+      "kind": "shell",
+      "command": [
+        "bash",
+        "tests/cisco-iq/run-tests.sh"
+      ],
+      "environment": {
+        "path": null,
+        "requirements": [],
+        "packages": [],
+        "required_imports": [],
+        "prepend_path": false
+      },
+      "live": {
+        "mode": "all",
+        "env": [
+          "CISCO_IQ_API_KEY"
+        ],
+        "command": [
+          "bash",
+          "-c",
+          "scripts/cisco-iq-enable.sh diagnose --live"
+        ],
+        "description": "opt-in Cisco IQ connectivity check with a real user-principal key"
+      },
+      "timeout_seconds": 120
+    },
     "result-analysis": {
       "kind": "pytest",
       "paths": [
