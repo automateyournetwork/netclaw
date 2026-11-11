@@ -495,9 +495,10 @@ for m in d.get("members", []):
 '
 }
 
-risk_add() {  # risk_add <profile|custom> <name> [csv-skills]
+risk_add() {  # risk_add <profile|custom> <name> [csv-skills] | risk_add spec <member-spec.json> [--allow-dangerous-tools]
     local profile="$1" name="$2" specialty="$3"
-    [ -n "$name" ] || { echo "usage: netclaw risk add <profile|custom> <name> [skill,skill]"; return 1; }
+    if [ "$profile" = "spec" ]; then risk_add_spec "$name" "$specialty"; return; fi
+    [ -n "$name" ] || { echo "usage: netclaw risk add <profile|custom> <name> [skill,skill] | spec <member-spec.json> [--allow-dangerous-tools]"; return 1; }
     local body
     if [ "$profile" = "custom" ]; then
         body="{\"name\":\"$name\",\"profile\":\"custom\",\"specialty\":[$(echo "$specialty" | awk -F, '{for(i=1;i<=NF;i++){printf "%s\"%s\"", (i>1?",":""), $i}}')]}"
@@ -516,6 +517,43 @@ print("      N2N_ROLE=member N2N_RISK_NAME=%s N2N_BORDER_ENDPOINT=%s" % (
     j.get("N2N_RISK_NAME"), j.get("N2N_BORDER_ENDPOINT")))
 print("      N2N_ENROLLMENT_TOKEN=%s" % j.get("token"))
 '
+}
+
+risk_add_spec() {  # risk_add_spec <member-spec.json> [--allow-dangerous-tools] (spec 184)
+    # Validated against the selected Border template first; the daemon then records a
+    # custom member whose specialty is the spec's scope and issues its token. Dangerous
+    # built-in tools are refused unless the operator passes --allow-dangerous-tools,
+    # which is then carried into the printed staging command.
+    local file="$1" optin="$2" spec body
+    [ -n "$file" ] || { echo "usage: netclaw risk add spec <member-spec.json> [--allow-dangerous-tools]"; return 1; }
+    case "$optin" in ""|--allow-dangerous-tools) ;; *) echo "usage: netclaw risk add spec <member-spec.json> [--allow-dangerous-tools]"; return 1;; esac
+    spec="$(python3 "$NETCLAW_ROOT/scripts/in2n-profiles.py" spec "$file" ${optin:+"$optin"})" || return 1
+    body="$(printf '%s' "$spec" | python3 -c 'import json, sys
+s = json.load(sys.stdin)
+print(json.dumps({"name": s["name"], "profile": "custom", "specialty": s["scope"]}))')"
+    api_post /n2n/members/add "$body" | python3 -c '
+import json, shlex, sys
+root, spec, optin = sys.argv[1], sys.argv[2], sys.argv[3:]
+try: d = json.load(sys.stdin)
+except Exception: print("    daemon not reachable (is the mesh daemon running?)"); sys.exit(1)
+if "error" in d: print("    error: %s" % d["error"]); sys.exit(1)
+join = d.get("join") or {}
+risk = join.get("N2N_RISK_NAME") or d["member_id"].split("/")[0]
+# The daemon reports "<border-host:port>" when the risk has no recorded endpoint; a
+# member on this host then dials the loopback iN2N listener (in2n-migrate.py default).
+endpoint = join.get("N2N_BORDER_ENDPOINT") or ""
+endpoint = endpoint if endpoint and not endpoint.startswith("<") else "127.0.0.1:11790"
+print("    provisioned %s (member spec %s)" % (d["member_id"], spec))
+print("    enrollment token: %s" % d["enrollment_token"])
+print("    stage its least-privilege .env (prints the exact in2n-member-home.py --spec command):")
+# --hot "" stages it on-demand explicitly: without it in2n-migrate.py would apply its
+# default always-on list (profile ids, which a spec name can never equal).
+print("      " + " ".join(shlex.quote(x) for x in ("python3", root + "/scripts/in2n-migrate.py",
+      "--risk", risk, "--spec", spec, "--specs-only", *optin,
+      "--staging", root + "/migration-staging/" + risk,
+      "--border-endpoint", endpoint, "--hot", "")))
+print("    this member is already added: skip the runbook step that adds it again.")
+' "$NETCLAW_ROOT" "$(cd "$(dirname "$file")" && pwd)/$(basename "$file")" ${optin:+"$optin"}
 }
 
 risk_remove() {  # risk_remove <member_id>
