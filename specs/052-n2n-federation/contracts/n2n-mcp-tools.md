@@ -27,7 +27,7 @@ The gateway agent uses these tools to answer operator asks like
 | `n2n_approvals` | — | List pending inbound approval requests |
 | `n2n_approve` / `n2n_deny` | `approval_id` | Resolve an approval from any connected channel (research R6) |
 | `n2n_audit` | `peer?, limit?` | Recent invocation/chat audit records (FR-015/FR-022) |
-| `n2n_config` | `peer, chat_enabled?, budgets…` | Per-peer chat toggle, budget and rate overrides |
+| `n2n_config` | `peer, chat_enabled?, budgets…` | Per-peer chat toggle, budget and rate overrides. Spec 189 adds `limit_action`, `warn_threshold`, `restart_timer_s`, `reset_limits`, `clear_hold_down` (see `docs/N2N-PEER-LIMITS.md`) |
 
 ## Response conventions
 

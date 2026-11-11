@@ -1278,6 +1278,13 @@
         "NSM_TIMEOUT": "${NSM_TIMEOUT}"
       }
     },
+    "result-analysis-mcp": {
+      "command": "python3",
+      "args": [
+        "-u",
+        "mcp-servers/result-analysis-mcp/server.py"
+      ]
+    },
     "analysis-mcp": {
       "command": "python3",
       "args": [

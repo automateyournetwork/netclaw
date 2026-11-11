@@ -75,6 +75,19 @@ _speaker = None
 _injected = {}
 
 
+def _limits_summary(fed, ident):
+    """Compact peer-limit state for /n2n/status and the HUD (spec 189); never raises."""
+    try:
+        st = fed.authz.limit_status(ident)
+        pol = st["policy"]
+        return {"action": pol["action"], "requests_used": st["requests_used"],
+                "requests_limit": pol["daily_requests"], "tokens_used": st["tokens_used"],
+                "tokens_limit": pol["daily_tokens"], "warned": st["warned"],
+                "hold_down_remaining_s": st["hold_down_remaining_s"]}
+    except Exception:
+        return None
+
+
 def federation_ready(runtime):
     if not N2N_ENABLED or _federation is None:
         return False
@@ -263,6 +276,7 @@ async def handle_n2n(method, path, body):
                     "inventory_version": (meta or {}).get("inventory", {}).get("version") if meta else None,
                     "inventory_received_at": (meta or {}).get("received_at") if meta else None,
                     "stale": (meta or {}).get("stale") if meta else None,
+                    "limits": _limits_summary(fed, p["identity"]),   # spec 189 (additive)
                 })
             return 200, {"enabled": True, "identity": fed.local_identity, "peers": peers,
                          "endpoint_registry": fed.endpoint_status()}
@@ -318,6 +332,7 @@ async def handle_n2n(method, path, body):
             if not peer:
                 return 404, {"error": "unknown peer"}
             peer["budget"] = fed.authz.budget_status(ident)
+            peer["limits"] = fed.authz.limit_status(ident)   # spec 189
             return 200, peer
 
         if len(parts) == 4 and parts[1] == "peers" and parts[3] == "refresh" and method == "POST":
@@ -408,8 +423,29 @@ async def handle_n2n(method, path, body):
             ident = body["peer"]
             if "chat_enabled" in body:
                 mgr.set_chat_enabled(ident, bool(body["chat_enabled"]))
-            return 200, {"success": True, "peer": ident,
-                         "chat_enabled": bool(mgr.get_peer(ident)["chat_enabled"])}
+            # spec 189: per-peer limit policy (the 052 n2n_config budget/rate overrides)
+            limit_fields = {k: body[k] for k in ("rate_per_min", "daily_requests", "daily_tokens",
+                                                 "limit_action", "warn_threshold", "restart_timer_s")
+                            if k in body}
+            if "limit_action" in limit_fields:
+                limit_fields["action"] = limit_fields.pop("limit_action")
+            limits = None
+            try:
+                if limit_fields:
+                    limits = fed.authz.set_policy(ident, **limit_fields)
+                if body.get("reset_limits"):
+                    fed.authz.reset_limits(ident, actor="n2n_config")
+                if body.get("clear_hold_down"):
+                    fed.authz.clear_hold_down(ident, actor="n2n_config")
+            except ValueError as e:
+                return 400, {"error": str(e)}
+            resp = {"success": True, "peer": ident}
+            row = mgr.get_peer(ident)
+            if row:
+                resp["chat_enabled"] = bool(row["chat_enabled"])
+            if limits is not None or body.get("reset_limits") or body.get("clear_hold_down"):
+                resp["limits"] = fed.authz.limit_status(ident)
+            return 200, resp
 
         # ---- US3: chat ----
         if path in ("/n2n/chat/open", "/n2n/chat/send") and method == "POST":

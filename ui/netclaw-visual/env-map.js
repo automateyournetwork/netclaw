@@ -14230,5 +14230,6 @@ export const COMPONENT_SETTINGS = {
         }
       ]
     }
-  ]
+  ],
+  "result-analysis": []
 };

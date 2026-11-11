@@ -123,6 +123,8 @@ class FederationService:
         from .chat import ChatManager
         from .tasks import TaskManager
         self.authz = Authorizer(self.manager)
+        self.authz.audit = self.audit                    # spec 189: limit events
+        self.authz.teardown_hook = self._limit_teardown  # spec 189: max-prefix-style teardown
         self.invoker = Invoker(self)
         self.chat = ChatManager(self)
         self.tasks = TaskManager(self.manager, self.audit,
@@ -417,6 +419,25 @@ class FederationService:
         return {"identity": self.local_identity, "display_name": self.display_name,
                 "version": "1.0", "capabilities": local_descriptor()}
 
+    def _limit_teardown(self, ident: str, reason: str):
+        """Spec 189: a peer exceeded a limit under the `teardown` action. Close its
+        channel shortly after the refusal is flushed. Consent is NOT revoked (unlike
+        sever_local): the peer may re-establish once the persisted hold-down expires."""
+        ch = self.channels.get(ident)
+        if ch is None:
+            return
+        logger.warning("Limit teardown of %s (%s)", ident, reason)
+
+        async def _close_later():
+            await asyncio.sleep(0.25)   # let the RpcError response reach the peer
+            if self.channels.get(ident) is ch:
+                self.channels.pop(ident, None)
+            await ch.close()
+        try:
+            asyncio.get_running_loop().create_task(_close_later())
+        except RuntimeError:
+            pass  # no loop (sync unit-test context): hold-down alone enforces
+
     def _register_channel(self, ident, ch):
         """Track a channel and set its on_close hook so a dead channel
         deregisters itself (US2) — no zombie channels lingering in the registry.
@@ -425,6 +446,9 @@ class FederationService:
         already holds this identity and the incoming one is an inbound, tier-0
         (self-asserted) session — a keyless peer must not knock the pinned peer
         offline. Our own outbound re-dials (is_initiator) always replace."""
+        if not ch.is_initiator and self.authz.hold_down_remaining(ident) > 0:
+            logger.warning("Refusing inbound channel for %s — limit hold-down active", ident)
+            return False
         existing = self.channels.get(ident)
         if (existing is not None and getattr(existing, "attestation", "") == "possession"
                 and not ch.is_initiator and getattr(ch, "attestation", "") != "possession"):
@@ -734,6 +758,13 @@ class FederationService:
         self.manager.upsert_peer(peer_as, router_id)
         if not self.manager._has_consent(ident, "local_grant"):
             logger.info("NCFED from %s but no local consent — closing (FR-003)", ident)
+            try:
+                writer.close()
+            except Exception:
+                pass
+            return
+        if self.authz.hold_down_remaining(ident) > 0:
+            logger.info("NCFED from %s refused — limit hold-down active (spec 189)", ident)
             try:
                 writer.close()
             except Exception:

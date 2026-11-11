@@ -717,6 +717,86 @@ MEMBER_ID_TAKEN (-32022) reports an enrollment whose member identifier is alread
 pinned to a different key. A key-possession failure at `in2n/hello` or
 `in2n/enroll` is reported as MEMBER_NOT_TRUSTED (-32023).
 
+# Peer Limits {#limits}
+
+This section specifies what the limits behind BUDGET_EXHAUSTED (-32004) and
+RATE_LIMITED (-32005) ({{errors}}) count, their scope, what a receiver does when a
+peer exceeds them, and how counters recover. Limits are enforced by the receiver and
+are local policy: they are not negotiated and add no method, field, or error code to
+the wire. A receiver that implements none of this section behaves as a peer that
+always refuses on exceed ({{limits-exceed}}), which is the behavior of this
+document's reference implementation by default.
+
+The operator practice of a BGP maximum-prefix limit -- a warning threshold, a hard
+limit, and a choice between logging, discarding, or tearing down the session with a
+restart timer -- is used here only as an analogy for the design. This document does
+not claim that the mechanisms are equivalent or reproduce any BGP specification's
+wording.
+
+## What counts {#limits-count}
+
+A receiver counts one *request unit* against the sending peer, and one slot in that
+peer's per-minute rate window, for each inbound request that causes it to do work or
+spend model tokens: `n2n/tools/call`, skill invocation, `n2n/tasks/submit`,
+`n2n/chat/message`, `n2n/knowledge/query`, and every knowledge-replication request
+(`n2n/knowledge/replicate_manifest` and each `n2n/knowledge/replicate_batch` page).
+A receiver additionally counts tokens consumed on the peer's behalf against a
+separate token budget.
+
+The following are not counted: `n2n/hello`, heartbeats, capability-card and
+inventory exchange, `n2n/tasks/status`, `n2n/tasks/result`, `n2n/tasks/cancel`, and
+chat open/close. They are bookkeeping on work already admitted, or carry no work.
+A refused request is never debited against a budget; it remains subject to the rate
+check.
+
+## Scope and recovery {#limits-scope}
+
+Limits are per peer: a sliding 60-second request rate, a request budget per UTC day,
+and a token budget per UTC day, evaluated against the receiver's own clock. A
+receiver MAY additionally enforce an aggregate cap on the UTC-day request and token
+budgets summed across all peers; this is off unless configured. Counters recover
+as follows: the rate window slides; budgets reset at the UTC day boundary; a
+teardown hold-down ({{limits-exceed}}) ends when its restart timer expires; and an
+operator MAY reset a peer's counters, warning state, and hold-down explicitly. An
+operator reset is a local audited action with no wire representation.
+
+## Warning threshold {#limits-warn}
+
+A receiver MAY raise a warning when a peer's usage crosses a configured fraction of
+a daily limit (reference default: 0.8). A warning is edge-triggered, once per limit
+per UTC day, and is observable only to the operator (audit and status); it never
+changes the response to the peer.
+
+## Exceed actions {#limits-exceed}
+
+On exceeding a limit the receiver applies one of three actions, selectable per peer:
+
+refuse:
+: The request is refused with RATE_LIMITED or BUDGET_EXHAUSTED and the channel is
+  kept. This is the default and is the only behavior this document's wire protocol
+  requires of a limit-enforcing receiver.
+
+warn:
+: The request proceeds; the receiver records the event and continues counting. No
+  wire signal is produced. Under this action the rate limit is also advisory.
+
+teardown:
+: The request is refused as for `refuse`; the receiver then closes the channel and
+  refuses new channels from that peer until a restart timer expires (reference
+  default: 300 seconds). Requests received during the hold-down are answered
+  SEVERED (-32007) if a channel exists, and an inbound channel attempt is closed.
+  The hold-down is local state and SHOULD be persisted so that a receiver restart
+  does not clear it. A teardown does not revoke consent ({{trust-en2n}}); the peer
+  remains federated and may re-establish the channel when the timer expires.
+  Teardown applies to eN2N peers only; an iN2N channel ({{trust-in2n}}) is never
+  torn down by a limit.
+
+A peer SHOULD treat RATE_LIMITED and BUDGET_EXHAUSTED as back-pressure and not retry
+before the rate window or UTC day allows, and MUST NOT interpret a channel closure
+as loss of federation consent. A limit being met on the aggregate cap applies the
+action configured for the peer whose request crossed it; other peers' channels are
+not affected.
+
 # Version Signaling and Capability Advertisement {#negotiation}
 
 NCFED features are advertised in-band at `n2n/hello`, not in the binary handshake.
@@ -824,7 +904,8 @@ grant has been recorded so far, not on a fixed order.
 Only `n2n/hello` is accepted before `federated`. Remote tool invocation is
 default-deny: a tool call is rejected (NOT_ALLOWLISTED) unless a per-peer grant
 authorizes it, and grants MAY carry approval requirements, budgets, and rate limits
-(reflected in the error codes of {{errors}}). Severing revokes the local grant and
+(reflected in the error codes of {{errors}}; the semantics of those limits are
+specified in {{limits}}). Severing revokes the local grant and
 drops the channel (the operator kill switch); re-consent restores the local grant,
 returning the peer to `not_federated`, from which it may re-federate. As noted in
 {{handshake}}, the numerically lower AS initiates the channel.
@@ -923,6 +1004,11 @@ application-layer mutual authentication above.
 
 * A standalone claw is a degenerate risk of one that is its own Border; no protocol
   change is required for that case.
+
+* Peer limits: operators SHOULD review per-peer limits for peers that replicate
+  knowledge collections, since each batch page counts as a request ({{limits-count}}).
+  A teardown hold-down is local state and SHOULD be persisted across restarts
+  ({{limits-exceed}}).
 
 * Endpoint mobility: peers reached over ephemeral transports (tunnels whose public
   address rotates) change address routinely. An implementation SHOULD persist the
@@ -1091,6 +1177,9 @@ at the request of a remote AI agent. Deployments:
 * MUST treat content returned across the federation boundary (tool results, task
   output) as untrusted input to the local agent, which can carry prompt-injection
   payloads; such content SHOULD NOT be interpreted as instructions;
+* SHOULD enforce the per-peer limits of {{limits}}; exceeding a limit SHOULD be
+  visible to the operator, and persistent abusers MAY be torn down with a restart
+  timer;
 * SHOULD log every federated invocation at the Border for audit, and MAY gate
   execution behind a production-mode guardrail that inspects model input/output;
 * SHOULD bound delegation depth to prevent loops when federated agents can themselves
@@ -1115,8 +1204,9 @@ could hold a reassembly buffer open indefinitely with a drip of legal zero-lengt
 fragments, each of which also resets the liveness accounting of {{heartbeat}} --
 the size bound alone does not close that hole. The heartbeat mechanism ({{heartbeat}}) and
 cold-start ({{operational}}) can be abused as resource-exhaustion vectors; operators
-SHOULD apply the per-peer rate/approval controls above and the port protections of
-{{seccons-port}}.
+SHOULD apply the per-peer rate/approval controls above, the limit semantics of
+{{limits}} (including, where a peer repeatedly exceeds its limits, the teardown
+action with a restart timer), and the port protections of {{seccons-port}}.
 
 ## Capability-card privacy {#seccons-priv}
 
@@ -1583,6 +1673,14 @@ Changes in internal `-02` (July 2026, from internal `-01`):
 * Operational Considerations ({{operational}}): endpoint persistence guidance --
   persist the last successfully authenticated endpoint; never overwrite it on a
   failed dial.
+
+Changes for issue #343 (unreleased edit of the working source):
+
+* New {{limits}} ("Peer Limits"): normative statement of what counts toward
+  BUDGET_EXHAUSTED/RATE_LIMITED, per-peer scope with an optional aggregate cap,
+  warning threshold, the refuse/warn/teardown exceed actions, and counter recovery.
+  No wire change; the default remains refuse-and-keep-channel. Cross-references
+  added from {{trust-en2n}}, {{operational}}, {{seccons-deleg}} and {{seccons-dos}}.
 
 # Acknowledgments
 {:numbered="false"}
