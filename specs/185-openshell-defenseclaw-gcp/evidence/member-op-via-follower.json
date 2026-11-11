@@ -1,0 +1,205 @@
+{
+ "entered_via": "nne2",
+ "operation": {
+  "allowed_actions": [
+   "reconcile",
+   "revoke"
+  ],
+  "approval": {
+   "approval_id": "3c4037a1-0fca-4126-b101-cba29042af8e",
+   "digest": "9d25f1dd94d73994409fb8d4ab7a0fe0d81bc079f47c268897c142407ffe7294",
+   "expires_at_ms": 1794416034057
+  },
+  "attempt_count": 1,
+  "authority": {
+   "cluster_id": "a02aaf7c-8cca-402e-9867-374db11b8e58",
+   "epoch": 8,
+   "generation": "55449b6d-3488-4d0d-97d4-ca4b3b083b47",
+   "mode": "cluster",
+   "observation_only": true,
+   "served_by": "d202999a-f990-4fcd-896b-23b53deb1e7a"
+  },
+  "client_nonce": "2545dcd6-13af-4510-98a8-c063aacdec6f",
+  "error_code": null,
+  "may_have_executed": true,
+  "operation_id": "7053a0c2-7568-43aa-a89e-e874bdce7e08",
+  "reconciliation_required": false,
+  "result": {
+   "ack_delivery_pending": false,
+   "digest": "f3a6db631db43c56f91f2650dc4b5c692b61bf762c6b470a3407fc27c036728b",
+   "durable_ack": true,
+   "evidence": {
+    "approval_id": "3c4037a1-0fca-4126-b101-cba29042af8e",
+    "approval_sha256": "9d25f1dd94d73994409fb8d4ab7a0fe0d81bc079f47c268897c142407ffe7294",
+    "attempt_id": "28af45dd-c22b-494d-a50e-fd8d42d48d31",
+    "audit_refs": {
+     "approval": "9d25f1dd94d73994409fb8d4ab7a0fe0d81bc079f47c268897c142407ffe7294",
+     "dispatch": "83ff885e659859c3ff27f6f8a665803643be0cd9",
+     "effect": "b25d2d29ac9998240b2392e6033cd1611fd92a27",
+     "result": "a7bb6035e216d27b012512bb07e6ea1709952576"
+    },
+    "border": {
+     "authority_generation": "55449b6d-3488-4d0d-97d4-ca4b3b083b47",
+     "identity": "nc182-r09-border-nne1",
+     "installation_id": "5a89cc2a-1eae-4a23-aaf1-2f31d806f11b",
+     "key_id": "af67aadbe30645846fe52a2feb6ffc7bd63b676bba936710dfa4f3585d7a0ec4"
+    },
+    "cluster": {
+     "authority_epoch": 8,
+     "cluster_id": "a02aaf7c-8cca-402e-9867-374db11b8e58",
+     "generation": "55449b6d-3488-4d0d-97d4-ca4b3b083b47",
+     "issuer_node_id": "a3197600-6a9f-479e-8d5e-816743c99927",
+     "manifest_revision": 1
+    },
+    "effect_status": "finished",
+    "error_code": null,
+    "finished_at_ms": 1794415885976,
+    "member": {
+     "enrollment_generation": "245c69ee-8926-4038-963e-de8ae9cafee9",
+     "installation_id": "1939c7e1-5f16-480a-af8b-4135b0d83fca",
+     "key_id": "85da5d95ee75bb1b7facf368a32675a685314222932e487e4beecd488e66eb97",
+     "member_id": "nc182-r09/hsubnet-c3408a"
+    },
+    "model_profile": {
+     "guard_policy_sha256": "280217ab8f006c8a20c5afed4be2de0d5623af3595b20216f9192f797407c274",
+     "model": "claude-sonnet-4-6",
+     "profile_id": "hosted-anthropic-claude-sonnet-4-6",
+     "profile_revision": "afd7b410784bccce0fcf62b9b6b7b36330ceafc2881b3d9ff85d97d2471123c4",
+     "provider": "anthropic",
+     "runtime_kind": "openclaw",
+     "runtime_version": "2026.7.1-2"
+    },
+    "operation_id": "7053a0c2-7568-43aa-a89e-e874bdce7e08",
+    "outcome": "succeeded",
+    "output": {
+     "model_answer": "Here's a summary of the actual returned data for **192.0.2.0/26**:\n\n| Field | Value |\n|---|---|\n| **Network** | 192.0.2.0/26 |\n| **Prefix Length** | /26 |\n| **Netmask** | 255.255.255.192 |\n| **Wildcard Mask** | 0.0.0.63 |\n| **Broadcast** | 192.0.2.63 |\n| **Total Addresses** | 64 |\n| **Usable Hosts** | 62 |\n| **First Usable Host** | 192.0.2.1 |\n| **Last Usable Host** | 192.0.2.62 |\n| **Previous Subnet** | 192.0.1.192/26 |\n| **Next Subnet** | 192.0.2.64/26 |\n\n**Key takeaways:**\n- This is a **/26** subnet carved from the TEST-NET-1 range (192.0.2.0/24, per RFC 5737 \u2014 documentation/example use only, not routable on the public internet).\n- The block spans **192.0.2.0 \u2013 192.0.2.63**, with 62 usable host addresses between .1 and .62.\n- The netmask `255.255.255.192` reflects that the last octet's top 2 bits are network bits (64-address block).\n- For ACL use, the wildcard mask is `0.0.0.63`.\n\nThe tool was called exactly once, and the result includes independent verification confirmation (`independent_verification: true`).",
+     "tool": {
+      "arguments": {
+       "cidr": "192.0.2.0/26"
+      },
+      "captured_at_ms": 1794415868029,
+      "endpoint_sha256": "469e28d76a207cd55feeb5865857c66c560c9cfa73a07e5052b27aa8bb4dd937",
+      "independent_verification": true,
+      "mcp_calls": 1,
+      "mcp_schema_sha256": "9ffaa707cb607c81dc02e055b8d6aa81fe31c296ed0e8c505df788f51c44f14d",
+      "native_result_sha256": "15975ecb05a44b0e5d0511337a8842fbe0890635623cb5765f7e8dfa13867b2b",
+      "output": {
+       "address_count": "64",
+       "broadcast": "192.0.2.63",
+       "family": 4,
+       "first_address": "192.0.2.0",
+       "last_address": "192.0.2.63",
+       "netmask": "255.255.255.192",
+       "network": "192.0.2.0/26",
+       "next_subnet": "192.0.2.64/26",
+       "prefix_length": 26,
+       "previous_subnet": "192.0.1.192/26",
+       "schema_version": 1,
+       "usable_count": "62",
+       "usable_first": "192.0.2.1",
+       "usable_last": "192.0.2.62",
+       "wildcard_mask": "0.0.0.63"
+      },
+      "schemaVersion": 1,
+      "skill_sha256": "2a3e6646fe744d6c8051d9e426544061b60bb85ef4f9910fb09f4a819521c150",
+      "source_sha256": "48396934b5f29f90a9d5e93269920ee2fbcc0f7bca1d87f1201f7e2f06c8a844",
+      "tool": "subnet_calculator"
+     }
+    },
+    "output_sha256": "12d13a3f5c129a5b023088b6ccfade869e45810458f674148a3a43e7e6f37fb1",
+    "principal": {
+     "display_name": "Unauthenticated lab operator",
+     "issuer": "open-lab",
+     "roles": [
+      "lab-operator"
+     ],
+     "subject": "62d3b7a2-595f-57c3-88da-72cbe30fc697"
+    },
+    "receipt_id": "4353645c-622d-4bcc-bbe2-acddc0b4564a",
+    "started_at_ms": 1794415854603,
+    "tool_call_sha256": "458b27df40167781aba04b83893cbf827ba7c8dfc7c191777c4477a8cad95a17",
+    "tool_evidence_sha256": "a9f0610998e68e29bd27d200619b2b50a9b7abdf9e4cbc70a9deac60784b29da",
+    "usage": {
+     "inference_calls": 2,
+     "provider_usage": "unavailable",
+     "tool_calls": 1
+    }
+   },
+   "verified": true
+  },
+  "result_reference": {
+   "artifact_id": "7053a0c2-7568-43aa-a89e-e874bdce7e08",
+   "digest": "f3a6db631db43c56f91f2650dc4b5c692b61bf762c6b470a3407fc27c036728b",
+   "effect_status": "finished",
+   "member": {
+    "enrollment_generation": "245c69ee-8926-4038-963e-de8ae9cafee9",
+    "installation_id": "1939c7e1-5f16-480a-af8b-4135b0d83fca",
+    "key_id": "85da5d95ee75bb1b7facf368a32675a685314222932e487e4beecd488e66eb97",
+    "member_id": "nc182-r09/hsubnet-c3408a"
+   },
+   "outcome": "succeeded",
+   "receipt_id": "4353645c-622d-4bcc-bbe2-acddc0b4564a"
+  },
+  "review": {
+   "border": {
+    "authority_generation": "55449b6d-3488-4d0d-97d4-ca4b3b083b47",
+    "identity": "nc182-r09-border-nne1",
+    "installation_id": "5a89cc2a-1eae-4a23-aaf1-2f31d806f11b",
+    "key_id": "af67aadbe30645846fe52a2feb6ffc7bd63b676bba936710dfa4f3585d7a0ec4"
+   },
+   "change_request_ref": null,
+   "cluster": {
+    "authority_epoch": 8,
+    "cluster_id": "a02aaf7c-8cca-402e-9867-374db11b8e58",
+    "generation": "55449b6d-3488-4d0d-97d4-ca4b3b083b47",
+    "issuer_node_id": "a3197600-6a9f-479e-8d5e-816743c99927",
+    "manifest_revision": 1
+   },
+   "limits": {
+    "expires_at_ms": 1794416034057,
+    "inference_timeout_ms": 60000,
+    "max_inference_calls": 2,
+    "max_output_bytes": 262144,
+    "max_tool_calls": 1,
+    "tool_timeout_ms": 30000
+   },
+   "member": {
+    "enrollment_generation": "245c69ee-8926-4038-963e-de8ae9cafee9",
+    "installation_id": "1939c7e1-5f16-480a-af8b-4135b0d83fca",
+    "key_id": "85da5d95ee75bb1b7facf368a32675a685314222932e487e4beecd488e66eb97",
+    "member_id": "nc182-r09/hsubnet-c3408a"
+   },
+   "model_profile": {
+    "guard_policy_sha256": "280217ab8f006c8a20c5afed4be2de0d5623af3595b20216f9192f797407c274",
+    "model": "claude-sonnet-4-6",
+    "profile_id": "hosted-anthropic-claude-sonnet-4-6",
+    "profile_revision": "afd7b410784bccce0fcf62b9b6b7b36330ceafc2881b3d9ff85d97d2471123c4",
+    "provider": "anthropic",
+    "runtime_kind": "openclaw",
+    "runtime_version": "2026.7.1-2"
+   },
+   "principal": {
+    "display_name": "Unauthenticated lab operator",
+    "issuer": "open-lab",
+    "roles": [
+     "lab-operator"
+    ],
+    "subject": "62d3b7a2-595f-57c3-88da-72cbe30fc697"
+   },
+   "tool_call": {
+    "arguments": {
+     "cidr": "192.0.2.0/26"
+    },
+    "arguments_sha256": "f247d44111b0a0a6043b771fd666c38107435aafedeb2ce995642e5498e551cd",
+    "device_ref": "192.0.2.0/26",
+    "endpoint_sha256": "469e28d76a207cd55feeb5865857c66c560c9cfa73a07e5052b27aa8bb4dd937",
+    "inventory_revision": "a6f5f6b16ce3a630d6beca7f7c77904709b82a5419ab003165b5ffe23f8d7174",
+    "tool": "subnet_calculator",
+    "tool_schema_sha256": "ee71c54b9f95cab18f90017bb827b6abcab15942e800ac64b1d30f5870f5ed2a"
+   }
+  },
+  "review_digest": "cd686c4f6333a7ca86c780e7528ce1dbaf8d9ce872dfb4810f5c108b9fcb3a80",
+  "revision": 8,
+  "state": "completed"
+ }
+}

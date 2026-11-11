@@ -136,10 +136,10 @@ def prepare(args):
     root = Path(args.root).absolute()
     root.mkdir(mode=0o700, parents=True, exist_ok=False)
     global VM_STATE
-    VM_STATE = args.state_dir
+    VM_STATE = getattr(args, 'state_dir', None) or VM_STATE
     nodes = parse_nodes(args.node)
     witness = None
-    if args.witness:
+    if getattr(args, 'witness', None):
         wcode, _, wrest = args.witness.partition('=')
         wparts = (wrest.split(',') + ['', ''])[:3]
         winternal, wpublic, winame = wparts[0], wparts[1], (wparts[2] or None)
@@ -258,7 +258,7 @@ def prepare(args):
                            'certificate_file': f'{VM_STATE}/etcd-client/border.crt',
                            'private_key_file': f'{VM_STATE}/etcd-client/border.key',
                            'username': f'border{i}', 'password_file': f'{VM_STATE}/home/netclaw-federation/etcd-password'}}
-        if args.sandbox:  # sandbox loopback listeners; peers still dial the signed manifest addresses (spec 185, D9a)
+        if getattr(args, 'sandbox', False):  # sandbox loopback listeners; peers still dial the signed manifest addresses (spec 185, D9a)
             config['listen'] = {'cluster': {'host': '127.0.0.1', 'port': PORTS['cluster']}, 'in2n': {'host': '127.0.0.1', 'port': PORTS['in2n']}}
         private_canonical(state / 'ha-config.json', config)
         profile = {'schemaVersion': 2, 'role': 'border', 'identity': binding, 'access': {'mode': 'open-lab'},

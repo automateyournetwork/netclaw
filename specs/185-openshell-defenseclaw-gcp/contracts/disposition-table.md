@@ -7,4 +7,4 @@
 | Workspace backend + chat gateway | **Inside the sandbox**: OpenClaw 2026.7.1-2 embedded agent (`openclaw agent --local`); provider key injected by OpenShell, the sandbox holds only a placeholder. The long-running OpenClaw *gateway daemon* and the workspace backend were **not** started (see verification.md, gaps) | verification.md US2 |
 | DefenseClaw sidecar | **Inside the sandbox**, `mode: action`, `hook_fail_mode: closed`; only its binary may reach `api.anthropic.com` | posture `guard`, negative suite, fail-closed test |
 | etcd voter / witness | **Outside** (host container, host network); no sandbox attempted (E-experiments: OpenShell has no host networking) | posture `etcd-voter` carries the disposition, never "enforced" |
-| Member executor (Docker socket) | **Outside, not exercised in R09A** (no member was enrolled; see gaps) | verification.md |
+| Member executor (Docker socket) | **Outside (owner's Mac), exercised in the third window**: hosted subnet-calculator member attached to both sandboxed Borders and completed real operations via the leader and the follower | verification.md |

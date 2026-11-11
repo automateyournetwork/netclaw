@@ -34,7 +34,7 @@
 - [x] T018 [US1] Experiment E3: start the Border role inside the sandbox with the bind override and forwards; record pass/fail in `contracts/disposition-table.md`
 - [x] T019 [US1] Experiment E4: HUD ingress and workspace backend inside the sandbox; public HTTPS via host redirect; record disposition
 - [x] T020 [US1] **G1**: present the line-item estimate (T004) and obtain owner confirmation before creating any billed resource
-- [ ] T021 [US1] Deploy, bring up the two-Border cluster, verify leader election and a real operation through each Border (reuse `scripts/ha-r09-*.sh` verification drivers)
+- [x] T021 [US1] Deploy, bring up the two-Border cluster, verify leader election and a real operation through each Border (reuse `scripts/ha-r09-*.sh` verification drivers)
 - [x] T022 [US1] Fill the disposition table with evidence; for any component outside, record the reason (FR-019)
 
 ## Phase 4: User Story 2 - DefenseClaw guardrails (P1)

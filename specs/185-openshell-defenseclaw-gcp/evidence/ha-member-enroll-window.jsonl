@@ -1,0 +1,95 @@
+{"nne1": {"epoch": 3, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 90, "state": "leader"}, "nne2": {"epoch": 3, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 83, "state": "follower"}, "t": 1794415459.4}
+{"nne1": {"epoch": 3, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 85, "state": "leader"}, "nne2": {"epoch": 3, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 93, "state": "follower"}, "t": 1794415461.6}
+{"nne1": {"epoch": 3, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 88, "state": "leader"}, "nne2": {"epoch": 3, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 82, "state": "follower"}, "t": 1794415463.8}
+{"nne1": {"error": "URLError", "ms": 35, "state": "unreachable"}, "nne2": {"epoch": 3, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 78, "state": "follower"}, "t": 1794415466.0}
+{"nne1": {"error": "URLError", "ms": 40, "state": "unreachable"}, "nne2": {"epoch": 3, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 115, "state": "follower"}, "t": 1794415468.1}
+{"nne1": {"error": "URLError", "ms": 28, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 37, "state": "unreachable"}, "t": 1794415470.2}
+{"nne1": {"error": "URLError", "ms": 35, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 33, "state": "unreachable"}, "t": 1794415472.3}
+{"nne1": {"error": "URLError", "ms": 31, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 30, "state": "unreachable"}, "t": 1794415474.4}
+{"nne1": {"error": "URLError", "ms": 29, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 29, "state": "unreachable"}, "t": 1794415476.4}
+{"nne1": {"error": "URLError", "ms": 34, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 33, "state": "unreachable"}, "t": 1794415478.5}
+{"nne1": {"error": "URLError", "ms": 31, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 31, "state": "unreachable"}, "t": 1794415480.6}
+{"nne1": {"error": "URLError", "ms": 35, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 34, "state": "unreachable"}, "t": 1794415482.6}
+{"nne1": {"error": "URLError", "ms": 32, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 33, "state": "unreachable"}, "t": 1794415484.7}
+{"nne1": {"error": "URLError", "ms": 30, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 29, "state": "unreachable"}, "t": 1794415486.8}
+{"nne1": {"error": "URLError", "ms": 33, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 32, "state": "unreachable"}, "t": 1794415488.9}
+{"nne1": {"error": "URLError", "ms": 31, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 28, "state": "unreachable"}, "t": 1794415490.9}
+{"nne1": {"error": "URLError", "ms": 43, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 35, "state": "unreachable"}, "t": 1794415493.0}
+{"nne1": {"error": "URLError", "ms": 30, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 29, "state": "unreachable"}, "t": 1794415495.1}
+{"nne1": {"error": "URLError", "ms": 31, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 29, "state": "unreachable"}, "t": 1794415497.1}
+{"nne1": {"error": "URLError", "ms": 29, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 32, "state": "unreachable"}, "t": 1794415499.2}
+{"nne1": {"error": "URLError", "ms": 29, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 35, "state": "unreachable"}, "t": 1794415501.3}
+{"nne1": {"error": "URLError", "ms": 28, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 33, "state": "unreachable"}, "t": 1794415503.3}
+{"nne1": {"error": "URLError", "ms": 36, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 29, "state": "unreachable"}, "t": 1794415505.4}
+{"nne1": {"error": "URLError", "ms": 34, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 39, "state": "unreachable"}, "t": 1794415507.5}
+{"nne1": {"error": "URLError", "ms": 35, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 33, "state": "unreachable"}, "t": 1794415509.6}
+{"nne1": {"error": "URLError", "ms": 33, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 31, "state": "unreachable"}, "t": 1794415511.6}
+{"nne1": {"error": "URLError", "ms": 30, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 36, "state": "unreachable"}, "t": 1794415513.7}
+{"nne1": {"error": "URLError", "ms": 38, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 38, "state": "unreachable"}, "t": 1794415515.8}
+{"nne1": {"error": "URLError", "ms": 29, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 35, "state": "unreachable"}, "t": 1794415517.9}
+{"nne1": {"error": "URLError", "ms": 34, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 38, "state": "unreachable"}, "t": 1794415519.9}
+{"nne1": {"error": "URLError", "ms": 42, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 43, "state": "unreachable"}, "t": 1794415522.0}
+{"nne1": {"error": "URLError", "ms": 34, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 41, "state": "unreachable"}, "t": 1794415524.1}
+{"nne1": {"error": "URLError", "ms": 44, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 35, "state": "unreachable"}, "t": 1794415526.2}
+{"nne1": {"error": "URLError", "ms": 39, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 38, "state": "unreachable"}, "t": 1794415528.3}
+{"nne1": {"error": "URLError", "ms": 35, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 32, "state": "unreachable"}, "t": 1794415530.4}
+{"nne1": {"error": "URLError", "ms": 40, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 33, "state": "unreachable"}, "t": 1794415532.4}
+{"nne1": {"error": "URLError", "ms": 33, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 34, "state": "unreachable"}, "t": 1794415534.5}
+{"nne1": {"error": "URLError", "ms": 36, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 33, "state": "unreachable"}, "t": 1794415536.6}
+{"nne1": {"error": "URLError", "ms": 43, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 44, "state": "unreachable"}, "t": 1794415538.6}
+{"nne1": {"error": "URLError", "ms": 34, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 37, "state": "unreachable"}, "t": 1794415540.7}
+{"nne1": {"error": "URLError", "ms": 36, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 33, "state": "unreachable"}, "t": 1794415542.8}
+{"nne1": {"error": "URLError", "ms": 34, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 38, "state": "unreachable"}, "t": 1794415544.9}
+{"nne1": {"error": "URLError", "ms": 37, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 35, "state": "unreachable"}, "t": 1794415547.0}
+{"nne1": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 109, "state": "leader"}, "nne2": {"error": "URLError", "ms": 39, "state": "unreachable"}, "t": 1794415549.0}
+{"nne1": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 90, "state": "leader"}, "nne2": {"error": "URLError", "ms": 40, "state": "unreachable"}, "t": 1794415551.2}
+{"nne1": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 97, "state": "leader"}, "nne2": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 125, "state": "follower"}, "t": 1794415553.3}
+{"nne1": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 86, "state": "leader"}, "nne2": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 80, "state": "follower"}, "t": 1794415555.6}
+{"nne1": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 96, "state": "leader"}, "nne2": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 77, "state": "follower"}, "t": 1794415557.7}
+{"nne1": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 95, "state": "leader"}, "nne2": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 87, "state": "follower"}, "t": 1794415559.9}
+{"nne1": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 83, "state": "leader"}, "nne2": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 90, "state": "follower"}, "t": 1794415562.1}
+{"nne1": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 92, "state": "leader"}, "nne2": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 87, "state": "follower"}, "t": 1794415564.3}
+{"nne1": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 79, "state": "leader"}, "nne2": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 86, "state": "follower"}, "t": 1794415566.5}
+{"nne1": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 92, "state": "leader"}, "nne2": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 84, "state": "follower"}, "t": 1794415568.6}
+{"nne1": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 82, "state": "leader"}, "nne2": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 81, "state": "follower"}, "t": 1794415570.8}
+{"nne1": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 70, "state": "leader"}, "nne2": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 77, "state": "follower"}, "t": 1794415573.0}
+{"nne1": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 79, "state": "leader"}, "nne2": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 77, "state": "follower"}, "t": 1794415575.1}
+{"nne1": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 81, "state": "leader"}, "nne2": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 86, "state": "follower"}, "t": 1794415577.3}
+{"nne1": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 77, "state": "leader"}, "nne2": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 77, "state": "follower"}, "t": 1794415579.5}
+{"nne1": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 81, "state": "leader"}, "nne2": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 90, "state": "follower"}, "t": 1794415581.6}
+{"nne1": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 84, "state": "leader"}, "nne2": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 88, "state": "follower"}, "t": 1794415583.8}
+{"nne1": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 103, "state": "leader"}, "nne2": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 84, "state": "follower"}, "t": 1794415586.0}
+{"nne1": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 152, "state": "leader"}, "nne2": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 117, "state": "follower"}, "t": 1794415588.2}
+{"nne1": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 69, "state": "leader"}, "nne2": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 86, "state": "follower"}, "t": 1794415590.4}
+{"nne1": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 69, "state": "leader"}, "nne2": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 76, "state": "follower"}, "t": 1794415592.6}
+{"nne1": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 78, "state": "leader"}, "nne2": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 68, "state": "follower"}, "t": 1794415594.7}
+{"nne1": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 74, "state": "leader"}, "nne2": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 71, "state": "follower"}, "t": 1794415596.9}
+{"nne1": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 87, "state": "leader"}, "nne2": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 78, "state": "follower"}, "t": 1794415599.0}
+{"nne1": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 72, "state": "leader"}, "nne2": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 71, "state": "follower"}, "t": 1794415601.2}
+{"nne1": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 90, "state": "leader"}, "nne2": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 81, "state": "follower"}, "t": 1794415603.4}
+{"nne1": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 70, "state": "leader"}, "nne2": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 84, "state": "follower"}, "t": 1794415605.5}
+{"nne1": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 76, "state": "leader"}, "nne2": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 77, "state": "follower"}, "t": 1794415607.7}
+{"nne1": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 89, "state": "leader"}, "nne2": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 87, "state": "follower"}, "t": 1794415609.9}
+{"nne1": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 83, "state": "leader"}, "nne2": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 89, "state": "follower"}, "t": 1794415612.0}
+{"nne1": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 98, "state": "leader"}, "nne2": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 86, "state": "follower"}, "t": 1794415614.2}
+{"nne1": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 99, "state": "leader"}, "nne2": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 88, "state": "follower"}, "t": 1794415616.4}
+{"nne1": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 92, "state": "leader"}, "nne2": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 139, "state": "follower"}, "t": 1794415618.6}
+{"nne1": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 68, "state": "leader"}, "nne2": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 94, "state": "follower"}, "t": 1794415620.8}
+{"nne1": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 73, "state": "leader"}, "nne2": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 69, "state": "follower"}, "t": 1794415623.0}
+{"nne1": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 133, "state": "leader"}, "nne2": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 93, "state": "follower"}, "t": 1794415625.1}
+{"nne1": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 80, "state": "leader"}, "nne2": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 75, "state": "follower"}, "t": 1794415627.4}
+{"nne1": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 71, "state": "leader"}, "nne2": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 81, "state": "follower"}, "t": 1794415629.5}
+{"nne1": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 70, "state": "leader"}, "nne2": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 77, "state": "follower"}, "t": 1794415631.7}
+{"nne1": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 88, "state": "leader"}, "nne2": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 73, "state": "follower"}, "t": 1794415633.8}
+{"nne1": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 70, "state": "leader"}, "nne2": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 78, "state": "follower"}, "t": 1794415636.0}
+{"nne1": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 79, "state": "leader"}, "nne2": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 89, "state": "follower"}, "t": 1794415638.2}
+{"nne1": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 66, "state": "leader"}, "nne2": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 75, "state": "follower"}, "t": 1794415640.3}
+{"nne1": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 69, "state": "leader"}, "nne2": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 71, "state": "follower"}, "t": 1794415642.5}
+{"nne1": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 80, "state": "leader"}, "nne2": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 81, "state": "follower"}, "t": 1794415644.6}
+{"nne1": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 142, "state": "leader"}, "nne2": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 82, "state": "follower"}, "t": 1794415646.8}
+{"nne1": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 89, "state": "leader"}, "nne2": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 92, "state": "follower"}, "t": 1794415649.0}
+{"nne1": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 103, "state": "leader"}, "nne2": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 94, "state": "follower"}, "t": 1794415651.2}
+{"nne1": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 101, "state": "leader"}, "nne2": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 75, "state": "follower"}, "t": 1794415653.4}
+{"nne1": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 98, "state": "leader"}, "nne2": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 80, "state": "follower"}, "t": 1794415655.6}
+{"nne1": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 110, "state": "leader"}, "nne2": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 85, "state": "follower"}, "t": 1794415657.8}
+{"nne1": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 83, "state": "leader"}, "nne2": {"epoch": 8, "leader": "a3197600-6a9f-479e-8d5e-816743c99927", "ms": 93, "state": "follower"}, "t": 1794415660.0}
