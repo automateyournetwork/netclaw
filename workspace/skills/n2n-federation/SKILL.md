@@ -239,6 +239,12 @@ Profiles are derived from the installed catalog by `scripts/in2n-profiles.py`
 (cml, pyats, ipfabric, forward, itential, viz, security). A member repeatedly
 failing auth/health is **auto-quarantined** and surfaced to the operator.
 
+For a narrowly scoped member (chosen servers, skills and a tool allowlist such as
+`pfsense-mcp__get_*`), the operator writes a **member spec** and runs
+`netclaw risk add spec <member-spec.json>` instead of picking a profile; the member's
+home is built with `scripts/in2n-member-home.py --spec`. Format and validation rules:
+`docs/N2N-RISK.md` "Member spec". The agent does not write or change member specs.
+
 ## NetClaw Mobile — an edge node in the risk (feature 066)
 
 A phone is a member of the risk too, but of a distinct **`node_type='edge'`**

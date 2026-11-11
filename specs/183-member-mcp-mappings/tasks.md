@@ -1,0 +1,22 @@
+# Tasks
+
+- [x] T001 Audit every profile: skills, tools called, providing server, evidence (research.md).
+- [x] T002 Correct `MCP_SERVERS` where the evidence is clear; leave asa, checkpoint, eve-ng unchanged.
+- [x] T003 Replace the "skill-driven" comment.
+- [x] T004 Extract `scoped_mcp_servers` in `in2n-member-home.py`.
+- [x] T005 Tests: registration, corrected mappings, catalog drift, scoping, end-to-end member home.
+- [x] T006 Run related tests, `reconcile-mcp.py`, `verify-spec-artifacts.py`, `git diff --check`.
+- [x] T007 Env slice includes every `${NAME}` the member's kept servers reference (review).
+- [x] T008 `in2n-migrate.py` passes the Border template to the slice.
+- [x] T009 Tests: kept-server names in the slice, servers not kept contribute nothing, no comms secrets, migrate end to end.
+- [x] T010 Member home: rewrite NETCLAW_RUNTIME_ROOT/ENV to the member's own, copy records, `--member-env` (review HIGH).
+- [x] T011 Never derive SERVICENOW_* or comms secrets; record the gate evidence (review MEDIUM 1).
+- [x] T012 Migrate warns without a usable Border config (review MEDIUM 2).
+- [x] T013 Tests on installed-config-shaped entries; ref parsing edge cases; 0600 staged `.env`; Convergence count (review MEDIUM 3, LOW).
+- [x] T014 Member home refuses a missing member env file; migrate prints the `--member-env` command (review round 2, 1).
+- [x] T015 PYATS_VENV from the Border root for entries without one (round 2, 2).
+- [x] T016 pyATS change root: per member, HUD private migrations Border-only; evidence recorded (round 2, 3).
+- [x] T017 Narrow FR-009; list the shared memory store under Known behaviour (round 2, 4).
+- [x] T018 Records written with `os.open(O_NOFOLLOW)` 0600; symlinked target refused (round 2, 5).
+- [x] T019 Refuse the Border's `.env` as member env and the Border's home as member home (round 3, 1).
+- [x] T020 Tests: directory and relative `--member-env`; staging path with a space and `$` through `shlex.split` (round 3, 2-3).

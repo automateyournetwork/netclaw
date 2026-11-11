@@ -78,10 +78,19 @@ def pyats_config(tmp_path, **changes):
                 ('pyats_mcp_server.py', 'pyats_testbed_builder.py', 'pyats_tasks.py')}
     for name, raw in contents.items():
         (source / name).write_bytes(raw)
+        (source / name).chmod(0o644)
     venv = root / 'venv'
     (venv / 'bin').mkdir(parents=True)
     (venv / 'pyvenv.cfg').write_text('home = /usr/bin\ninclude-system-site-packages = false\n')
-    (venv / 'bin/python').symlink_to(Path(sys.executable).resolve())
+    # Pinned files must be owned by us (or root) and not group/world-writable, so the fixture sets its own
+    # modes rather than inherit the umask (002 on many hosts), and points bin/python at a stub interpreter
+    # it owns: the host interpreter (e.g. a CI tool cache) need not pass that check, and nothing runs it.
+    (venv / 'pyvenv.cfg').chmod(0o644)
+    interpreter = root / 'interpreter' / 'python3'
+    interpreter.parent.mkdir()
+    interpreter.write_bytes(b'#!/bin/sh\nexit 1\n')
+    interpreter.chmod(0o755)
+    (venv / 'bin/python').symlink_to(interpreter)
     known_hosts = root / 'known_hosts'
     known_hosts.write_bytes(b'192.0.2.201 ssh-rsa AAAAfixturepublickey\n')
     known_hosts.chmod(0o600)

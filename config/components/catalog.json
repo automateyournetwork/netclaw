@@ -26389,7 +26389,7 @@
       "title": "n2n-federation",
       "description": "Federate your NetClaw with other NetClaw operators over the BGP mesh — exchange capability inventories and ask your claw what a peer can do. (US1; remote invocation and chat land in later phases.)",
       "path": "workspace/skills/n2n-federation/SKILL.md",
-      "sha256": "2ade74caa8f36bf8d68b2d91f5551e996a4815637caed018874bb42769714c2b",
+      "sha256": "6666a736c7c8dfee76e7afc0ac16e3f9d8e70f3d6741b02c9f8e58ee61e90b01",
       "components": [
         "n2n"
       ],
