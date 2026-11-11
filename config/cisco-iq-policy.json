@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "mode": "deny-by-default",
+  "read_only": true,
+  "allow": [],
+  "deny_patterns": [
+    "(^|[_\\-.])(create|update|delete|remove|write|set|put|post|patch|modify|edit|execute|exec|run|apply|push|deploy|reboot|reload|approve|submit|assign|close|open_case|import|upload)([_\\-.]|$)"
+  ],
+  "notes": "Cisco IQ tool names are not published to this project and none are assumed. Review `scripts/cisco-iq-enable.sh policy-check --live`, then add reviewed read-class tool names to `allow` with verified=true. Deny patterns always win. Not a hard per-tool gate without DefenseClaw. No use case is claimed validated."
+}
