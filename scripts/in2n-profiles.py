@@ -17,7 +17,9 @@ Usage:
 No third-party deps (stdlib only), matching scripts/register-all-mcps.py.
 """
 
+import copy
 import json
+from urllib.parse import urlsplit
 import importlib.util
 from pathlib import Path
 import os
@@ -363,7 +365,10 @@ def component_env_keys(entry):
 
 MEMBER_SPEC_VERSION = 1
 MEMBER_SPEC_REQUIRED = ("version", "name", "servers", "tools")
-MEMBER_SPEC_KEYS = frozenset(MEMBER_SPEC_REQUIRED + ("description", "skills", "model"))
+MEMBER_SPEC_KEYS = frozenset(MEMBER_SPEC_REQUIRED + ("description", "skills", "model", "auth"))
+# Spec 186: built-in providers a member may reach with its own subscription login
+# ("auth": "subscription"); OpenClaw keeps that login in the member home's auth profiles.
+SUBSCRIPTION_PROVIDERS = frozenset({"anthropic", "openai"})
 SAFE_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,63}")
 # convergence has its own provisioning path; custom and spec are `netclaw risk add` keywords.
 # Every profile id is refused too (reserved_member_names), so a spec member never shares a
@@ -423,15 +428,18 @@ def reserved_member_names():
     return RESERVED_MEMBER_NAMES | set(PROFILE_MATCHERS) | set(MCP_SERVERS)
 
 
-def load_member_spec(source, servers, installed=None, allow_dangerous=False):
+def load_member_spec(source, servers, installed=None, allow_dangerous=False, providers=None):
     """Validate a member spec against the Border template's mcp.servers.
 
     `source` is a path or an already-parsed dict. Returns (spec, warnings): `spec`
     is the normalized spec plus "scope" (the specialty skills the existing `scope
     custom` path yields; `installed` defaults to the installed skills), "base_skills"
     and "base_servers" (SPEC_BASE_SKILLS whose server the Border has) and
-    "dangerous_tools" (allowed only with `allow_dangerous`). Raises MemberSpecError
-    naming every problem."""
+    "dangerous_tools" (allowed only with `allow_dangerous`). `providers` is the Border's
+    models.providers (spec 186): a `<provider>/<model>` model must name one of them, or use
+    "auth": "subscription" with a built-in provider. The result also carries "provider"
+    (None for NetClaw's built-in Anthropic API-key provider) and "auth". Raises
+    MemberSpecError naming every problem."""
     if not isinstance(source, (str, os.PathLike)):
         data, where = source, "member spec"
     else:
@@ -529,14 +537,36 @@ def load_member_spec(source, servers, installed=None, allow_dangerous=False):
             elif dangerous:
                 warnings.append("--allow-dangerous-tools: this member may use " + ", ".join(dangerous))
 
-    model = data.get("model")
-    if model is not None:
-        bare = model[len("anthropic/"):] if isinstance(model, str) and model.startswith("anthropic/") else model
-        if not isinstance(bare, str) or not MODEL_ID.fullmatch(bare):
-            errors.append("model must be null or an Anthropic model id (optionally 'anthropic/<id>'); "
-                          "generic members register only the Anthropic provider")
+    model, provider, auth = data.get("model"), None, data.get("auth", "api-key")
+    if auth not in ("api-key", "subscription"):
+        errors.append("auth must be 'api-key' (the default) or 'subscription'")
+        auth = "api-key"
+    prefix, _, rest = model.partition("/") if isinstance(model, str) else ("", "", "")
+    if model is None:
+        if auth == "subscription":
+            errors.append("auth 'subscription' needs a model: 'anthropic/<id>' or 'openai/<id>'")
+    elif not isinstance(model, str):
+        errors.append("model must be null or a string")
+    elif auth == "subscription":
+        # Spec 186: a built-in provider, signed in on the member home itself; no key.
+        if prefix not in SUBSCRIPTION_PROVIDERS or not MODEL_ID.fullmatch(rest):
+            errors.append("with auth 'subscription', model must be 'anthropic/<id>' or 'openai/<id>'")
+        else:
+            provider, model = prefix, rest
+    elif not rest or prefix == "anthropic":
+        bare = rest if rest else model
+        if not MODEL_ID.fullmatch(bare):
+            errors.append("model must be null, an Anthropic model id (optionally 'anthropic/<id>') "
+                          "or '<provider>/<model>' for a provider the Border configures")
         else:
             model = bare
+    else:
+        # Spec 186: a provider the Border configures (models.providers), by reference only.
+        problem = provider_problem(providers, prefix, rest)
+        if problem:
+            errors.append(f"model {model!r}: {problem}")
+        else:
+            provider, model = prefix, rest
 
     if errors:
         raise MemberSpecError(f"{where}: invalid member spec:\n  - " + "\n  - ".join(errors))
@@ -548,11 +578,149 @@ def load_member_spec(source, servers, installed=None, allow_dangerous=False):
                                              installed=sorted(available)) if e["tier"] == "specialty"]
     spec = {"version": version, "name": name, "description": description or "",
             "servers": list(names), "skills": list(skills), "tools": {"allow": list(allow)},
-            "model": model, "scope": scope_skills,
+            "model": model, "provider": provider, "auth": auth, "scope": scope_skills,
             "base_skills": [skill for skill in SPEC_BASE_SKILL_NAMES if skill not in skills],
             "base_servers": [server for _, server in base],
             "dangerous_tools": dangerous}
     return spec, warnings
+
+
+# Spec 186 review round 1: a provider member's entry is BUILT from these fields of the
+# Border's entry, never copied whole; anything else is refused with its name.
+PROVIDER_FIELDS = ("api", "baseUrl", "apiKey", "authHeader", "headers", "timeoutSeconds", "models")
+PROVIDER_MODEL_FIELDS = ("id", "name", "api", "reasoning", "input", "cost", "contextWindow", "maxTokens", "compat")
+# Model ids of a Border provider may contain '/' (e.g. openrouter's anthropic/claude-...).
+PROVIDER_MODEL_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.:/-]{0,199}")
+_EXACT_REF = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)\}")
+_HEADER_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9-]{0,63}")
+
+
+class _ProviderRefused(ValueError):
+    pass
+
+
+def _ref_or_text(field, value):
+    """`value` is exactly one ${NAME} reference, or text holding no reference at all."""
+    if not isinstance(value, str) or not value:
+        raise _ProviderRefused(f"{field} must be non-empty text")
+    if "${" in value and not _EXACT_REF.fullmatch(value):
+        raise _ProviderRefused(f"{field} must be one ${{NAME}} reference or plain text")
+
+
+def _provider_entry(name, entry, model):
+    """The member's copy of the Border provider `entry` with only `model`; raises
+    _ProviderRefused naming the problem (never a value)."""
+    if not isinstance(entry, dict):
+        raise _ProviderRefused(f"the Border's provider {name!r} is not an object")
+    if "localService" in entry:
+        raise _ProviderRefused(f"the Border's provider {name!r} starts a local service (localService); "
+                               "a member does not run provider processes")
+    unknown = sorted(set(entry) - set(PROVIDER_FIELDS))
+    if unknown:
+        raise _ProviderRefused(f"the Border's provider {name!r} has fields a member entry does not carry: "
+                               + ", ".join(map(str, unknown)) + " (supported: " + ", ".join(PROVIDER_FIELDS[:-1]) + ")")
+    built = {}
+    if "api" in entry:
+        if not isinstance(entry["api"], str) or not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,63}", entry["api"]):
+            raise _ProviderRefused("api must be a plain adapter name such as 'ollama' or 'openai-completions'")
+        built["api"] = entry["api"]
+    if "baseUrl" in entry:
+        url = entry["baseUrl"]
+        _ref_or_text("baseUrl", url)
+        if not _EXACT_REF.fullmatch(url):
+            parts = urlsplit(url)
+            if (parts.scheme not in ("http", "https") or not parts.hostname or parts.username is not None
+                    or parts.password is not None or parts.query or parts.fragment):
+                raise _ProviderRefused("baseUrl must be an http(s) URL without credentials, query or fragment "
+                                       "(or one ${NAME} reference)")
+        built["baseUrl"] = url
+    if "apiKey" in entry:
+        key = entry["apiKey"]
+        if isinstance(key, dict):
+            if (set(key) != {"source", "provider", "id"} or key.get("source") != "env"
+                    or key.get("provider") != "default" or not isinstance(key.get("id"), str)
+                    or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", key["id"])):
+                raise _ProviderRefused("apiKey must be a ${NAME} reference or a default env SecretRef "
+                                       "(file, exec and vault SecretRefs would resolve the Border's secret)")
+        elif not (isinstance(key, str) and _EXACT_REF.fullmatch(key)):
+            raise _ProviderRefused("apiKey must be a ${NAME} reference or a default env SecretRef, not a literal")
+        built["apiKey"] = copy.deepcopy(key)
+    if "authHeader" in entry:
+        if not isinstance(entry["authHeader"], bool):
+            raise _ProviderRefused("authHeader must be true or false")
+        built["authHeader"] = entry["authHeader"]
+    if "headers" in entry:
+        headers = entry["headers"]
+        if not isinstance(headers, dict):
+            raise _ProviderRefused("headers must be an object")
+        for header, value in headers.items():
+            if not isinstance(header, str) or not _HEADER_NAME.fullmatch(header):
+                raise _ProviderRefused("a header name is not valid")
+            # Every header value carries its content only through references, whatever its name.
+            if not isinstance(value, str) or not _referenced(value):
+                raise _ProviderRefused(f"header {header!r} must hold only ${{NAME}} references "
+                                       "(optionally after an auth scheme such as Bearer)")
+        built["headers"] = dict(headers)
+    if "timeoutSeconds" in entry:
+        timeout = entry["timeoutSeconds"]
+        if type(timeout) not in (int, float) or not 0 < timeout <= 3600:
+            raise _ProviderRefused("timeoutSeconds must be a number of seconds up to 3600")
+        built["timeoutSeconds"] = timeout
+    models = [m for m in entry.get("models") or [] if isinstance(m, dict) and m.get("id") == model]
+    if not models:
+        ids = [m.get("id") for m in entry.get("models") or [] if isinstance(m, dict)]
+        raise _ProviderRefused(f"the Border's provider {name!r} does not list model {model!r} "
+                               f"(it lists: {', '.join(map(str, ids)) or 'none'})")
+    built["models"] = [{k: copy.deepcopy(v) for k, v in models[0].items() if k in PROVIDER_MODEL_FIELDS}]
+    literal = literal_secrets(built, name)
+    if literal:
+        raise _ProviderRefused("the Border's provider holds literal secrets (move each into the .env and "
+                               "reference it as ${NAME}): " + ", ".join(literal))
+    denied = sorted(r for r in provider_entry_refs(built)
+                    if not derived_ref_allowed(r) or r in SPEC_MEMBER_STORE_KEYS)
+    if denied:
+        raise _ProviderRefused("the Border's provider references variables a member never receives: "
+                               + ", ".join(denied))
+    return built
+
+
+def provider_entry_refs(entry):
+    """Variable names a built provider entry references (${NAME} anywhere, env SecretRef ids)."""
+    refs = set(server_env_refs(entry))
+    key = entry.get("apiKey")
+    if isinstance(key, dict) and key.get("source") == "env":
+        refs.add(key["id"])
+    return refs
+
+
+def provider_problem(providers, name, model):
+    """Why a spec member may not use model `model` of the Border provider `name`, or None."""
+    if not isinstance(providers, dict) or name not in providers:
+        return (f"provider {name!r} is not configured on the Border (models.providers); "
+                "configure it there first")
+    if not SAFE_NAME.fullmatch(name):
+        return f"provider name {name!r} is not a safe name"
+    if not PROVIDER_MODEL_ID.fullmatch(model) or ".." in model:
+        return "the model id is not valid"
+    try:
+        _provider_entry(name, providers[name], model)
+    except _ProviderRefused as error:
+        return str(error)
+    return None
+
+
+def spec_provider_entry(spec, providers):
+    """The one models.providers entry a spec member registers (spec 186), built from
+    PROVIDER_FIELDS of the Border's entry with only its model; None for the built-in
+    providers (Anthropic API key, subscriptions)."""
+    if not spec.get("provider") or spec.get("auth") == "subscription":
+        return None
+    return _provider_entry(spec["provider"], providers[spec["provider"]], spec["model"])
+
+
+def spec_model_binding(spec, tier):
+    """`<provider>/<model>` the member runs: its --model and its config's primary model."""
+    return f"{spec.get('provider') or 'anthropic'}/{spec.get('model') or tier}"
 
 
 def _allow_entry_problem(entry, kept):
@@ -670,13 +838,22 @@ SPEC_MEMBER_STORE_KEYS = frozenset({"MEMORY_DATA_DIR", "GAIT_DIR", "GAIT_ROOT", 
 SPEC_MEMBER_PROVIDER_KEYS = ("ANTHROPIC_API_KEY",)
 
 
-def spec_env_slice_keys(spec, env_keys, servers):
+def spec_env_slice_keys(spec, env_keys, servers, providers=None):
     """A spec member's env slice: every variable its kept servers reference or, when
     component-launched, read from their env file (same deny lists as env_slice_keys),
     plus BASE_MEMBER_ENV_PREFIXES and its provider key; no profile prefixes, and never
     the Border's memory/GAIT store locations (SPEC_MEMBER_STORE_KEYS)."""
     keys = set(_slice([], spec_member_servers(spec, servers), env_keys)) - SPEC_MEMBER_STORE_KEYS
-    keys |= {k for k in SPEC_MEMBER_PROVIDER_KEYS if k in env_keys}
+    if spec.get("auth") == "subscription":
+        pass  # the member's own login, in its home; no key in its environment (spec 186)
+    elif spec.get("provider"):
+        # Spec 186: the variables the copied provider entry references, e.g. ${OLLAMA_API_KEY}.
+        # Filtered like server references (provider_problem already refuses denied ones).
+        entry = spec_provider_entry(spec, providers or {}) or {}
+        keys |= {k for k in provider_entry_refs(entry)
+                 if k in env_keys and derived_ref_allowed(k) and k not in SPEC_MEMBER_STORE_KEYS}
+    else:
+        keys |= {k for k in SPEC_MEMBER_PROVIDER_KEYS if k in env_keys}
     return sorted(keys)
 
 
@@ -928,7 +1105,8 @@ def _main(argv):
         try:
             servers = border_template_servers(config)
             spec, warnings = load_member_spec(argv[1], servers,
-                                              allow_dangerous="--allow-dangerous-tools" in argv)
+                                              allow_dangerous="--allow-dangerous-tools" in argv,
+                                              providers=border_template_providers(config))
         except MemberSpecError as error:
             print(f"error: {error}", file=sys.stderr)
             return 1
@@ -942,6 +1120,15 @@ def _main(argv):
         print(__doc__)
         return 1
     return 0
+
+
+def border_template_providers(config):
+    """The Border template's models.providers (spec 186); {} when it has none."""
+    try:
+        providers = (json.loads(Path(config).read_text()).get("models") or {}).get("providers")
+    except (OSError, ValueError, AttributeError):
+        return {}
+    return providers if isinstance(providers, dict) else {}
 
 
 def border_template_servers(config):

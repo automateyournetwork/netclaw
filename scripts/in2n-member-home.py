@@ -20,7 +20,7 @@ Usage: python3 scripts/in2n-member-home.py --risk johns-risk --member ipfabric \
 A member spec (spec 184) sets the kept servers, skills and the top-level `tools`
 policy; see docs/N2N-RISK.md "Member spec".
 """
-import argparse, copy, importlib.util, json, os, stat, sys, re, shutil
+import argparse, copy, importlib.util, json, os, shlex, stat, sys, re, shutil
 from pathlib import Path
 import ipaddress
 from urllib.parse import urlsplit
@@ -261,8 +261,11 @@ def spec_store_overrides(servers, home, border_home):
 #                `openclaw agent --local`), never a chat channel;
 #   tools        spec_tool_policy + the narrowed sandbox layer;
 #   skills       spec_skills_section (Workshop off);
-#   models       only the Anthropic provider, apiKey "${ANTHROPIC_API_KEY}" (from the
-#                member's .env slice, never a literal key);
+#   models       one provider (spec 186): NetClaw's Anthropic provider with apiKey
+#                "${ANTHROPIC_API_KEY}" (from the member's .env slice, never a literal key);
+#                or a copy of the Border's entry for the spec's provider with only its
+#                model (key references only); or, with "auth": "subscription", no entry:
+#                the built-in provider signs in with the member's own login;
 #   agents       defaults: own workspace, the member model as primary + allowed,
 #                the skill filter, the reduced sandbox; entries: main only (one agent,
 #                so gateway._member_agent_args passes no --agent and OpenClaw runs it);
@@ -280,11 +283,54 @@ SPEC_MEMBER_TOP_KEYS = ("mcp", "channels", "tools", "skills", "models", "agents"
                         "plugins")
 
 
-def spec_member_config(border, servers, spec, prof, home, model):
+def _member_env_values(member_env):
+    """The member's own staged env values (write-env.py's parser), {} when absent."""
+    try:
+        text = Path(os.path.expanduser(str(member_env))).read_text()
+    except (OSError, TypeError):
+        return {}
+    spec = importlib.util.spec_from_file_location('literal_env', Path(REPO)/'scripts/write-env.py')
+    writer = importlib.util.module_from_spec(spec); spec.loader.exec_module(writer)
+    return writer.values(text)
+
+
+def _resolve_base_url(entry, member_env):
+    """A referenced baseUrl (${NAME}) is written as its literal URL from the member's own env:
+    the production model guard classifies a provider by its baseUrl host, and an unresolved
+    reference has none, so a LAN model server would pass as non-local (spec 186 review round 2).
+    A URL is not a secret; it must still carry no credentials, query or fragment."""
+    url = entry.get("baseUrl")
+    match = re.fullmatch(r"\$\{([A-Za-z_][A-Za-z0-9_]*)\}", url) if isinstance(url, str) else None
+    if not match:
+        return entry
+    value = _member_env_values(member_env).get(match[1], "")
+    parts = urlsplit(value) if value else None
+    if (not parts or parts.scheme not in ("http", "https") or not parts.hostname or parts.username is not None
+            or parts.password is not None or parts.query or parts.fragment):
+        raise SystemExit(f"error: the provider baseUrl references {match[1]}, which the member env "
+                         f"{member_env} does not set to an http(s) URL without credentials, query or fragment")
+    return {**entry, "baseUrl": value}
+
+
+def spec_member_providers(border, spec, prof, model, member_env=None):
+    """The member's models.providers (spec 186): see SPEC_MEMBER_TOP_KEYS."""
+    if spec.get("auth") == "subscription":
+        return {}
+    if spec.get("provider"):
+        providers = (border.get("models") or {}).get("providers") or {}
+        return {spec["provider"]: _resolve_base_url(prof.spec_provider_entry(spec, providers), member_env)}
+    return {"anthropic": {
+        "baseUrl": "https://api.anthropic.com", "apiKey": "${ANTHROPIC_API_KEY}",
+        "api": "anthropic-messages",
+        "models": [{"id": model, "name": model, "reasoning": False, "input": ["text", "image"],
+                    "contextWindow": 200000, "maxTokens": 64000}]}}
+
+
+def spec_member_config(border, servers, spec, prof, home, model, member_env=None):
     """A spec member's openclaw.json, from SPEC_MEMBER_TOP_KEYS only."""
     from bgp.federation.controls import defenseclaw_plugin_config
     skills = prof.spec_skills(spec)
-    binding = f"anthropic/{model}"
+    binding = f"{spec.get('provider') or 'anthropic'}/{model}"
     defaults = {"workspace": str(Path(home) / "workspace"), "model": {"primary": binding},
                 "models": {binding: {"alias": "member"}}}
     sandbox = spec_sandbox(border.get("agents"))
@@ -295,11 +341,7 @@ def spec_member_config(border, servers, spec, prof, home, model):
         "channels": {},
         "tools": spec_tools_section(None, prof.spec_tool_policy(spec)),
         "skills": spec_skills_section(border.get("skills"), skills),
-        "models": {"providers": {"anthropic": {
-            "baseUrl": "https://api.anthropic.com", "apiKey": "${ANTHROPIC_API_KEY}",
-            "api": "anthropic-messages",
-            "models": [{"id": model, "name": model, "reasoning": False, "input": ["text", "image"],
-                        "contextWindow": 200000, "maxTokens": 64000}]}}},
+        "models": {"providers": spec_member_providers(border, spec, prof, model, member_env)},
         "agents": {"defaults": defaults, "entries": {"main": {}}},
         "memory": {"search": {"enabled": False}},
         "hooks": {"enabled": False},
@@ -409,6 +451,20 @@ def _require_member_env(servers, home, member_env, member, border_envs=()):
         if _same_path(target, border_env):
             raise SystemExit(f"error: {', '.join(loaders)} would load {target}, the Border's .env "
                              f"({border_env}); component-launch.py loads every key of it. {hint}")
+
+
+def _env_names(env_path):
+    """Variable names assigned in an env file (names only; values are never read out)."""
+    names = set()
+    try:
+        for line in open(os.path.expanduser(env_path)):
+            # The same assignment forms write-env.py loads (an optional `export`).
+            match = re.match(r"^(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=", line.strip())
+            if match:
+                names.add(match[1])
+    except OSError:
+        pass
+    return names
 
 
 def _anthropic_key(env_path):
@@ -709,7 +765,8 @@ def provision_spec(args, runtime):
     config = args.border_config or str(runtime.config)
     try:
         spec, warnings = prof.load_member_spec(args.spec, prof.border_template_servers(config),
-                                               allow_dangerous=args.allow_dangerous_tools)
+                                               allow_dangerous=args.allow_dangerous_tools,
+                                               providers=prof.border_template_providers(config))
     except prof.MemberSpecError as error:
         raise SystemExit(f"error: {error}")
     for warning in warnings:
@@ -728,6 +785,11 @@ def _provision_openclaw(args, runtime, name, spec=None):
     args.border_config=args.border_config or str(runtime.config)
     args.anthropic_key_from=args.anthropic_key_from or str(runtime.env_file)
     prof = _profiles()
+    if spec and args.model:
+        # The staged N2N_MEMBER_MODEL (the member's --model) comes from the spec; a different
+        # configured model would make the agent reject every task (spec 186 review).
+        raise SystemExit("error: --model cannot override a member spec's model; change the spec's "
+                         "model and stage it again")
     model = args.model or (spec or {}).get("model") or prof.model_tier(name)
     border = json.load(open(args.border_config))
     m = copy.deepcopy(border)
@@ -763,7 +825,8 @@ def _provision_openclaw(args, runtime, name, spec=None):
         # Border (review round 2); its memory/GAIT stores live in its own home.
         stores = spec_store_overrides(m["mcp"]["servers"], mh, border_home)
         skills = prof.spec_skills(spec)
-        m = spec_member_config(border, m["mcp"]["servers"], spec, prof, mh, model)
+        m = spec_member_config(border, m["mcp"]["servers"], spec, prof, mh, model,
+                               member_env=args.member_env or Path(mh) / ".env")
         roots = [Path(w) / "skills" for w in (((border.get("agents") or {}).get("defaults") or {}).get("workspace"),)
                  if isinstance(w, str)] + [border_home / "workspace/skills", Path(REPO) / "workspace/skills"]
         sources = skill_sources(skills, roots)
@@ -816,8 +879,8 @@ def _provision_openclaw(args, runtime, name, spec=None):
         workspace = private_dir(Path(mh) / "workspace")
         for skill, source in sources.items():
             copy_skill(source, workspace / "skills" / skill)
-        record = {k: spec[k] for k in ("version", "name", "description", "servers", "skills", "tools",
-                                       "model", "spec_file")}
+        record = {k: spec.get(k) for k in ("version", "name", "description", "servers", "skills", "tools",
+                                           "model", "provider", "auth", "spec_file")}
         record.update(base_skills=spec["base_skills"], base_servers=spec["base_servers"],
                       skill_allowlist=skills, tool_policy=m["tools"],
                       dangerous_tools_allowed=spec["dangerous_tools"],
@@ -840,14 +903,27 @@ def _provision_openclaw(args, runtime, name, spec=None):
             print(f"  WARNING: dangerous tools allowed (--allow-dangerous-tools): {spec['dangerous_tools']}")
     if spec:
         where = args.member_env or f"{mh}/.env"
-        print(f"  model: {model}  (apiKey ${{ANTHROPIC_API_KEY}}: "
-              f"{'present' if key else 'MISSING'} in {where})")
+        binding = f"{spec.get('provider') or 'anthropic'}/{model}"
+        if spec.get("auth") == "subscription":
+            # Spec 186: the member signs in itself; the login lives in its own home.
+            print(f"  model: {binding}  (subscription: sign this member in once, before its first task:")
+            print(f"    OPENCLAW_STATE_DIR={shlex.quote(mh)} OPENCLAW_CONFIG_PATH={shlex.quote(mh + '/openclaw.json')} "
+                  f"openclaw models auth login --provider {spec['provider']})")
+        elif spec.get("provider"):
+            refs = sorted(prof.provider_entry_refs(
+                prof.spec_provider_entry(spec, (border.get("models") or {}).get("providers") or {})))
+            have = _env_names(where)
+            state = ", ".join(f"{r}: {'present' if r in have else 'MISSING'}" for r in refs) or "no variables"
+            print(f"  model: {binding}  (the Border's {spec['provider']} provider; {state} in {where})")
+        else:
+            print(f"  model: {model}  (apiKey ${{ANTHROPIC_API_KEY}}: "
+                  f"{'present' if key else 'MISSING'} in {where})")
         print(f"  memory: {mh}/memory  gait: {mh}/gait  (own stores)")
     else:
         print(f"  model: {model}  (anthropic key: {'present' if key else 'MISSING'})")
     print(f"  OPENCLAW_STATE_DIR={mh}")
     print(f"  OPENCLAW_CONFIG_PATH={mh}/openclaw.json")
-    print(f"  N2N_MEMBER_MODEL={model}")
+    print(f"  N2N_MEMBER_MODEL={m['agents']['defaults']['model']['primary'] if spec else model}")
 
 
 if __name__ == "__main__":

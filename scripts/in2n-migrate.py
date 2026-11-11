@@ -108,6 +108,7 @@ def main():
     from bgp.federation.runtime import selected
     runtime=selected()
     args.live_env=args.live_env or str(runtime.env_file)
+    args.member_python=member_python(runtime.home)
     if runtime.kind=='hermes' and args.spec:
         raise SystemExit('error: member specs stage OpenClaw members; Hermes qualifies only the subnet member')
     if runtime.kind=='hermes':return stage_hermes(args,runtime)
@@ -168,13 +169,14 @@ def main():
     for name, (_path, spec) in specs.items():
         mdir = os.path.join(members_dir, name)
         os.makedirs(mdir, exist_ok=True, mode=0o700)
-        slice_keys = prof.spec_env_slice_keys(spec, set(live_env.keys()), border_servers)
+        slice_keys = prof.spec_env_slice_keys(spec, set(live_env.keys()), border_servers,
+                                              prof.border_template_providers(runtime.config))
         summary.append(_stage_member(args, mdir, name, f"{args.risk}/{name}", name in hot, spec["scope"],
                                      [live_env[k] for k in slice_keys], len(slice_keys),
                                      # The model in2n-member-home.py configures (the spec's, else the
                                      # member tier): the member passes it as --model, and its agent
                                      # accepts only that model.
-                                     model=spec["model"] or prof.model_tier(name)))
+                                     model=prof.spec_model_binding(spec, prof.model_tier(name))))
 
     # Border additions (role only — comms secrets stay in ~/.openclaw/.env)
     with open(os.path.join(staging, "border.env.additions"), "w") as fh:
@@ -201,7 +203,8 @@ def _load_specs(prof, paths, config, offered, allow_dangerous=False):
     try:
         servers = prof.border_template_servers(config)
         for path in paths:
-            spec, warnings = prof.load_member_spec(path, servers, allow_dangerous=allow_dangerous)
+            spec, warnings = prof.load_member_spec(path, servers, allow_dangerous=allow_dangerous,
+                                                   providers=prof.border_template_providers(config))
             for warning in warnings:
                 print(f"WARNING: {path}: {warning}", file=sys.stderr)
             if spec["name"] in specs or spec["name"] in offered:
@@ -234,7 +237,7 @@ def _stage_member(args, mdir, name, member_id, always_on, skills, env_lines, key
         f"OPENCLAW_CONFIG_PATH={os.path.expanduser('~/.openclaw-' + args.risk + '-' + name)}/openclaw.json",
         f"OPENCLAW_STATE_DIR={os.path.expanduser('~/.openclaw-' + args.risk + '-' + name)}",
         f"N2N_MEMBER_SCOPE={_scope_json(skills)}",
-        *(["# The member spec's model:", f"N2N_MEMBER_MODEL=anthropic/{model}"] if model else [
+        *(["# The member spec's model:", f"N2N_MEMBER_MODEL={model}"] if model else [
         "# Pick THIS member's provider/model (any provider incl local/Ollama):",
         "N2N_MEMBER_MODEL=anthropic/claude-sonnet-5   # <-- edit per member"]),
         "# ANTHROPIC_API_KEY / OPENAI_API_KEY / OLLAMA_HOST as needed for the model above",
@@ -254,9 +257,22 @@ def _stage_member(args, mdir, name, member_id, always_on, skills, env_lines, key
         fh.write("# Robust: the launcher parses the .env itself (values may contain\n")
         fh.write("# spaces/colons/JSON) — no fragile shell sourcing.\n")
         fh.write('export N2N_MEMBER_ENV_FILE="$(dirname "$0")/.env"\n')
-        fh.write(f"exec python3 {REPO}/scripts/in2n-member.py --idle-exit {idle}\n")
+        fh.write(f"exec {shlex.quote(getattr(args, 'member_python', 'python3'))} "
+                 f"{shlex.quote(os.path.join(REPO, 'scripts/in2n-member.py'))} --idle-exit {idle}\n")
     os.chmod(os.path.join(mdir, "run.sh"), 0o755)
     return (name, member_id, "always-on" if always_on else "on-demand", len(skills), key_count)
+
+
+def member_python(home):
+    """The interpreter a staged member runs on: the federation (n2n) component's recorded
+    runtime, which the mesh daemon itself runs on (federation-control.py), so the member has
+    the same packages (websockets, cryptography). `python3` when no runtime is recorded."""
+    record = Path(home) / 'python-runtimes/records/n2n'
+    try:
+        python = Path(record.read_text().strip())
+    except OSError:
+        return 'python3'
+    return str(python) if python.is_absolute() and os.access(python, os.X_OK) else 'python3'
 
 
 def _scope_json(skills):

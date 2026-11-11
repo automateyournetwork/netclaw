@@ -139,7 +139,7 @@ python3 scripts/in2n-member-home.py --runtime openclaw --risk my-risk \
 Validation is strict and reports every problem at once:
 
 - Keys: `version` (must be `1`), `name`, `servers` and `tools` are required;
-  `description`, `skills` and `model` are optional; any other key is an error.
+  `description`, `skills`, `model` and `auth` are optional; any other key is an error.
 - `name`: `[A-Za-z0-9][A-Za-z0-9_.-]{0,63}`, not any profile id, `convergence`, `custom` or `spec`.
   It is the member name; `in2n-member-home.py --member`, if given, must equal it.
 - `servers`: each must be in the Border template's `mcp.servers` (the selected runtime
@@ -155,13 +155,40 @@ Validation is strict and reports every problem at once:
 - `skills`: a skill that is not installed (in NetClaw's `workspace/skills` or the Border's)
   is a warning, not an error. The member's
   scope follows `scope custom`: the installed ones, or all listed if none is installed.
-- `model`: `null` (the default member tier) or an Anthropic model id, optionally
-  `anthropic/<id>`; generic members register only the Anthropic provider.
+- `model` (spec 186): one of
+  - `null` (the default member tier) or an Anthropic model id, optionally `anthropic/<id>`:
+    NetClaw's Anthropic provider with `${ANTHROPIC_API_KEY}`;
+  - `<provider>/<model>` for a provider in the Border's `models.providers`, for example
+    `ollama-cloud/minimax-m3` (the model id may itself contain `/`). The member's provider entry
+    is **built** from the Border's: `api` (a plain adapter name), `baseUrl` (http(s), no
+    credentials, query or fragment, or one `${NAME}`), `apiKey` (one `${NAME}` or a default env
+    SecretRef; file, exec and vault SecretRefs and literals are refused), `authHeader`,
+    `headers` (every value only `${NAME}` references, optionally after an auth scheme, so a
+    literal header such as `Content-Type` is refused), `timeoutSeconds`, and the chosen model's
+    inference fields. Any other field, `localService`, an unlisted model, or a reference to a
+    variable members never receive (comms secrets, the Border's store locations) is refused by
+    name. A referenced `baseUrl` is written as its literal URL from the member's own `.env`, so
+    the production model guard sees its host. The member's slice carries the variables the
+    entry references (`OLLAMA_API_KEY`), not `ANTHROPIC_API_KEY`;
+  - with `"auth": "subscription"`, `anthropic/<id>` or `openai/<id>`: the member signs in with
+    its own Claude or ChatGPT login and registers no provider entry or key.
+    `in2n-member-home.py` prints the exact command to run once, before its first task:
+    `OPENCLAW_STATE_DIR=<home> OPENCLAW_CONFIG_PATH=<home>/openclaw.json openclaw models auth login --provider openai`.
+    OpenClaw keeps the login in the member home's state database only.
+- `auth`: `"api-key"` (default) or `"subscription"` (see `model`).
+- `in2n-member-home.py --model` is refused for a spec member: the model comes from the spec,
+  so the staged `N2N_MEMBER_MODEL` always matches the configured one.
+
+In production posture the DefenseClaw plugin route refuses models on loopback or private
+providers (`controls.guarded_model_route`), so a member on a LAN model server runs only in
+testing posture. Staged members run on the federation runtime the mesh daemon uses
+(`python-runtimes/records/n2n`), not the system `python3`.
 
 A spec member's `openclaw.json` is **built, not copied** from the Border's: only `mcp`
-(its servers), `channels: {}`, `tools`, `skills`, `models` (the Anthropic provider with
-`apiKey: "${ANTHROPIC_API_KEY}"`, resolved from the member's `.env`, which the spec slice
-gives `ANTHROPIC_API_KEY`), `agents` (`defaults` with its workspace, model, skills and a
+(its servers), `channels: {}`, `tools`, `skills`, `models` (one provider as `model`
+describes: the Anthropic provider with `apiKey: "${ANTHROPIC_API_KEY}"`, resolved from the
+member's `.env`, which the spec slice gives `ANTHROPIC_API_KEY`; or the copied Border entry; or
+none for a subscription), `agents` (`defaults` with its workspace, model, skills and a
 reduced sandbox; one agent, `main`), `memory.search.enabled: false`, `hooks` and `cron`
 disabled, and `plugins` only when the Border has the DefenseClaw guard plugin (that plugin
 alone, as for the Convergence member). The Border's `gateway`, `env.vars`, other providers
