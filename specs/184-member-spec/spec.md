@@ -29,7 +29,8 @@ declarative member spec is the generic fix.
   literally and `<tool>` uses OpenClaw's tool-name characters plus `*`. Groups, `*`,
   `bundle-mcp`, aliases (`bash`), a pattern for a server not kept, and duplicates (OpenClaw
   matches case-insensitively) are errors.
-- FR-004: `skills` lists distinct safe skill names. A skill not installed is a warning; the
+- FR-004: `skills` lists distinct safe skill names. A skill not installed (in the repository's
+  `workspace/skills` or the selected runtime's, where in2n-member-home.py copies from) is a warning; the
   member's scope is what the existing `scope custom` path yields for the list (`scope()` gained
   an `installed` argument so validation and scope read the same listing).
 - FR-005: `model` is `null` or an Anthropic model id, optionally `anthropic/<id>`; the generic

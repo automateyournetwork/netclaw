@@ -540,7 +540,7 @@ def load_member_spec(source, servers, installed=None, allow_dangerous=False):
 
     if errors:
         raise MemberSpecError(f"{where}: invalid member spec:\n  - " + "\n  - ".join(errors))
-    available = set(_installed_skills() if installed is None else installed)
+    available = set(_all_installed_skills() if installed is None else installed)
     absent = [s for s in skills if s not in available]
     if absent:
         warnings.append("skills not installed: " + ", ".join(absent))
@@ -789,6 +789,17 @@ def _installed_skills(skills_dir=None):
                     out.append(name)
             return out
     return []
+
+
+def _all_installed_skills(dirs=None):
+    """Every skill installed in any of `dirs` (default: the repository's and the selected
+    runtime's). A member spec's skills are copied from the Border's workspace as well as
+    the repository (in2n-member-home.py), so its scope must count both: a skill added to
+    the Border alone, e.g. by an integration, is still installed."""
+    names = set()
+    for d in (DEFAULT_SKILLS_DIRS if dirs is None else dirs):
+        names.update(_installed_skills(d) if d and os.path.isdir(d) else [])
+    return sorted(names)
 
 
 def _match_profile(profile_id, installed):

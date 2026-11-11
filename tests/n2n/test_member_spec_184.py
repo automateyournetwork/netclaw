@@ -240,6 +240,22 @@ def test_skills_not_installed_warn_and_follow_scope_custom(profiles, template):
     assert spec['skills'] == [] and spec['scope'] == [] and warnings == []
 
 
+def test_skills_installed_only_on_the_border_count_as_installed(profiles, template, tmp_path, monkeypatch):
+    """A skill an integration installed into the Border's workspace, not the repository, is
+    installed: in2n-member-home.py copies it from there, so the routing scope must keep it."""
+    repo, border = tmp_path/'repo-skills', tmp_path/'border-skills'
+    for root, name in ((repo, 'pyats-health-check'), (border, 'alert-triage')):
+        (root/name).mkdir(parents=True)
+        (root/name/'SKILL.md').write_text('---\nname: %s\n---\n' % name)
+    (border/'no-skill-file').mkdir()
+    monkeypatch.setattr(profiles, 'DEFAULT_SKILLS_DIRS', [str(repo), str(border), str(tmp_path/'absent')])
+    assert profiles._all_installed_skills() == ['alert-triage', 'pyats-health-check']
+    data = changed(skills=['alert-triage', 'pyats-health-check', 'not-installed'])
+    spec, warnings = profiles.load_member_spec(data, template)
+    assert warnings == ['skills not installed: not-installed']
+    assert spec['scope'] == ['alert-triage', 'pyats-health-check']
+
+
 # ── Allowlist and the kept servers ──
 
 def test_allowlist_naming_a_server_not_kept_is_an_error(profiles, template):

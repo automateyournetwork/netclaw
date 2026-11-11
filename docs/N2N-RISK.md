@@ -152,7 +152,8 @@ Validation is strict and reports every problem at once:
   (or `memory-mcp`/`gait-mcp`) and `<tool>` may use `*`. A pattern for any other server is an
   error. OpenClaw names an MCP tool `<server>__<tool>` and matches allowlists
   case-insensitively with `*` as its only wildcard.
-- `skills`: a skill that is not installed is a warning, not an error. The member's
+- `skills`: a skill that is not installed (in NetClaw's `workspace/skills` or the Border's)
+  is a warning, not an error. The member's
   scope follows `scope custom`: the installed ones, or all listed if none is installed.
 - `model`: `null` (the default member tier) or an Anthropic model id, optionally
   `anthropic/<id>`; generic members register only the Anthropic provider.

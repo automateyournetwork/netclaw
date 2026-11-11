@@ -144,7 +144,16 @@ before every member-home write. Round-3 fixes and tests:
 - docs now state that kept servers keep their own data stores (allowlist-limited) and that
   `GAIT_VENV`/`GAIT_MCP_SCRIPT` come from the Border.
 
-Results on top of e21d867c: `test_member_spec_184.py` 144 passed, `test_member_mcp_mappings_183.py`
+## Integration finding (Convergence investigator)
+
+Validating Convergence's investigator spec against a real Border showed `alert-triage`, which
+Convergence installs into the Border's workspace, reported as not installed and left out of the
+routing scope: `_installed_skills()` returns the first skills directory that exists (the
+repository's), while in2n-member-home.py copies from the Border's workspace too. A member spec's
+installed set is now the union of the repository's and the selected runtime's skills
+(`_all_installed_skills`; `test_skills_installed_only_on_the_border_count_as_installed`).
+
+Results on top of e21d867c: `test_member_spec_184.py` 145 passed, `test_member_mcp_mappings_183.py`
 50 passed (installed OpenClaw 2026.10.9). Full `tests/n2n` (fastmcp4 runtime): main 32 failed,
 1975 passed, 16 skipped, 179 errors; this branch the identical failing/erroring ids and 2163+
 passed. The failures and errors come from modules not installed on this host (for example
