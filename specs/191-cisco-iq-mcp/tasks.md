@@ -41,7 +41,7 @@
 
 - [X] T015 Run `python3 scripts/reconcile-mcp.py` (read exit code directly), `scripts/verify-spec-artifacts.py`, inventory/catalog verifiers; compare failures against main baseline
 - [X] T016 Write `specs/191-cisco-iq-mcp/verification.md` with real results and the not-verified list
-- [ ] T017 Commit logically, push, open PR with `Refs #346`
+- [X] T017 Commit logically, push, open PR with `Refs #346`
 
 ## Dependencies
 T001-T004 -> US1 -> US2 -> US3; US4 tasks T012-T014 after US1-US3 code. T002, T004, T006, T008, T010, T011, T014 parallel with neighbours (different files).
