@@ -444,7 +444,7 @@ claw
   <img src="ui/netclaw-visual/logos/netclawvisualhud.png" alt="NetClaw Visual HUD — operations workspace" width="800">
 </p>
 
-The capability catalogue covers currently 179 MCP integrations and 241 skills; configured entries are not proof of live connectivity.
+The capability catalogue covers currently 180 MCP integrations and 242 skills; configured entries are not proof of live connectivity.
 
 The function-first HUD opens on standard Chat, with an operations dashboard and a preserved, branching
 **Canvas** workspace. Inspect internal Claws, mobile edges and external neighbours;
@@ -490,7 +490,7 @@ security modes and Canvas storage; it does not pull Git or restart services.
 <details>
 <summary>Full platform capability overview</summary>
 
-A CCIE-level AI network engineering coworker. Built on [OpenClaw](https://github.com/openclaw/openclaw) with Anthropic Claude, 241 skills, and 179 MCP integrations for complete network automation with ITSM gating, source-of-truth reconciliation, immutable audit trails, gNMI streaming telemetry, NetFlow/IPFIX flow telemetry, Canvas/A2UI inline network visualizations, packet capture analysis, GitHub config-as-code, GitLab DevOps (issues, merge requests, pipelines, repositories, wikis), Jenkins CI/CD (job monitoring, build triggering, log analysis, SCM tracking), Chrome DevTools browser automation (visualization render QA, controller GUI gap-filling, undocumented API discovery, headless or watchable-headed), Computer Use full-desktop automation (legacy desktop-only tools with no browser or API path, virtual XFCE desktop with VNC/noVNC Watch Mode), Cisco CML lab simulation, ContainerLab containerized network labs, Cisco NSO orchestration, Cisco SD-WAN vManage monitoring, Grafana observability (dashboards, Prometheus, Loki, alerting, incidents), Prometheus direct PromQL monitoring, Kubeshark Kubernetes traffic analysis, Cisco Meraki Dashboard management, Cisco ThousandEyes network intelligence, AWS and Azure cloud networking, Cisco Secure Firewall policy auditing, Check Point Security (15 MCPs: policy, threat intel, gateway, SASE, malware), Itential network orchestration, Juniper JunOS device automation, Arista CloudVision Portal monitoring, F5 BIG-IP pyATS iControl REST coverage, Infoblox DDI, Palo Alto Panorama, FortiManager, Batfish offline configuration analysis, UML diagram generation, EVPN/VXLAN fabric workflows, live BGP/OSPF control-plane participation, OSPF/IS-IS link-state and BGP topology analysis over stored Topolograph snapshots, nmap network scanning, gtrace path analysis and IP enrichment, Slack-native operations, Cisco WebEx-native operations, Microsoft 365 integration, Twilio voice/SMS, Twitter/X integration, Claroty OT/IoT asset management, Forward Networks digital twin, Ollama local LLM routing, an offline agentic RAG document knowledge base (cited answers from user-uploaded vendor guides and standards), layered Memory MCP, MemPalace persistent AI memory, and Lantronix Percepxion/SLC out-of-band console-server management (fleet-wide and direct single-device).
+A CCIE-level AI network engineering coworker. Built on [OpenClaw](https://github.com/openclaw/openclaw) with Anthropic Claude, 242 skills, and 180 MCP integrations for complete network automation with ITSM gating, source-of-truth reconciliation, immutable audit trails, gNMI streaming telemetry, NetFlow/IPFIX flow telemetry, Canvas/A2UI inline network visualizations, packet capture analysis, GitHub config-as-code, GitLab DevOps (issues, merge requests, pipelines, repositories, wikis), Jenkins CI/CD (job monitoring, build triggering, log analysis, SCM tracking), Chrome DevTools browser automation (visualization render QA, controller GUI gap-filling, undocumented API discovery, headless or watchable-headed), Computer Use full-desktop automation (legacy desktop-only tools with no browser or API path, virtual XFCE desktop with VNC/noVNC Watch Mode), Cisco CML lab simulation, ContainerLab containerized network labs, Cisco NSO orchestration, Cisco SD-WAN vManage monitoring, Grafana observability (dashboards, Prometheus, Loki, alerting, incidents), Prometheus direct PromQL monitoring, Kubeshark Kubernetes traffic analysis, Cisco Meraki Dashboard management, Cisco ThousandEyes network intelligence, AWS and Azure cloud networking, Cisco Secure Firewall policy auditing, Check Point Security (15 MCPs: policy, threat intel, gateway, SASE, malware), Itential network orchestration, Juniper JunOS device automation, Arista CloudVision Portal monitoring, F5 BIG-IP pyATS iControl REST coverage, Infoblox DDI, Palo Alto Panorama, FortiManager, Batfish offline configuration analysis, UML diagram generation, EVPN/VXLAN fabric workflows, live BGP/OSPF control-plane participation, OSPF/IS-IS link-state and BGP topology analysis over stored Topolograph snapshots, nmap network scanning, gtrace path analysis and IP enrichment, Slack-native operations, Cisco WebEx-native operations, Microsoft 365 integration, Twilio voice/SMS, Twitter/X integration, Claroty OT/IoT asset management, Forward Networks digital twin, Ollama local LLM routing, an offline agentic RAG document knowledge base (cited answers from user-uploaded vendor guides and standards), layered Memory MCP, MemPalace persistent AI memory, and Lantronix Percepxion/SLC out-of-band console-server management (fleet-wide and direct single-device).
 
 </details>
 
@@ -787,7 +787,7 @@ NetClaw ships with the full set of OpenClaw workspace markdown files. These are 
 
 The HUD's fourth Chat interface, **Avatar**, offers selectable local John and Lobster 3D characters beside the existing Chat, preserving its configured model, conversation and approvals. Rotate, pan and zoom the character; enable the Mac system voice for local audio-reactive animation. Cloned voice, dedicated microphone input and custom-avatar import are follow-on work. Tavus remains an experimental, disabled-by-default stock-video foundation with its own key, bounded Free allowance and restricted agent; live hosted acceptance is pending. See [setup, recording guidance and limitations](docs/TAVUS-PAL.md) and [spec 144](specs/144-tavus-netclaw-pal/spec.md).
 
-## MCP Servers (179)
+## MCP Servers (180)
 
 Optional [Convergence](docs/CONVERGENCE.md) connects a separately operated observability service through three read-only tools: retained flow evidence and advisory VM Security findings. Its HUD hands bounded, same-window evidence to Canvas for investigation by the NetClaw Border. The `convergence-setup` skill installs the service itself from a pinned release, as a Docker trial, on K3s, or on a new K3s cluster on Proxmox. Standalone use remains supported; an OpenClaw Risk can use a focused Convergence member.
 
@@ -924,6 +924,7 @@ Optional [Convergence](docs/CONVERGENCE.md) connects a separately operated obser
 
 | 138 | NetConverter | [Official Terminal](https://github.com/valeronlabs/netconverter_terminals) + built-in guard | stdio guard to selected upstream mode | Exact-file approval, private job evidence/downloads and governed rehearsal composition (8 guarded tools). [Guide](docs/NETCONVERTER.md) |
 | 139 | Large Result Analysis | NetClaw-authored (`mcp-servers/result-analysis-mcp`) | stdio (Python) | **Complete, read-only analysis of results too large to return inline** (spec 187, issue #322) — producers retain the full result and return a handle; 7 tools count, group, filter, page, line-page and literal-search it, with a coverage block on every answer (scanned, matched, complete or not, retention truncation, stream drops/gaps, source sha256). No code execution, SQL, regex, device access or re-run |
+| 140 | Cisco IQ | [Official remote MCP](https://iq.cisco.com/apidocs/mcp-server) | Remote Streamable HTTP | Cisco's official Cisco IQ server for assets, lifecycle/coverage and bug information, read-only by NetClaw policy. Administrator-selected region (EMEA/US/APJC), `Authorization: Bearer` key from the private env file, admin scripts `scripts/cisco-iq-enable.sh` (enable/diagnose/rotate/update/disable). Tool names are discovered at runtime; no workflow is claimed validated (see `docs/CISCO-IQ.md`) |
 
 ### Additional Server Notes
 
@@ -963,7 +964,7 @@ All MCP servers communicate via stdio (JSON-RPC 2.0) through `scripts/mcp-call.p
 
 ---
 
-## Skills (241)
+## Skills (242)
 
 ### Migration conversion and rehearsal (1)
 
@@ -1512,6 +1513,12 @@ Both `browser-gui-inspect` and `desktop-gui-inspect` support Watch Mode — just
 |-------|---------|
 | **devnet-catalyst-search** | Search Cisco Catalyst Center API documentation for device management and policy automation |
 | **devnet-meraki-search** | Search Cisco Meraki API documentation and lookup specific operations |
+
+### Cisco IQ Skill (1)
+
+| Skill | Purpose |
+|-------|---------|
+| **cisco-iq** | Read-only Cisco IQ workflows (assets, lifecycle/coverage, bugs, investigation correlation); discovers tools at runtime, not validated against a live account |
 
 ### Tavus Pal Skill (1)
 
@@ -2680,7 +2687,7 @@ netclaw/
 ├── MISSION01.md                          # Completed — core pyATS + 11 skills
 ├── MISSION02.md                          # Completed — full platform, 78 skills, 32 MCP
 ├── workspace/
-│   └── skills/                           # 241 skill definitions (source of truth)
+│   └── skills/                           # 242 skill definitions (source of truth)
 │       ├── pyats-network/                # Core device automation (8 MCP tools)
 │       ├── pyats-health-check/           # Health + NetBox cross-ref + pCall
 │       ├── pyats-routing/                # OSPF, BGP, EIGRP, IS-IS analysis

@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "sourceSha256": "066bfc83b327b31f3871567dd70a688d77989268bcd48cf30435f47f63f09852",
+  "sourceSha256": "97976ae50430c47da5dcb42df63c2588e23ca5eb0f6ec5ee6cffb2e88baf4d50",
   "components": [
     {
       "id": "hermes-hud",
@@ -1031,6 +1031,15 @@
       "reason": "Install pinned dependencies for the result-analysis MCP and create a private retained-result directory; no external service changes or credentials used during install.",
       "postcondition": "selected-registration-artifacts-and-discovery",
       "source": "scripts/lib/install-steps.sh#component_install_result_analysis"
+    },
+    {
+      "id": "cisco-iq",
+      "function": "component_install_cisco_iq",
+      "sha256": "0b6a53607c76ced63051c2fbd09c3133852a169a336354851da97938dfe0390f",
+      "adapter": "isolated-shell",
+      "reason": "Prints administrator instructions only; no install, download or credential access during setup. Registration is written by scripts/cisco-iq-enable.sh.",
+      "postcondition": "selected-registration-artifacts-and-discovery",
+      "source": "scripts/lib/install-steps.sh#component_install_cisco_iq"
     }
   ]
 }

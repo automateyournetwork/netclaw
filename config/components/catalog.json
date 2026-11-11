@@ -22642,6 +22642,126 @@
         "note": "Permissions depend on the selected tools and backend account. This entry is not a read-only guarantee; review tool behavior and access scope before use.",
         "source": "scripts/lib/install-steps.sh#component_install_analysis"
       }
+    },
+    {
+      "id": "cisco-iq",
+      "category": "Fabric & Orchestration",
+      "title": "Cisco IQ",
+      "description": "Official remote MCP — assets, lifecycle/coverage, bugs (administrator-selected region, read-only policy)",
+      "whenToChoose": "Second/third-line support needs Cisco IQ asset, lifecycle/coverage and bug information beside router diagnostics. Explicit region (EMEA/US/APJC); key must be owned by a user principal. No workflow is claimed validated; tool names are discovered at runtime.",
+      "order": 113,
+      "platforms": [
+        "macos",
+        "wsl2"
+      ],
+      "platformReason": "Target platform per installer-preflight policy; native dependencies and actual discovery are checked separately.",
+      "dependencies": [],
+      "prerequisites": [
+        "Python 3.10 or newer for the selected isolated component runtime."
+      ],
+      "installer": {
+        "function": "component_install_cisco_iq",
+        "mode": "scoped",
+        "effects": [
+          "runtime-home"
+        ],
+        "reason": "Uses the fixed component function with owned source/runtime paths; execution requires the scoped bridge and postcondition checks."
+      },
+      "servers": [],
+      "skills": [
+        "cisco-iq"
+      ],
+      "settings": [
+        {
+          "key": "CISCO_IQ_API_KEY",
+          "label": "Cisco IQ Api Key",
+          "help": "Cisco IQ API key owned by a user principal (service-account keys receive no tools). Set via scripts/cisco-iq-enable.sh (stdin or hidden prompt); sent as Authorization: Bearer.",
+          "classification": "secret",
+          "valueType": "string",
+          "required": "always",
+          "condition": null,
+          "example": "",
+          "sharedWith": [],
+          "input": "user",
+          "provenance": [
+            {
+              "source": "scripts/cisco_iq.py",
+              "checkedAt": "2026-11-11",
+              "note": "Variables managed by scripts/cisco-iq-enable.sh."
+            }
+          ]
+        },
+        {
+          "key": "CISCO_IQ_REGION",
+          "label": "Cisco IQ Region",
+          "help": "Explicit account region: emea, us or apjc. Never inferred.",
+          "classification": "public",
+          "valueType": "string",
+          "required": "always",
+          "condition": null,
+          "example": "us",
+          "sharedWith": [],
+          "input": "user",
+          "provenance": [
+            {
+              "source": "scripts/cisco_iq.py",
+              "checkedAt": "2026-11-11",
+              "note": "Variables managed by scripts/cisco-iq-enable.sh."
+            }
+          ]
+        }
+      ],
+      "links": [
+        {
+          "role": "upstream",
+          "target": "https://iq.cisco.com/apidocs/mcp-server",
+          "unavailableReason": ""
+        },
+        {
+          "role": "netclaw",
+          "target": "workspace/skills/cisco-iq/SKILL.md",
+          "unavailableReason": ""
+        },
+        {
+          "role": "vendor",
+          "target": "https://iq.cisco.com/apidocs/mcp-server",
+          "unavailableReason": ""
+        }
+      ],
+      "verification": {
+        "adapter": "native-discovery",
+        "level": "discovery",
+        "reason": "Verify this component through its selected-harness registration; artifact presence alone is insufficient."
+      },
+      "estimate": {
+        "schemas": 0,
+        "method": "documented",
+        "source": "workspace/skills/cisco-iq/SKILL.md",
+        "reason": "Tool count unknown: discovered at runtime via tools/list; not measured."
+      },
+      "provenance": [
+        {
+          "source": "scripts/lib/install-steps.sh#component_install_cisco_iq",
+          "checkedAt": "2026-11-11",
+          "note": "Installer function."
+        },
+        {
+          "source": "specs/191-cisco-iq-mcp/spec.md",
+          "checkedAt": "2026-11-11",
+          "note": "Contract taken from issue #346; official guide not retrievable by automation."
+        },
+        {
+          "source": "workspace/skills/cisco-iq/SKILL.md",
+          "checkedAt": "2026-11-11",
+          "note": "Integration documentation."
+        }
+      ],
+      "kind": "mcp-integration",
+      "access": {
+        "mode": "unknown",
+        "note": "Cisco IQ is treated read-only by NetClaw policy (config/cisco-iq-policy.json, deny by default) but this is not a hard guarantee without DefenseClaw; review tool behavior and key-owner permissions.",
+        "source": "scripts/lib/install-steps.sh#component_install_cisco_iq"
+      }
     }
   ],
   "skills": [
@@ -26194,6 +26314,32 @@
       }
     },
     {
+      "id": "cisco-iq",
+      "title": "cisco-iq",
+      "description": "Cisco IQ (official remote MCP, read-only) for support investigations — asset and product information, lifecycle and coverage, Cisco bug information, and correlating Cisco IQ findings with an existing investigation. Use when a second- or third-line engineer needs Cisco IQ data next to router diagnostics. Discovers tools at runtime; field availability depends on Cisco IQ schemas, account data and key-owner permissions.",
+      "path": "workspace/skills/cisco-iq/SKILL.md",
+      "sha256": "a39dabd49e37a8a82c6d0653bd48c0b8e2bb76430c9157d8b6fbe16647f99ff9",
+      "components": [
+        "cisco-iq"
+      ],
+      "servers": [],
+      "availability": "supported",
+      "reason": "Requires the explicitly listed components and their configured backends; discovery is verified separately.",
+      "links": [
+        {
+          "role": "skill",
+          "target": "workspace/skills/cisco-iq/SKILL.md",
+          "unavailableReason": ""
+        }
+      ],
+      "kind": "skill",
+      "access": {
+        "mode": "unknown",
+        "note": "A skill describes procedures. It does not enforce tool permissions or approve configuration changes. Review its linked instructions and available tools.",
+        "source": "workspace/skills/cisco-iq/SKILL.md"
+      }
+    },
+    {
       "id": "meraki-monitoring",
       "title": "meraki-monitoring",
       "description": "Cisco Meraki monitoring and diagnostics (read-only) — device availability, loss and latency history, uplink status, live tool results, configuration change log, API request analytics via Cisco's official Meraki MCP. Use when checking Meraki device health, investigating uplink loss, or reviewing recent configuration changes",
@@ -29655,7 +29801,8 @@
         "humanrail",
         "netconverter",
         "convergence-read",
-        "result-analysis"
+        "result-analysis",
+        "cisco-iq"
       ]
     }
   ],
@@ -38460,6 +38607,13 @@
         "zoom-rtms"
       ],
       "reason": "Explicit source inventory mapping; registration/discovery status is observed per installation."
+    },
+    {
+      "name": "Cisco IQ",
+      "components": [
+        "cisco-iq"
+      ],
+      "reason": "Remote Streamable HTTP; region is a mandatory administrator choice, so the registration is written by scripts/cisco-iq-enable.sh rather than pre-seeded."
     }
   ]
 }
