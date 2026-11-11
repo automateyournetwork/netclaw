@@ -61,6 +61,24 @@ from policy.platform_deny import (  # noqa: E402
     is_modelled,
 )
 
+# Large-result retention (spec 187, issue #322): results over the inline budget are retained in
+# full and replaced by an envelope with a handle; small results are returned unchanged. Applied
+# after policy/filter/credential checks, never re-runs a command. If the helper is missing the
+# original behaviour is kept.
+_RA_PATH = str(Path(__file__).resolve().parent.parent / "result-analysis-mcp")
+
+
+def _bounded(result: dict, tool: str, device: str | None = None,
+             command: str | None = None) -> dict:
+    try:
+        if _RA_PATH not in sys.path:
+            sys.path.insert(0, _RA_PATH)
+        import result_retention
+        return result_retention.bounded_dict(result, tool=tool, device=device, command=command)
+    except Exception:
+        return result
+
+
 SERVER_NAME = "multivendor-cli"          # the `server` field in every result (FR-011)
 SERVER_VERSION = "0.1.0"
 
@@ -231,7 +249,8 @@ def run_command(device: str, command: str, timeout_s: int | None = None) -> dict
     Refuses raw execution on platforms owned by pyATS or junos-mcp, naming the
     correct server.
     """
-    return raw_tools.run_command(device, command, timeout_s)
+    return _bounded(raw_tools.run_command(device, command, timeout_s),
+                    "run_command", device, command)
 
 
 @_task_tool
@@ -260,7 +279,8 @@ def get_facts(device: str, getters: list[str] | None = None,
     requested getter is returned as an explicit gap with a reason, never silently
     omitted. An absent getter and an empty result are different answers.
     """
-    return fact_tools.get_facts(device, getters, timeout_s)
+    return _bounded(fact_tools.get_facts(device, getters, timeout_s),
+                    "get_facts", device, None)
 
 
 @_task_tool
@@ -277,7 +297,8 @@ def run_fleet(target: str, command: str | None = None,
     absent device would read as success, which is the most dangerous possible
     output for a fleet query. One device failing never aborts the others.
     """
-    return fleet_tools.run_fleet(target, command, getters, max_workers, timeout_s)
+    return _bounded(fleet_tools.run_fleet(target, command, getters, max_workers, timeout_s),
+                    "run_fleet", None, command)
 
 
 if write_enabled():
