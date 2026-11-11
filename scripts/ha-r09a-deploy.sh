@@ -37,7 +37,7 @@ resources() {
 $NETWORK|network|custom-mode VPC
 $SUBNET|subnet|$CIDR in $REGION
 nc183-allow-iap-ssh|firewall|tcp:22 from 35.235.240.0/20 to tag nc183-node (IAP only)
-nc183-allow-mesh|firewall|tcp:2379-2380,tcp:7443 from $CIDR (cluster plane stays internal)
+nc183-allow-mesh|firewall|tcp:2379-2380,tcp:12379,tcp:7443 from $CIDR (cluster plane stays internal)
 nc183-allow-public|firewall|tcp:443,tcp:7444 from 0.0.0.0/0 to tag nc183-border (HUD and iN2N)
 nc183-ip-a|address|static external IPv4 for border-a in $REGION
 nc183-ip-b|address|static external IPv4 for border-b in $REGION
@@ -75,7 +75,7 @@ cmd_apply() {
   exists networks "$NETWORK" || g compute networks create "$NETWORK" --subnet-mode=custom >/dev/null
   exists "networks subnets" "$SUBNET" --region="$REGION" || g compute networks subnets create "$SUBNET" --network="$NETWORK" --region="$REGION" --range="$CIDR" >/dev/null
   exists firewall-rules "nc183-allow-iap-ssh" || g compute firewall-rules create nc183-allow-iap-ssh --network="$NETWORK" --allow=tcp:22 --source-ranges=35.235.240.0/20 --target-tags=nc183-node >/dev/null
-  exists firewall-rules "nc183-allow-mesh" || g compute firewall-rules create nc183-allow-mesh --network="$NETWORK" --allow=tcp:2379-2380,tcp:7443 --source-ranges="$CIDR" --target-tags=nc183-node >/dev/null
+  exists firewall-rules "nc183-allow-mesh" || g compute firewall-rules create nc183-allow-mesh --network="$NETWORK" --allow=tcp:2379-2380,tcp:12379,tcp:7443 --source-ranges="$CIDR" --target-tags=nc183-node >/dev/null
   exists firewall-rules "nc183-allow-public" || g compute firewall-rules create nc183-allow-public --network="$NETWORK" --allow=tcp:443,tcp:7444 --source-ranges=0.0.0.0/0 --target-tags=nc183-border >/dev/null
   for ip in a b; do
     exists addresses "nc183-ip-$ip" --region="$REGION" || g compute addresses create "nc183-ip-$ip" --region="$REGION" >/dev/null

@@ -56,7 +56,7 @@
 
 - [x] T030 [US4] Stopped-Border / leader-change test inside sandboxes; compare with R09 timings
 - [x] T031 [US4] Cut between the two Borders (7443) and healing; isolated Border reports `no_quorum`; compare with R09
-- [ ] T032 [US4] Measure per-hop and end-to-end overhead against the signed window; record the setting that restores the window if exceeded
+- [x] T032 [US4] Measure per-hop and end-to-end overhead against the signed window; record the setting that restores the window if exceeded
 - [x] T033 [US4] Restart a node and verify it rejoins with its original identity without reclaiming lost authority (FR-018)
 - [x] T034 [US4] Record the two-Border loss-of-majority limit and the witness voter role (FR-020)
 

@@ -1,0 +1,83 @@
+{"nne1": {"epoch": 3, "leader": "e18d1b48-5e40-482e-8dc7-80a82e493361", "ms": 257, "state": "leader"}, "nne2": {"epoch": 3, "leader": "e18d1b48-5e40-482e-8dc7-80a82e493361", "ms": 109, "state": "follower"}, "t": 1794404163.7}
+{"nne1": {"epoch": 3, "leader": "e18d1b48-5e40-482e-8dc7-80a82e493361", "ms": 147, "state": "leader"}, "nne2": {"epoch": 3, "leader": "e18d1b48-5e40-482e-8dc7-80a82e493361", "ms": 88, "state": "follower"}, "t": 1794404166.1}
+{"nne1": {"epoch": 3, "leader": "e18d1b48-5e40-482e-8dc7-80a82e493361", "ms": 122, "state": "leader"}, "nne2": {"epoch": 3, "leader": "e18d1b48-5e40-482e-8dc7-80a82e493361", "ms": 71, "state": "follower"}, "t": 1794404168.3}
+{"nne1": {"epoch": 3, "leader": "e18d1b48-5e40-482e-8dc7-80a82e493361", "ms": 188, "state": "leader"}, "nne2": {"epoch": 3, "leader": "e18d1b48-5e40-482e-8dc7-80a82e493361", "ms": 69, "state": "follower"}, "t": 1794404170.5}
+{"nne1": {"error": "URLError", "ms": 40, "state": "unreachable"}, "nne2": {"epoch": 3, "leader": "e18d1b48-5e40-482e-8dc7-80a82e493361", "ms": 186, "state": "follower"}, "t": 1794404172.8}
+{"nne1": {"error": "URLError", "ms": 43, "state": "unreachable"}, "nne2": {"epoch": 3, "leader": "e18d1b48-5e40-482e-8dc7-80a82e493361", "ms": 108, "state": "follower"}, "t": 1794404175.0}
+{"nne1": {"error": "URLError", "ms": 38, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 41, "state": "unreachable"}, "t": 1794404177.2}
+{"nne1": {"error": "URLError", "ms": 32, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 33, "state": "unreachable"}, "t": 1794404179.3}
+{"nne1": {"error": "URLError", "ms": 34, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 35, "state": "unreachable"}, "t": 1794404181.3}
+{"nne1": {"error": "URLError", "ms": 27, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 79, "state": "unreachable"}, "t": 1794404183.4}
+{"nne1": {"error": "URLError", "ms": 27, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 28, "state": "unreachable"}, "t": 1794404185.5}
+{"nne1": {"error": "URLError", "ms": 31, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 27, "state": "unreachable"}, "t": 1794404187.6}
+{"nne1": {"error": "URLError", "ms": 31, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 29, "state": "unreachable"}, "t": 1794404189.7}
+{"nne1": {"error": "URLError", "ms": 40, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 29, "state": "unreachable"}, "t": 1794404191.7}
+{"nne1": {"error": "URLError", "ms": 30, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 33, "state": "unreachable"}, "t": 1794404193.8}
+{"nne1": {"error": "URLError", "ms": 32, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 33, "state": "unreachable"}, "t": 1794404195.9}
+{"nne1": {"error": "URLError", "ms": 27, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 27, "state": "unreachable"}, "t": 1794404197.9}
+{"nne1": {"error": "URLError", "ms": 37, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 34, "state": "unreachable"}, "t": 1794404200.0}
+{"nne1": {"error": "URLError", "ms": 37, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 33, "state": "unreachable"}, "t": 1794404202.1}
+{"nne1": {"error": "URLError", "ms": 32, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 29, "state": "unreachable"}, "t": 1794404204.2}
+{"nne1": {"error": "URLError", "ms": 40, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 34, "state": "unreachable"}, "t": 1794404206.2}
+{"nne1": {"error": "URLError", "ms": 31, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 26, "state": "unreachable"}, "t": 1794404208.3}
+{"nne1": {"error": "URLError", "ms": 29, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 26, "state": "unreachable"}, "t": 1794404210.4}
+{"nne1": {"error": "URLError", "ms": 27, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 26, "state": "unreachable"}, "t": 1794404212.5}
+{"nne1": {"error": "URLError", "ms": 28, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 30, "state": "unreachable"}, "t": 1794404214.5}
+{"nne1": {"error": "URLError", "ms": 30, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 29, "state": "unreachable"}, "t": 1794404216.6}
+{"nne1": {"error": "URLError", "ms": 29, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 31, "state": "unreachable"}, "t": 1794404218.6}
+{"nne1": {"error": "URLError", "ms": 40, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 41, "state": "unreachable"}, "t": 1794404220.7}
+{"nne1": {"error": "URLError", "ms": 55, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 41, "state": "unreachable"}, "t": 1794404222.8}
+{"nne1": {"error": "URLError", "ms": 47, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 41, "state": "unreachable"}, "t": 1794404224.9}
+{"nne1": {"error": "URLError", "ms": 43, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 37, "state": "unreachable"}, "t": 1794404227.0}
+{"nne1": {"error": "URLError", "ms": 42, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 39, "state": "unreachable"}, "t": 1794404229.1}
+{"nne1": {"error": "URLError", "ms": 39, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 39, "state": "unreachable"}, "t": 1794404231.2}
+{"nne1": {"error": "URLError", "ms": 43, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 43, "state": "unreachable"}, "t": 1794404233.3}
+{"nne1": {"error": "URLError", "ms": 46, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 36, "state": "unreachable"}, "t": 1794404235.4}
+{"nne1": {"error": "URLError", "ms": 38, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 41, "state": "unreachable"}, "t": 1794404237.5}
+{"nne1": {"error": "URLError", "ms": 40, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 37, "state": "unreachable"}, "t": 1794404239.6}
+{"nne1": {"error": "URLError", "ms": 45, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 37, "state": "unreachable"}, "t": 1794404241.6}
+{"nne1": {"error": "URLError", "ms": 37, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 34, "state": "unreachable"}, "t": 1794404243.7}
+{"nne1": {"error": "URLError", "ms": 41, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 39, "state": "unreachable"}, "t": 1794404245.8}
+{"nne1": {"error": "URLError", "ms": 49, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 35, "state": "unreachable"}, "t": 1794404247.9}
+{"nne1": {"error": "URLError", "ms": 35, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 36, "state": "unreachable"}, "t": 1794404250.0}
+{"nne1": {"error": "URLError", "ms": 45, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 41, "state": "unreachable"}, "t": 1794404252.1}
+{"nne1": {"error": "URLError", "ms": 43, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 40, "state": "unreachable"}, "t": 1794404254.2}
+{"nne1": {"error": "URLError", "ms": 48, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 38, "state": "unreachable"}, "t": 1794404256.3}
+{"nne1": {"error": "URLError", "ms": 53, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 39, "state": "unreachable"}, "t": 1794404258.4}
+{"nne1": {"error": "URLError", "ms": 43, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 37, "state": "unreachable"}, "t": 1794404260.5}
+{"nne1": {"error": "URLError", "ms": 36, "state": "unreachable"}, "nne2": {"error": "URLError", "ms": 40, "state": "unreachable"}, "t": 1794404262.6}
+{"nne1": {"error": "URLError", "ms": 34, "state": "unreachable"}, "nne2": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 116, "state": "leader"}, "t": 1794404264.7}
+{"nne1": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 122, "state": "follower"}, "nne2": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 79, "state": "leader"}, "t": 1794404266.8}
+{"nne1": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 93, "state": "follower"}, "nne2": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 94, "state": "leader"}, "t": 1794404269.0}
+{"nne1": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 91, "state": "follower"}, "nne2": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 81, "state": "leader"}, "t": 1794404271.2}
+{"nne1": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 91, "state": "follower"}, "nne2": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 96, "state": "leader"}, "t": 1794404273.4}
+{"nne1": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 86, "state": "follower"}, "nne2": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 79, "state": "leader"}, "t": 1794404275.6}
+{"nne1": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 83, "state": "follower"}, "nne2": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 95, "state": "leader"}, "t": 1794404277.8}
+{"nne1": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 85, "state": "follower"}, "nne2": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 69, "state": "leader"}, "t": 1794404279.9}
+{"nne1": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 96, "state": "follower"}, "nne2": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 76, "state": "leader"}, "t": 1794404282.1}
+{"nne1": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 74, "state": "follower"}, "nne2": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 112, "state": "leader"}, "t": 1794404284.3}
+{"nne1": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 100, "state": "follower"}, "nne2": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 93, "state": "leader"}, "t": 1794404286.5}
+{"nne1": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 87, "state": "follower"}, "nne2": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 99, "state": "leader"}, "t": 1794404288.7}
+{"nne1": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 93, "state": "follower"}, "nne2": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 83, "state": "leader"}, "t": 1794404290.9}
+{"nne1": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 88, "state": "follower"}, "nne2": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 104, "state": "leader"}, "t": 1794404293.1}
+{"nne1": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 89, "state": "follower"}, "nne2": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 105, "state": "leader"}, "t": 1794404295.3}
+{"nne1": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 95, "state": "follower"}, "nne2": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 90, "state": "leader"}, "t": 1794404297.5}
+{"nne1": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 144, "state": "follower"}, "nne2": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 99, "state": "leader"}, "t": 1794404299.7}
+{"nne1": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 86, "state": "follower"}, "nne2": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 85, "state": "leader"}, "t": 1794404301.9}
+{"nne1": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 167, "state": "follower"}, "nne2": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 83, "state": "leader"}, "t": 1794404304.1}
+{"nne1": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 79, "state": "follower"}, "nne2": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 81, "state": "leader"}, "t": 1794404306.3}
+{"nne1": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 131, "state": "follower"}, "nne2": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 133, "state": "leader"}, "t": 1794404308.5}
+{"nne1": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 101, "state": "follower"}, "nne2": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 94, "state": "leader"}, "t": 1794404310.8}
+{"nne1": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 100, "state": "follower"}, "nne2": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 154, "state": "leader"}, "t": 1794404313.0}
+{"nne1": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 81, "state": "follower"}, "nne2": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 92, "state": "leader"}, "t": 1794404315.2}
+{"nne1": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 113, "state": "follower"}, "nne2": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 109, "state": "leader"}, "t": 1794404317.4}
+{"nne1": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 86, "state": "follower"}, "nne2": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 138, "state": "leader"}, "t": 1794404319.6}
+{"nne1": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 103, "state": "follower"}, "nne2": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 73, "state": "leader"}, "t": 1794404321.9}
+{"nne1": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 87, "state": "follower"}, "nne2": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 94, "state": "leader"}, "t": 1794404324.1}
+{"nne1": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 77, "state": "follower"}, "nne2": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 68, "state": "leader"}, "t": 1794404326.3}
+{"nne1": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 85, "state": "follower"}, "nne2": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 86, "state": "leader"}, "t": 1794404328.4}
+{"nne1": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 75, "state": "follower"}, "nne2": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 76, "state": "leader"}, "t": 1794404330.6}
+{"nne1": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 78, "state": "follower"}, "nne2": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 66, "state": "leader"}, "t": 1794404332.7}
+{"nne1": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 72, "state": "follower"}, "nne2": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 77, "state": "leader"}, "t": 1794404334.9}
+{"nne1": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 70, "state": "follower"}, "nne2": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 70, "state": "leader"}, "t": 1794404337.0}
+{"nne1": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 79, "state": "follower"}, "nne2": {"epoch": 8, "leader": "19067037-5908-41a5-9587-4f1889691f7b", "ms": 84, "state": "leader"}, "t": 1794404339.2}

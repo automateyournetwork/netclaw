@@ -1,0 +1,10 @@
+{
+ "a": {
+  "error": "Extra data: line 5 column 3 (char 53)",
+  "raw": " \"payload_bytes\": 688,\n \"host_plain_http_same_payload\": {\n  \"n\": 100,\n  \"median_ms\": 0.67,\n  \"p95_ms\": 0.8\n },\n \"via_openshell_forward_into_sandbox_ingress_tls\": {\n  \"n\": 100,\n  \"median_ms\": 19.22,\n  "
+ },
+ "b": {
+  "error": "Extra data: line 5 column 3 (char 54)",
+  "raw": " \"payload_bytes\": 688,\n \"host_plain_http_same_payload\": {\n  \"n\": 100,\n  \"median_ms\": 0.69,\n  \"p95_ms\": 0.81\n },\n \"via_openshell_forward_into_sandbox_ingress_tls\": {\n  \"n\": 100,\n  \"median_ms\": 17.41,\n "
+ }
+}
