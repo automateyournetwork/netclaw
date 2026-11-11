@@ -346,15 +346,39 @@ async def handle_n2n(method, path, body):
             for k in ("peer", "target_type", "target_name"):
                 if not body.get(k):
                     return 400, {"error": f"missing required field '{k}'"}
-            gid = fed.authz.grant(body["peer"], body["target_type"], body["target_name"],
-                                  bool(body.get("requires_approval", False)), body.get("timeout_s"))
+            try:   # spec 190: optional access_class (read | read_write)
+                gid = fed.authz.grant(body["peer"], body["target_type"], body["target_name"],
+                                      bool(body.get("requires_approval", False)), body.get("timeout_s"),
+                                      access_class=body.get("access_class"))
+            except ValueError as e:
+                return 400, {"error": str(e)}
+            stored = next((g["access_class"] for g in fed.authz.list_grants(body["peer"]) if g["id"] == gid),
+                          None)
             # FR-012 / research D12: grant/revoke was never audited before feature
             # 065 (verified during /speckit.analyze) — fixed generically here, for
             # every target_type, not just the new "knowledge_replica" one.
             fed.audit.record(direction="local", peer_identity=body["peer"],
                              target_type=body["target_type"], target_name=body["target_name"],
-                             decision="granted", outcome="success")
-            return 200, {"grant_id": gid}
+                             decision="granted",
+                             outcome="success" if stored in (None, "read_write") else f"success:{stored}")  # spec 190
+            return 200, {"grant_id": gid, "access_class": stored}
+
+        # spec 190: target classification (operator override / annotation import)
+        if path == "/n2n/classifications" and method == "GET":
+            return 200, {"classifications": fed.authz.list_classifications()}
+
+        if path == "/n2n/classifications" and method == "POST":
+            try:
+                if body.get("server"):
+                    return 200, fed.authz.import_annotations(body["server"], body.get("tools"))
+                if not body.get("target_type") or not body.get("target_name"):
+                    return 400, {"error": "missing required field 'target_type' or 'target_name'"}
+                access = None if body.get("clear") else body.get("access")
+                fed.authz.classify(body["target_type"], body["target_name"], access)
+            except ValueError as e:
+                return 400, {"error": str(e)}
+            return 200, {"target_type": body["target_type"], "target_name": body["target_name"],
+                         "class": fed.authz.effective_class(body["target_type"], body["target_name"])}
 
         if len(parts) == 3 and parts[1] == "grants" and method == "DELETE":
             grants_before = {g["id"]: g for g in fed.authz.list_grants()}
@@ -657,9 +681,14 @@ async def handle_n2n(method, path, body):
             if body.get("chat", True):
                 mgr.set_chat_enabled(ident, True)
             granted = []
+            try:   # spec 190: validate once so a bad class changes nothing
+                if body.get("access_class") not in (None, "read", "read_write"):
+                    raise ValueError("access_class must be one of ('read', 'read_write')")
+            except ValueError as e:
+                return 400, {"error": str(e)}
             for tgt in (body.get("tools") or []):
                 ttype = "tool" if "/" in tgt else "skill"
-                fed.authz.grant(ident, ttype, tgt)
+                fed.authz.grant(ident, ttype, tgt, access_class=body.get("access_class"))
                 granted.append(tgt)
             return 200, {"peer": ident, "chat_enabled": True, "granted": granted}
 

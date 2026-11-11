@@ -138,6 +138,22 @@ flapping?"). Anything build- or task-shaped → `n2n_delegate`.
 - `n2n_connect(peer, host, port)` — add + consent + dial in one call.
 - `n2n_trust(peer, tools="a,b", chat=true)` — consent + grants + chat in one call.
 
+## Read-only grants (spec 190)
+
+A grant carries an access class: `read` (only targets classified read are callable) or
+`read_write` (default; identical to grants made before the option existed).
+
+- `n2n_grant(peer, "tool", "cml-mcp/list_labs", access_class="read")`
+- Classify targets first: `n2n_classify("tool", "cml-mcp/list_labs", "read")`,
+  `n2n_import_annotations("cml-mcp", tools_json)` (MCP `readOnlyHint`), or
+  `n2n_list_classifications()`. An operator override beats an imported annotation.
+- Unclassified is never read: a `read` grant refuses it. A skill is read only when the
+  operator classifies it so; request text is never inspected.
+- A refusal looks like any other NOT_ALLOWLISTED to the peer; the audit row is
+  `access_class_denied`. `knowledge` targets are always read; card/inventory pull stays
+  governed by `n2n_set_visibility`. Card `tool_access`/`access` hints are advisory.
+- See `docs/N2N-GRANT-ACCESS-CLASS.md`.
+
 ## Federated knowledge — ask the claw that owns the corpus (feature 064)
 
 Peers advertise their RAG collections on their capability card as a `knowledge`
@@ -327,7 +343,8 @@ mechanisms end to end.
 
 US1 capability: `n2n_status`, `n2n_consent`, `n2n_kill`, `n2n_peer_capabilities`,
 `n2n_compare_capabilities`, `n2n_set_visibility`. US2 invocation: `n2n_grant`,
-`n2n_revoke_grant`, `n2n_list_grants`, `n2n_invoke`, `n2n_approvals`,
+`n2n_revoke_grant`, `n2n_list_grants`, `n2n_classify`, `n2n_import_annotations`,
+`n2n_list_classifications`, `n2n_invoke`, `n2n_approvals`,
 `n2n_approve`, `n2n_deny`, `n2n_audit`, `n2n_config`. US3 chat: `n2n_chat`.
 053 reliability/ergonomics: `n2n_delegate`, `n2n_task_wait`, `n2n_task_status`,
 `n2n_task_result`, `n2n_task_cancel`, `n2n_health`, `n2n_connect`, `n2n_trust`.
