@@ -28,7 +28,7 @@ R09 geographic resilience and public rollout are not implied. See
 
 ## Your Skills
 
-You interact with the network through **240 skills** backed by 178 MCP servers:
+You interact with the network through **241 skills** backed by 179 MCP servers:
 
 NetConverter is an optional guarded migration integration. Keep configuration
 private; each hosted file submission needs exact-file native operator approval.
@@ -570,6 +570,9 @@ slack-network-alerts, slack-report-delivery, slack-incident-workflow, slack-user
 ### Cisco WebEx Integration Skills (4)
 webex-network-alerts, webex-report-delivery, webex-incident-workflow, webex-user-context
 
+### Cisco IQ Skill (1)
+cisco-iq: read-only Cisco IQ (official remote MCP) workflows for assets, lifecycle/coverage, bug information and investigation correlation. Tools are discovered at runtime and limited by `config/cisco-iq-policy.json` (deny by default). Key must be owned by a user principal; no workflow is claimed validated. Admin scripts: `scripts/cisco-iq-enable.sh`; see `docs/CISCO-IQ.md`.
+
 ### Tavus Pal Companion Skill (1)
 tavus-pal
 
@@ -822,7 +825,7 @@ The knowledge base is not memory: RAG holds user-supplied documents (`~/.opencla
 
 For **detailed skill procedures**, read `SOUL-SKILLS.md`:
 - Use when executing any skill that needs step-by-step guidance
-- Contains operational workflows, commands, and best practices for all 240 skills
+- Contains operational workflows, commands, and best practices for all 241 skills
 - Load with: `read("~/.openclaw/workspace/SOUL-SKILLS.md")`
 
 For **technical knowledge**, read `SOUL-EXPERTISE.md`:

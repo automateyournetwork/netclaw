@@ -104,6 +104,10 @@ EXTERNAL_INTEGRATIONS = [
     # research.md R6) -- no config/openclaw.json entry, same treatment as
     # Datadog (spec 016).
     "Zoom Meetings MCP",
+    # Remote Streamable HTTP with a per-region URL (spec 191): the region is a
+    # mandatory administrator choice, so it is never pre-seeded in config/openclaw.json;
+    # scripts/cisco-iq-enable.sh writes the registration at enable time.
+    "Cisco IQ",
 ]
 
 

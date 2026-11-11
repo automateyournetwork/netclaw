@@ -1640,3 +1640,13 @@ Original signed result, successor ACK, native artifacts and actual referenced
 GAIT commits are exported before successful settlement. Unknowns stay held.
 This note records source behavior, not completed REAL or native acceptance.
 See specs/179-border-ha-authority/coherence.md and qualification-matrix.md.
+
+## Cisco IQ remote MCP (`cisco-iq-mcp`, spec 191)
+
+Official Cisco IQ server over Streamable HTTP. The region is an explicit administrator choice and is never inferred:
+EMEA `https://eu-central-1.iq.cisco.com/mcp`, US `https://us-west-2.iq.cisco.com/mcp`, APJC `https://ap-southeast-2.iq.cisco.com/mcp`.
+Auth is one `Authorization: Bearer ${CISCO_IQ_API_KEY}` header (key in the private `.env`, owned by a user principal;
+service-account keys get no tools; keys expire and inherit owner permissions). Registered at enable time, not in `config/openclaw.json`.
+Admin: `scripts/cisco-iq-enable.sh enable|update|rotate|disable|status|diagnose|policy-check`. Read-only deny-by-default policy:
+`config/cisco-iq-policy.json`. Tool names are discovered at runtime, not assumed. Contract taken from issue #346; the official
+guide could not be fetched by automation. See `docs/CISCO-IQ.md`.
