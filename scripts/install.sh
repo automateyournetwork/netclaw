@@ -719,6 +719,15 @@ echo ""
 # Launch NetClaw Platform Setup
 # ═══════════════════════════════════════════
 
+# Optional: deploy a Border / Member to GCP (spec 193). Interactive only; never part of a non-interactive install.
+if [ "$CLI_MODE" != "1" ] && tui_is_tty && [ -f "$NETCLAW_DIR/scripts/lib/gcp-menu.sh" ]; then
+    # shellcheck source=lib/gcp-menu.sh
+    source "$NETCLAW_DIR/scripts/lib/gcp-menu.sh"
+    if tui_yesno "Deploy a NetClaw Border or Member to Google Cloud (GCP) now?" "n"; then
+        gcp_deploy_menu || log_warn "GCP deployment did not complete; nothing further was changed."
+    fi
+fi
+
 SETUP_SCRIPT="$NETCLAW_DIR/scripts/setup.sh"
 if [ -f "$SETUP_SCRIPT" ] && tui_is_tty; then
     echo ""

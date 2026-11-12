@@ -33,6 +33,7 @@ import {createPreset} from './setup/preset';
 import {inspectSetupConnection,SetupConnection} from './setup/connections';
 import { OwnerWorkflow, assertCloudCommand } from './views/owner';
 import { cloudInputOrigin, discoverCloudBorder, cloudExecutionMode, ownerCanonical } from './client/owner';
+import { deployGcp } from './views/gcp';
 import { fetchNodePosture, formatPosture } from './client/posture';
 import { remoteHudFeatures, remoteDomainFeature, remoteCommandFeature } from "./client/remote-hud";
 
@@ -135,6 +136,7 @@ export async function activate(context: vscode.ExtensionContext) {
     refresh();
   };
   register("setupClaw", () => setupWizard.open());
+  register("deployGcp", () => deployGcp());
   register("ownerSignIn", () => ownerWorkflow.signIn());
   register("ownerSignOut", () => ownerWorkflow.signOut());
   register("ownerPrepare", () => ownerWorkflow.prepare());

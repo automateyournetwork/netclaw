@@ -1,7 +1,7 @@
 # R10 — Azure single region
 
 - **Roadmap item:** 5 — Azure, repeat the GCP sequence (single)
-- **Depends on:** R09
+- **Depends on:** R09, R09C (GCP closed; the GCP installer/guide pattern is mirrored)
 - **Gate:** human review before R11
 
 ## Specify input
