@@ -95,6 +95,7 @@ It deletes only resources carrying that deployment's prefix/label (never anythin
 
 - No authentication, users, SSO or RBAC (R15-R17).
 - `bootstrap` prepares each node (Node.js from a checksum-verified download, uv, a NetClaw checkout). Running `./scripts/install.sh` on the node is interactive (OpenClaw onboarding needs a TTY and your provider choices); `bootstrap` prints the exact `gcloud compute ssh -t` line. Enrolling the node into your Risk is the Claw Plan Member/Border flow. The HA sandboxing stack (OpenShell/DefenseClaw) validated in R09A is not installed by `bootstrap`.
+- HA and distributed topologies provision the infrastructure and were validated at the coordination layer (a 3-voter etcd across both Borders and the NAT-only witness elected a leader, survived leader loss, refused writes without quorum and recovered). Starting the NetClaw Border HA authority on those nodes still uses the operator-run R09 tooling; the installer does not automate it yet.
 - Load balancers, Cloud Armor and managed certificates were rejected or deferred by the survey.
 - Cost figures are estimates.
 - Distributed Risk exposure needs owner-approved published client builds.

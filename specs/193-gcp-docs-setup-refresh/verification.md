@@ -1,6 +1,6 @@
 # Verification: Spec 193 (R09C)
 
-Date: 2026-11-12. Honest scope: **fake-runner tested, plus real GCP deploy and teardown of all three infrastructure shapes (single Border with bootstrap, HA, distributed), all clean.** No HA/distributed Risk behavior was exercised.
+Date: 2026-11-12. Honest scope: **fake-runner tested, plus real GCP deploy and teardown of all three infrastructure shapes (single Border with bootstrap, HA, distributed), all clean.** HA substrate (3-voter etcd election, failover, quorum loss, recovery) was exercised live; the NetClaw Border authority/Risk layer on installer-provisioned nodes was not.
 
 | Item | Evidence | Status |
 |---|---|---|
@@ -16,6 +16,7 @@ Date: 2026-11-12. Honest scope: **fake-runner tested, plus real GCP deploy and t
 | **Real GCP run, 2026-11-12, project owned by the requester, `gcp-border`, northamerica-northeast1**: plan (read-only) -> apply created 8 resources + 2 IAM bindings, real `gcloud create` flags accepted; second apply `exists` x8, `0 created` (idempotent); status; state file mode 600; foreign-node ssh refused; `bootstrap` over IAP SSH to a real VM | live | PASS |
 | Teardown (real): list printed, wrong hash REFUSED, correct hash deleted instance, address, 3 firewalls, subnet, network, service account and both IAM bindings; "0 owned resource(s) remain"; independent gcloud listing showed 0 `nc-f9378a` resources and 0 IAM bindings | live | PASS |
 | **Real GCP run, `ha-risk` (2 Borders + witness, Cloud NAT, router, mesh firewall) and `distributed-risk` (3 Borders in northamerica-northeast1, europe-west1, asia-southeast1)**: apply created 14 and 15 resources with real flags; teardown verified 0 remaining; independent listing showed no `nc-` instances, addresses, firewalls, networks, subnets, routers, service accounts or IAM bindings | live | PASS (infrastructure only: no node software, enrollment or HA authority was started) |
+| **HA substrate proof on the installer-provisioned `ha-risk` topology (real GCP, 2026-11-12)**: `bootstrap`-style host prep, Docker + a 3-voter etcd v3.6 across Border 1, Border 2 (different zones) and the witness that has **no external IP** (image and packages pulled through Cloud NAT). Results: all three members healthy over the mesh firewall rules; leader elected; write via Border 1 read back via the witness; stopped the **leader** -> a new leader elected and writes committed with 2 of 3 voters, earlier data intact; stopped a second voter (quorum lost) -> write refused (`context deadline exceeded`, key not stored); restarted both -> all healthy, data written during the outage preserved, writes succeed. Torn down: 0 resources remain | live | PASS |
 | Cost of the live run | about 40 minutes of one e2-standard-2 + one static IP, well under $0.10 for the single Border; the HA and distributed runs were created and deleted within minutes (a few cents each) | recorded |
 
 ### Defects found by the real run and fixed
@@ -24,7 +25,8 @@ Date: 2026-11-12. Honest scope: **fake-runner tested, plus real GCP deploy and t
 3. SSH failure output showed only IAP/NumPy noise. Output is now filtered to the real error lines.
 
 ### Not exercised
-- HA and distributed Risk *behavior*: the infrastructure was created and torn down live, but no etcd, authority, enrollment or traffic was run on it.
+- **NetClaw Border authority and a running Risk** (leader lease, stale-leader refusal, member handoff, iN2N enrollment) on installer-provisioned nodes. The HA proof above covers the infrastructure and the etcd coordination substrate only; it used plain-HTTP etcd inside the VPC for speed, whereas the Border authority requires TLS etcd with RBAC and signed manifests produced by the R09 prepare pipeline, which is still operator tooling (`labs/ha/r09_*`, hardcoded names, DNS/cert flow). Generalizing that pipeline into the installer is the recommended follow-on (suggest a spec between R09C and R10 only if the owner wants GCP HA Risk self-service before Azure). R03-R09/R09A already proved that stack in GCP with the operator tooling.
+- Distributed (multi-region) etcd latency behavior: only the single-region HA substrate was exercised.
 - The acknowledged VS Code click-through and the `install.sh` entry prompt in a full installer run (the menu function itself was driven in a pty).
 - Member roles and HA/etcd bootstrap on a real node.
 
