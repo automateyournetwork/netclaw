@@ -124,6 +124,11 @@
         "category": "NetClaw"
       },
       {
+        "command": "netclaw.deployGcp",
+        "title": "Deploy a Border or Member to GCP (no authentication; keep URLs private)",
+        "category": "NetClaw"
+      },
+      {
         "command": "netclaw.addConnection",
         "title": "Add Connection",
         "category": "NetClaw"

@@ -55,3 +55,9 @@ the policy only; source MCP access, composition, validation and explicit activat
 are later operations. No empty YAML is needed in dynamic mode. Explain source gaps
 and session lifetime from `docs/DYNAMIC-TESTBEDS.md`; never infer SSH from consoles
 or claim fixture qualification as live access. HUD static inventory is separate.
+
+## GCP deployment
+
+If the user wants a Border or Member in Google Cloud, point them to `docs/NETCLAW-IN-GCP.md`. State first that GCP deployments are
+NOT behind any authentication and URLs must stay private (users, SSO and RBAC are R15-R17). Prepare, but do not run on the
+user's behalf, `python3 scripts/netclaw-gcp.py plan ...`. Never supply `--ack-no-auth`, `--confirm-cost` or `--confirm-list-sha256`.

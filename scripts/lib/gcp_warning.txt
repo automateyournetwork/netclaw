@@ -1,0 +1,6 @@
+!! NOT BEHIND ANY AUTHENTICATION !!
+A NetClaw deployment in GCP has NO sign-in, NO users and NO access control today.
+Anyone who can reach a Border or Member endpoint URL can use it.
+Keep every URL and IP address private. Do not publish, paste or share them.
+Users, SSO and RBAC are a much later roadmap phase (R15-R17).
+Experiment freely (GCP, on-prem or a mix, HA Risk, distributed Risk) with this limit in mind.

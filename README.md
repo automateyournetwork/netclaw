@@ -393,6 +393,21 @@ Reconfigure anytime:
 
 ---
 
+## NetClaw in GCP
+
+Run Borders and Members in Google Cloud, on-prem, or a mix, and build an HA or distributed Risk. Start from
+`./scripts/install.sh` (answer yes to *Deploy ... to Google Cloud*), the VS Code command **NetClaw: Deploy a Border or
+Member to GCP**, or `python3 scripts/netclaw-gcp.py`. Full guide: **[NetClaw in GCP](docs/NETCLAW-IN-GCP.md)**.
+
+> !! NOT BEHIND ANY AUTHENTICATION !!
+> A NetClaw deployment in GCP has NO sign-in, NO users and NO access control today.
+> Anyone who can reach a Border or Member endpoint URL can use it.
+> Keep every URL and IP address private. Do not publish, paste or share them.
+> Users, SSO and RBAC are a much later roadmap phase (R15-R17).
+> Experiment freely (GCP, on-prem or a mix, HA Risk, distributed Risk) with this limit in mind.
+>
+> Roadmap: users, SSO and RBAC arrive in R15-R17, after the Azure and AWS stages.
+
 ## Enterprise Security (DefenseClaw + OpenShell)
 
 NetClaw includes enterprise-grade security via **Cisco DefenseClaw** and **NVIDIA OpenShell**:

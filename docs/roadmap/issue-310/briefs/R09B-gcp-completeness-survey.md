@@ -2,7 +2,8 @@
 
 - **Roadmap item:** 4 (substep 2 of 2 before Azure)
 - **Depends on:** R09A
-- **Gate:** human review before R10
+- **Status:** COMPLETE. The survey is a reference for any future GCP revisit; setup follow-on is R09C (spec 193).
+- **Gate:** passed (R09C closes GCP before R10)
 
 ## Specify input
 

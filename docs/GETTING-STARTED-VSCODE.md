@@ -47,3 +47,10 @@ Readiness reports source access, candidate, activation and execution independent
 See [Dynamic testbeds](DYNAMIC-TESTBEDS.md) for all source contracts, unavailable
 reader gaps, restart behavior and feasible qualification. Existing runtimes require
 an explicit reviewed component upgrade; source selection alone does not install it.
+
+## Deploying to GCP
+
+The installer, this wizard flow and the Claw Plan flow can place a Border or Member in your own GCP project
+(`NetClaw: Deploy a Border or Member to GCP`, or `scripts/netclaw-gcp.py`). See [NetClaw in GCP](NETCLAW-IN-GCP.md).
+GCP deployments are **NOT behind any authentication**: keep every URL private; users, SSO and RBAC are a much later
+roadmap phase (R15-R17).

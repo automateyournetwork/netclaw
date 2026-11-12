@@ -48,6 +48,9 @@ LEGACY_EXCEPTIONS = {
     # section plus baseline.txt (the measured before-state) and checklists/.
     # Excepted rather than loosening the check to accept any decisions-shaped
     # heading, which would weaken it for new work.
+    # R09B is a survey, not a feature: its single deliverable (survey.md, with decisions and rationale)
+    # is the research output and nothing was built. The follow-on build is spec 193.
+    "192-gcp-completeness-survey": "survey-only deliverable (survey.md); build work is spec 193",
     "077-dependency-pin-hazards": "research recorded as plan.md '## Key decisions' + baseline.txt",
 }
 
