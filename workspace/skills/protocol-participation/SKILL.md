@@ -269,6 +269,7 @@ NETCLAW_LAB_MODE=true
 4. **ALWAYS** record protocol changes in GAIT (`gait-session-tracking`)
 5. **GRE tunnels require sudo** — the install wizard handles initial setup; runtime queries via `gre_tunnel_status` do not require elevated privileges
 6. **Lab mode** (`NETCLAW_LAB_MODE=true`) relaxes the CR requirement for the FRR testbed — never set this in production
+7. **Only the operator sets lab mode**, in `.env`. Never set or export `NETCLAW_LAB_MODE` yourself. When it is not already `true` in the environment, treat every route mutation as production and require a CR. Do not suggest enabling it unless the operator asks about lab-mode operation
 
 ## Guardrails
 

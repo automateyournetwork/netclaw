@@ -2,6 +2,12 @@
 
 NetClaw source releases use `1.x.y`. Feature specs increment the minor version and reset the patch; fixes, documentation and maintenance increment the patch. Every release records its numbered specs. Component and mobile distribution versions are independent.
 
+## [1.22.1] - 2026-11-12
+
+Spec [192-skill-guardrails](specs/192-skill-guardrails/spec.md). See [release notes](docs/releases/1.22.1.md).
+
+- Skill guardrails: when to propose `n2n_kill` (`n2n-federation`), only the operator sets `NETCLAW_LAB_MODE` (`protocol-participation`), and a three-condition test before an emergency change bypasses CR approval (`pyats-config-mgmt`).
+
 ## [1.22.0] - 2026-11-11
 
 Spec [186-member-spec-providers](specs/186-member-spec-providers/spec.md). See [release notes](docs/releases/1.22.0.md).
