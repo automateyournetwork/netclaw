@@ -2,6 +2,10 @@
 
 Skills define *how* tools work. This file is for *your* specifics — the environment details that are unique to your deployment.
 
+## Threat intelligence
+
+Use the optional GreyNoise Community and threat intelligence MCP components for external IP and indicator reputation. [Configuration and provider keys](docs/THREAT-INTELLIGENCE.md)
+
 ## Network Devices
 
 Devices are defined in `testbed/testbed.yaml`. Update that file with your SSH-accessible Cisco devices.

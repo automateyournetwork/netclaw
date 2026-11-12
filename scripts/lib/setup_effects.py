@@ -10,6 +10,7 @@ from setup_deploy import Deployment, EffectAudit
 from setup_harness import Harness
 from setup_plan import PlanValidator
 from setup_process import run
+from mcp_environment import load_mcp_template
 from setup_schema import canonical, loads
 from setup_secrets import child_environment, write_environment, read_owned_environment
 from setup_state import Conflict, directory, guarded_read, revision, artifact_revision
@@ -160,7 +161,7 @@ class EffectRunner:
             deploy.write(effect,record,str(gait_runtime(deploy.root)).encode()+b'\n',kind='runtime-record')
             if not harness.observe_python_component(effect,'gait'):return {'state':'unverified'}
         descriptor=self.validator.components[effect['component']]
-        template=loads(guarded_read(self.repository/'config/openclaw.json',8*1024*1024))['mcpServers']
+        template=load_mcp_template(guarded_read(self.repository/'config/openclaw.json',8*1024*1024))
         record=deploy.root/'python-runtimes/records'/effect['component']
         if record.exists():
             executable=guarded_read(record,8192).decode().strip()

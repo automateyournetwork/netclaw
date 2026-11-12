@@ -31,6 +31,38 @@
     "mode": "hobby"
   },
   "mcpServers": {
+    "greynoise-community-mcp": {
+      "command": "python3",
+      "args": [
+        "-u",
+        "scripts/component-launch.py",
+        "greynoise-community",
+        "--server",
+        "greynoise-community-mcp"
+      ],
+      "transport": "stdio",
+      "env": {
+        "GREYNOISE_API_KEY": "${GREYNOISE_API_KEY}",
+        "GREYNOISE_TIMEOUT": "${GREYNOISE_TIMEOUT}"
+      }
+    },
+    "threatintel-mcp": {
+      "command": "python3",
+      "args": [
+        "-u",
+        "scripts/component-launch.py",
+        "threatintel",
+        "--server",
+        "threatintel-mcp"
+      ],
+      "transport": "stdio",
+      "env": {
+        "GREYNOISE_API_KEY": "${GREYNOISE_API_KEY}",
+        "ABUSEIPDB_API_KEY": "${ABUSEIPDB_API_KEY}",
+        "OTX_API_KEY": "${OTX_API_KEY}",
+        "ABUSECH_AUTH_KEY": "${ABUSECH_AUTH_KEY}"
+      }
+    },
     "forward-official-mcp": {
       "url": "${FORWARD_URL}/api/mcp",
       "headers": {

@@ -59,3 +59,9 @@ def migrate_known_value(server, old, template, prepared):
     if old not in known:
         raise ValueError('Custom MCP fallback expression requires manual reconciliation')
     return prepared
+
+
+def load_mcp_template(raw, limit=1024 * 1024):
+    """Read strict registrations from an OpenClaw config that can include model prices."""
+    from setup_schema import loads
+    return loads(raw, limit, object_field="mcpServers")

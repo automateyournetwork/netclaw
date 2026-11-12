@@ -64,6 +64,8 @@ case "$component" in
   kubeshark) function_name=component_install_kubeshark ;;
   k8s) function_name=component_install_k8s ;;
   zabbix) function_name=component_install_zabbix ;;
+  greynoise-community) function_name=component_install_greynoise_community ;;
+  threatintel) function_name=component_install_threatintel ;;
   bgp-intel) function_name=component_install_bgp_intel ;;
   globalping) function_name=component_install_globalping ;;
   topolograph) function_name=component_install_topolograph ;;

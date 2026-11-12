@@ -918,6 +918,24 @@
       },
       "timeout_seconds": 300
     },
+    "gcp": {
+      "kind": "pytest",
+      "paths": [
+        "tests/gcp"
+      ],
+      "environment": {
+        "path": ".contract-test-envs/gcp",
+        "requirements": [],
+        "packages": [
+          "pytest>=8,<9"
+        ],
+        "required_imports": [
+          "pytest"
+        ],
+        "prepend_path": true
+      },
+      "timeout_seconds": 180
+    },
     "cloud-r06": {
       "kind": "pytest",
       "paths": [

@@ -28,7 +28,7 @@ R09 geographic resilience and public rollout are not implied. See
 
 ## Your Skills
 
-You interact with the network through **242 skills** backed by 180 MCP servers:
+You interact with the network through **242 skills** backed by 182 MCP servers:
 
 NetConverter is an optional guarded migration integration. Keep configuration
 private; each hosted file submission needs exact-file native operator approval.

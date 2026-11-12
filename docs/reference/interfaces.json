@@ -6831,6 +6831,31 @@
       "coverage": "Static source declarations; lexical flags may include delegated commands. No execution performed."
     },
     {
+      "path": "scripts/setup-threatintel.py",
+      "kind": "Python",
+      "flags": [
+        "--depth",
+        "--detach",
+        "--ignore-scripts",
+        "--include",
+        "--no-audit",
+        "--no-fund",
+        "--porcelain"
+      ],
+      "declarations": [
+        {
+          "line": 50,
+          "declaration": "argparse.ArgumentParser(description=__doc__)"
+        },
+        {
+          "line": 51,
+          "declaration": "parser.add_argument(\"mcp_directory\", type=Path)"
+        }
+      ],
+      "sha256": "32fff59a71ddef16f2d02bb712b44ca8eaba9ab59ce6b8fa165e41b04c6247f4",
+      "coverage": "Static source declarations; lexical flags may include delegated commands. No execution performed."
+    },
+    {
       "path": "scripts/setup.sh",
       "kind": "Shell",
       "flags": [
@@ -8501,6 +8526,21 @@
       "coverage": "External, generated or non-decorator tools: runtime tools/list required; schema not inferred."
     },
     {
+      "name": "greynoise-community-mcp",
+      "access": "agent-native",
+      "transport": "stdio",
+      "tools": [
+        {
+          "name": "greynoise_community_lookup",
+          "signature": "ip: str",
+          "description": "Look up a public IPv4 address in GreyNoise Community to identify observed scanning and known business services.",
+          "source": "mcp-servers/greynoise-community-mcp/server.py",
+          "line": 13
+        }
+      ],
+      "coverage": "Source-declared tool signatures/schemas; runtime tools/list is authoritative."
+    },
+    {
       "name": "gtrace-mcp",
       "access": "agent-native",
       "transport": "stdio",
@@ -10153,6 +10193,13 @@
       "name": "thousandeyes-official-mcp",
       "access": "agent-native",
       "transport": "HTTP",
+      "tools": [],
+      "coverage": "External, generated or non-decorator tools: runtime tools/list required; schema not inferred."
+    },
+    {
+      "name": "threatintel-mcp",
+      "access": "agent-native",
+      "transport": "stdio",
       "tools": [],
       "coverage": "External, generated or non-decorator tools: runtime tools/list required; schema not inferred."
     },

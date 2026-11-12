@@ -2,6 +2,10 @@
 
 NetClaw source releases use `1.x.y`. Feature specs increment the minor version and reset the patch; fixes, documentation and maintenance increment the patch. Every release records its numbered specs. Component and mobile distribution versions are independent.
 
+## [1.24.0] - 2026-11-12
+
+Spec [195-production-integrations](specs/195-production-integrations/spec.md). See [release notes](docs/releases/1.24.0.md).
+
 ## [1.23.0] - 2026-11-12
 
 Spec [194-rag-structured-ingestion](specs/194-rag-structured-ingestion/spec.md). See [release notes](docs/releases/1.23.0.md).

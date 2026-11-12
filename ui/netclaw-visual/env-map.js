@@ -14271,5 +14271,127 @@ export const COMPONENT_SETTINGS = {
         }
       ]
     }
+  ],
+  "greynoise-community": [
+    {
+      "key": "GREYNOISE_API_KEY",
+      "label": "GREYNOISE_API_KEY",
+      "help": "Optional GreyNoise Community key for authenticated requests.",
+      "classification": "secret",
+      "valueType": "string",
+      "required": "optional",
+      "condition": null,
+      "example": "",
+      "sharedWith": [
+        "threatintel"
+      ],
+      "input": "user",
+      "provenance": [
+        {
+          "source": "https://docs.greynoise.io/reference/getcommunityip",
+          "checkedAt": "2026-11-12",
+          "note": "Component environment configuration."
+        }
+      ]
+    },
+    {
+      "key": "GREYNOISE_TIMEOUT",
+      "label": "GREYNOISE_TIMEOUT",
+      "help": "Request timeout in seconds (default 10, maximum 60).",
+      "classification": "public",
+      "valueType": "string",
+      "required": "optional",
+      "condition": null,
+      "example": "",
+      "sharedWith": [],
+      "input": "user",
+      "provenance": [
+        {
+          "source": "https://docs.greynoise.io/reference/getcommunityip",
+          "checkedAt": "2026-11-12",
+          "note": "Component environment configuration."
+        }
+      ]
+    }
+  ],
+  "threatintel": [
+    {
+      "key": "GREYNOISE_API_KEY",
+      "label": "GREYNOISE_API_KEY",
+      "help": "Optional GreyNoise key.",
+      "classification": "secret",
+      "valueType": "string",
+      "required": "optional",
+      "condition": null,
+      "example": "",
+      "sharedWith": [
+        "greynoise-community"
+      ],
+      "input": "user",
+      "provenance": [
+        {
+          "source": "https://github.com/aplaceforallmystuff/mcp-threatintel/tree/1f36c2d29877124bd60ac1fe4562b203e3fd3a14",
+          "checkedAt": "2026-11-12",
+          "note": "Component environment configuration."
+        }
+      ]
+    },
+    {
+      "key": "ABUSEIPDB_API_KEY",
+      "label": "ABUSEIPDB_API_KEY",
+      "help": "Enable AbuseIPDB lookups.",
+      "classification": "secret",
+      "valueType": "string",
+      "required": "optional",
+      "condition": null,
+      "example": "",
+      "sharedWith": [],
+      "input": "user",
+      "provenance": [
+        {
+          "source": "https://github.com/aplaceforallmystuff/mcp-threatintel/tree/1f36c2d29877124bd60ac1fe4562b203e3fd3a14",
+          "checkedAt": "2026-11-12",
+          "note": "Component environment configuration."
+        }
+      ]
+    },
+    {
+      "key": "OTX_API_KEY",
+      "label": "OTX_API_KEY",
+      "help": "Enable AlienVault OTX lookups.",
+      "classification": "secret",
+      "valueType": "string",
+      "required": "optional",
+      "condition": null,
+      "example": "",
+      "sharedWith": [],
+      "input": "user",
+      "provenance": [
+        {
+          "source": "https://github.com/aplaceforallmystuff/mcp-threatintel/tree/1f36c2d29877124bd60ac1fe4562b203e3fd3a14",
+          "checkedAt": "2026-11-12",
+          "note": "Component environment configuration."
+        }
+      ]
+    },
+    {
+      "key": "ABUSECH_AUTH_KEY",
+      "label": "ABUSECH_AUTH_KEY",
+      "help": "Enable abuse.ch URLhaus, MalwareBazaar and ThreatFox lookups.",
+      "classification": "secret",
+      "valueType": "string",
+      "required": "optional",
+      "condition": null,
+      "example": "",
+      "sharedWith": [],
+      "input": "user",
+      "provenance": [
+        {
+          "source": "https://github.com/aplaceforallmystuff/mcp-threatintel/tree/1f36c2d29877124bd60ac1fe4562b203e3fd3a14",
+          "checkedAt": "2026-11-12",
+          "note": "Component environment configuration."
+        }
+      ]
+    }
   ]
 };

@@ -95,11 +95,13 @@ class Worker(base.Worker):
 
     def effect(self,operation_id,kind,ordinal):
         need(len(self.effects())<8,'fixture_effect_capacity')
-        value={'class':'FIXTURE','operation_id':operation_id,'kind':kind,'ordinal':ordinal,
-               'controlled_callback':True,'member_incarnation':self.journal.incarnation,
-               'observed_monotonic_ns':time.monotonic_ns()}
-        private(self.home/'effects'/f'{operation_id}-{kind}{ordinal}.json',value)
-        return value
+        evidence={'class':'FIXTURE','operation_id':operation_id,'kind':kind,'ordinal':ordinal,
+                  'controlled_callback':True,'member_incarnation':self.journal.incarnation}
+        # The signed JSON contract bounds integers to 53 bits. Keep the host's
+        # monotonic nanoseconds in the local timing log, where they are used.
+        private(self.home/'effects'/f'{operation_id}-{kind}{ordinal}.json',
+                dict(evidence, observed_monotonic_ns=time.monotonic_ns()))
+        return evidence
 
     async def start(self):
         if self.config['role']=='border':

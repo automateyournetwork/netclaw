@@ -12,6 +12,7 @@ import uuid
 
 from setup_observation import git
 from setup_plan import PlanValidator
+from mcp_environment import load_mcp_template
 from setup_schema import canonical, loads
 from setup_state import Conflict, directory, guarded_read, guarded_write, revision
 from ha_setup_guard import require_standalone_home
@@ -296,7 +297,7 @@ class Deployment:
         values=read_owned_environment(env_path,env_artifact['sha256'])
         python=guarded_read(self.root/'.setup/python312',8192,private=True).decode().strip()
         values.update(generated_settings(self.claw,self.validator,python))
-        template=loads(guarded_read(self.repository/'config/openclaw.json',8*1024*1024))['mcpServers']
+        template=load_mcp_template(guarded_read(self.repository/'config/openclaw.json',8*1024*1024))
         installer=helper(self.repository,'install-mcp-config.py')
         requested=set(self.claw['capabilities']['components'])
         selected={e['component'] for e in self.context['journal']['effects']

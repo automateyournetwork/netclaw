@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 import shutil
 from setup_deploy import helper
+from mcp_environment import load_mcp_template
 from setup_schema import loads
 from setup_state import Conflict,guarded_read,directory
 
@@ -82,7 +83,7 @@ def dependency_ready(component,deploy,harness,*,effect=None):
         if effect is None or not observe(component,effect,deploy,harness):return False
     if component=='twilio' and not twilio_ready(deploy,harness,effect=effect):return False
     descriptor=deploy.validator.components[component]
-    template=loads(guarded_read(deploy.source/'config/openclaw.json',8*1024*1024))['mcpServers']
+    template=load_mcp_template(guarded_read(deploy.source/'config/openclaw.json',8*1024*1024))
     binder=helper(deploy.source,'install-mcp-config.py')
     for name in selected_servers(component,deploy.claw,descriptor):
         if name=='hermes-hud-mcp':continue

@@ -682,7 +682,19 @@
       "cisco-iq",
       "Fabric & Orchestration",
       "Cisco IQ",
-      "Official remote MCP — assets, lifecycle/coverage, bugs (administrator-selected region, read-only policy)"
+      "Official remote MCP \u2014 assets, lifecycle/coverage, bugs (administrator-selected region, read-only policy)"
+    ],
+    [
+      "greynoise-community",
+      "Security",
+      "GreyNoise Community",
+      "Look up observed scanning activity and known business services for a public IPv4 address."
+    ],
+    [
+      "threatintel",
+      "Security",
+      "Community Threat Intelligence",
+      "Enrich indicators with GreyNoise, Feodo Tracker and configured OTX, AbuseIPDB and abuse.ch sources."
     ]
   ],
   "profiles": {
@@ -790,7 +802,9 @@
       "nmap",
       "fwrule",
       "gait",
-      "servicenow"
+      "servicenow",
+      "greynoise-community",
+      "threatintel"
     ],
     "labs": [
       "cml",
@@ -940,7 +954,9 @@
       "netconverter",
       "convergence-read",
       "result-analysis",
-      "cisco-iq"
+      "cisco-iq",
+      "greynoise-community",
+      "threatintel"
     ]
   },
   "skillIds": [

@@ -90,6 +90,7 @@ mcp-servers/tavus-pal-mcp/.venv/
 !mcp-servers/ipfix-mcp/
 !mcp-servers/multivendor-cli-mcp/
 !mcp-servers/cisco-psirt-mcp/
+!mcp-servers/greynoise-community-mcp/
 # ...but never track its dedicated virtualenv (spec 076 FR-030a)
 mcp-servers/multivendor-cli-mcp/.venv/
 !mcp-servers/gns3-mcp-server/
