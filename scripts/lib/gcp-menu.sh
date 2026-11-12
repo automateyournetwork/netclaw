@@ -45,7 +45,7 @@ gcp_deploy_menu() {
     sha="$(echo "$out" | sed -n 's/^plan sha256: //p' | tail -1)"
     tui_yesno "Create exactly this plan now? It is billed while it exists" "n" || { log_info "Declined. Nothing was created."; return 0; }
     "$py" "$gcp" apply --deployment "$dep" --plan-sha256 "$sha" --confirm-cost || return 1
-    if tui_yesno "Install NetClaw on the new node(s) now?" "y"; then
+    if tui_yesno "Prepare the new node(s) now (Node, uv, NetClaw checkout)?" "y"; then
         "$py" "$gcp" bootstrap --deployment "$dep"
     fi
     log_info "Tear down any time: python3 scripts/netclaw-gcp.py teardown --deployment $dep"

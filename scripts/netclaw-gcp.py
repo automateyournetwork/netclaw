@@ -324,13 +324,18 @@ def cmd_ssh(a, runner, out=print):
             out(so.rstrip())
             return 0
         time.sleep(1 if os.environ.get("NETCLAW_GCP_FAST") else 8)
-    out(SECRET_RE.sub("[redacted]", err.strip()[:300]))
+    noise = re.compile(r"(?i)numpy|iap/docs|^WARNING:?\s*$|^\s*$")
+    tail = [l for l in (so + "\n" + err).splitlines() if not noise.search(l)][-12:]
+    out(SECRET_RE.sub("[redacted]", "\n".join(tail)))
     return 5
 
 
-BOOTSTRAP = ("set -e; sudo apt-get update -qq; sudo apt-get install -y -qq git python3 python3-venv curl >/dev/null; "
-             "[ -d netclaw ] || git clone --depth 1 https://github.com/automateyournetwork/netclaw.git; "
-             "cd netclaw && ./scripts/install.sh --profile minimal")
+BOOTSTRAP_FILE = HERE / "lib" / "gcp-bootstrap.sh"
+
+
+def bootstrap_command():
+    import shlex
+    return "bash -c " + shlex.quote(BOOTSTRAP_FILE.read_text())
 
 
 def cmd_bootstrap(a, runner, out=print):
@@ -344,11 +349,17 @@ def cmd_bootstrap(a, runner, out=print):
         if "witness" in n:
             out(f"  skip {n} (etcd witness; configured by the HA bootstrap)")
             continue
-        ns = argparse.Namespace(deployment=a.deployment, node=n, command=BOOTSTRAP)
+        ns = argparse.Namespace(deployment=a.deployment, node=n, command=bootstrap_command())
         rc = cmd_ssh(ns, runner, out)
         out(f"  bootstrap {n}: {'ok' if rc == 0 else 'FAILED'}")
         rc_all = rc_all or rc
-    out("Next: enroll each node into your Risk with the Claw Plan Member/Border flow (docs/NETCLAW-IN-GCP.md).")
+    if not rc_all:
+        zones = {n: w for k, n, w in owned(st, runner) if k == "instance"}
+        for n in nodes:
+            if n in zones:
+                out(f"  Finish on {n} (interactive, your provider choices): gcloud compute ssh {n} --zone {zones[n]} "
+                    f"--project {st['project']} --tunnel-through-iap -- -t 'cd netclaw && ./scripts/install.sh'")
+        out("Then enroll each node into your Risk with the Claw Plan Member/Border flow (docs/NETCLAW-IN-GCP.md).")
     out(warning_text().rstrip())
     return rc_all
 

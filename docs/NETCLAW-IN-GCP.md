@@ -44,7 +44,7 @@ python3 scripts/netclaw-gcp.py topologies
 python3 scripts/netclaw-gcp.py plan --topology gcp-border --project YOUR_PROJECT \
   --region us-central1 --https-cidr YOUR.IP.ADDR/32          # asks you to type 'yes' to the warning
 python3 scripts/netclaw-gcp.py apply --deployment ID --plan-sha256 HASH --confirm-cost
-python3 scripts/netclaw-gcp.py bootstrap --deployment ID    # installs NetClaw on the nodes over IAP SSH
+python3 scripts/netclaw-gcp.py bootstrap --deployment ID    # prepares the nodes over IAP SSH (Node, uv, checkout)
 ```
 
 `plan` makes only read calls: it checks your login, project access and enabled APIs, then prints every resource, location, an **estimated** monthly and hourly cost, and a plan hash. `apply` refuses without that hash and `--confirm-cost`. A re-run converges instead of duplicating.
@@ -94,7 +94,7 @@ It deletes only resources carrying that deployment's prefix/label (never anythin
 ## Known limits (honest)
 
 - No authentication, users, SSO or RBAC (R15-R17).
-- `bootstrap` installs the standard minimal NetClaw on each node; enrolling it into your Risk is the Claw Plan Member/Border flow. The HA sandboxing stack (OpenShell/DefenseClaw) validated in R09A is not installed by `bootstrap`.
+- `bootstrap` prepares each node (Node.js from a checksum-verified download, uv, a NetClaw checkout). Running `./scripts/install.sh` on the node is interactive (OpenClaw onboarding needs a TTY and your provider choices); `bootstrap` prints the exact `gcloud compute ssh -t` line. Enrolling the node into your Risk is the Claw Plan Member/Border flow. The HA sandboxing stack (OpenShell/DefenseClaw) validated in R09A is not installed by `bootstrap`.
 - Load balancers, Cloud Armor and managed certificates were rejected or deferred by the survey.
 - Cost figures are estimates.
 - Distributed Risk exposure needs owner-approved published client builds.

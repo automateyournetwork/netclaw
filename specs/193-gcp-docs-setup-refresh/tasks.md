@@ -24,5 +24,6 @@
 - [x] T013 `verification.md` with honest scope
 
 ## Phase 6: Open (needs owner)
-- [ ] T014 Real GCP run of at least `gcp-border` and teardown (billed; not run without owner go-ahead)
+- [x] T014 Real GCP run of `gcp-border`: apply, idempotent re-apply, bootstrap, teardown, independent clean check (2026-11-12). HA/distributed not created live.
+- [x] T016 Fixes from the live run: bootstrap prerequisites, honest interactive install step, readable SSH errors
 - [ ] T015 Extension/source version bump and release notes (owner approves every release)

@@ -150,9 +150,16 @@ class Tests(unittest.TestCase):
         for r in p["resources"]: self.assertTrue(r["name"].startswith("nc-abc123-"), r["name"])
         self.assertFalse(G.SECRET_RE.search(str(p)))
 
+    def test_bootstrap_script_prepares_host_but_never_runs_installer_or_secrets(self):
+        b = (ROOT / "scripts/lib/gcp-bootstrap.sh").read_text()
+        self.assertIn("sha256sum -c", b)  # Node download is checksum verified
+        self.assertNotRegex(b, r"(?m)^\s*(cd netclaw && )?\./scripts/install\.sh")  # interactive step stays with the user
+        self.assertFalse(G.SECRET_RE.search(b))
+        self.assertTrue(G.bootstrap_command().startswith("bash -c "))
+
     def test_no_operator_hardcodes_in_user_path(self):
         bad = re.compile(r"netclaw-506315|nc18[23]|automateyournetwork\.com|ptcapo")
-        for f in ("scripts/netclaw-gcp.py", "scripts/lib/gcp_topology.py", "scripts/lib/gcp_warning.txt", "scripts/lib/gcp-menu.sh"):
+        for f in ("scripts/netclaw-gcp.py", "scripts/lib/gcp_topology.py", "scripts/lib/gcp_warning.txt", "scripts/lib/gcp-menu.sh", "scripts/lib/gcp-bootstrap.sh"):
             pth = ROOT / f
             if pth.exists(): self.assertIsNone(bad.search(pth.read_text()), f)
 
