@@ -158,6 +158,8 @@ Spec153 installer (source 1.12.0 / extension 1.2.0): [new setup](docs/GETTING-ST
 - Existing etcd/SQLite/GAIT stores; per-Border persistent disk. No new datastore. (182-multi-region-ha-borders)
 - Python 3.10+ (Border source, role launcher, tooling; contract env 3.12 inside the image), Node 24 (HUD ingress, workspace backend), Bash, YAML policies, Dockerfile. + NVIDIA OpenShell 0.1.7 (Debian package, Docker compute driver), Docker >= 28, Cisco DefenseClaw 1.0.4 (pinned, checksum-verified), OpenClaw 2026.7.1-2 (qualified), etcd 3.6.x, existing R09 tooling (`labs/ha/r09_*.py`, `scripts/ha-r09-*.sh`), qualified R04A Anthropic guard configuration. (185-openshell-defenseclaw-gcp)
 - per-node persistent disk; sandbox state volume for the Border home; DefenseClaw audit SQLite on the node, exported on demand. (185-openshell-defenseclaw-gcp)
+- Python 3.10+, stdlib only + none new (188-skill-load-limits)
+- files only (`config/skill-limits.json`; runtime `openclaw.json` edited in place by the existing atomic private writer) (188-skill-load-limits)
 - Python 3.10+ (stdlib only), Bash wrapper + none new. Reuses semantics of `scripts/write-env.py` (private atomic dotenv writes; value from stdin only) (191-cisco-iq-mcp)
 - runtime `~/.openclaw/.env` (key, region), runtime `~/.openclaw/openclaw.json` (registration), private backups (0600) beside them; no database (191-cisco-iq-mcp)
 - Python 3.10+ source (tests run on 3.12 venv) + stdlib only (sqlite3, time, os, asyncio); existing FederationManager/Auditor/FederationService (189-peer-limit-semantics)
@@ -183,6 +185,7 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python 3.10+: Follow standard conventions
 
 ## Recent Changes
+- 188-skill-load-limits: Added Python 3.10+, stdlib only + none new
 - 191-cisco-iq-mcp: Added Python 3.10+ (stdlib only), Bash wrapper + none new. Reuses semantics of `scripts/write-env.py` (private atomic dotenv writes; value from stdin only)
 - 185-openshell-defenseclaw-gcp: Added Python 3.10+ (Border source, role launcher, tooling; contract env 3.12 inside the image), Node 24 (HUD ingress, workspace backend), Bash, YAML policies, Dockerfile. + NVIDIA OpenShell 0.1.7 (Debian package, Docker compute driver), Docker >= 28, Cisco DefenseClaw 1.0.4 (pinned, checksum-verified), OpenClaw 2026.7.1-2 (qualified), etcd 3.6.x, existing R09 tooling (`labs/ha/r09_*.py`, `scripts/ha-r09-*.sh`), qualified R04A Anthropic guard configuration.
 - 182-multi-region-ha-borders: Added Python 3.10+ (Border source `mcp-servers/protocol-mcp/bgp/federation/ha/*`, contrac + etcd (3 voters, per Spec 179), lego (ACME DNS-01), GoDaddy API (Personal Access

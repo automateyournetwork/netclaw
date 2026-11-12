@@ -1100,6 +1100,9 @@ def test_spec_member_config_carries_no_border_section(tmp_path, member_home):
     assert written['agents']['defaults']['sandbox'] == {
         'mode': 'all', 'scope': 'agent', 'docker': {'image': 'sandbox-img', 'network': 'none'}}
     assert 'plugins' not in written          # no DefenseClaw guard in this Border; nothing else
+    # Spec 188 adds the repository skill limits; nothing else comes from the Border.
+    limits = written['skills'].pop('limits')
+    assert limits == json.loads((ROOT / 'config/skill-limits.json').read_text())['limits']
     assert written['skills'] == {'workshop': {'autonomous': {'mode': 'off'}},
                                  'entries': {'pyats-health-check': {'enabled': True}}}
     assert list(written['agents']['entries']) == ['main']

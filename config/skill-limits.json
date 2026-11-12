@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "_comment": "Source of truth for OpenClaw skills.limits (spec 188, issue #326). OpenClaw defaults: 200 loaded per source, 300 candidates, 150 in prompt, 18000 prompt chars; the workspace ships more, so the excess was silently never loaded. Installers apply these raise-only; scripts/check-skill-limits.py (reconcile surface skill-limits) fails when the shipped skills exceed them. Raise these here when adding skills past the headroom.",
+  "limits": {
+    "maxSkillsLoadedPerSource": 400,
+    "maxCandidatesPerRoot": 400,
+    "maxSkillsInPrompt": 400,
+    "maxSkillsPromptChars": 122000
+  },
+  "measurement": {
+    "perSkillOverheadChars": 120,
+    "missingDescriptionChars": 200
+  },
+  "warnAtFraction": 0.8
+}

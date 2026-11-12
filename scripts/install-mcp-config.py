@@ -12,6 +12,7 @@ import time
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / 'lib'))
 from mcp_environment import native_entry, migrate_known_value
+import skill_limits
 
 
 def load_helper(name, filename):
@@ -129,6 +130,8 @@ def merge_config(path, generated, template, expected_revision=None, expected_man
     if conflicts:
         raise ValueError('Preserved custom launch commands; reconcile these registrations before retrying: '
                          + ', '.join(conflicts))
+    # Spec 188: OpenClaw loads only 200 skills per source by default; raise-only.
+    skill_limits.raise_limits(config, skill_limits.load_policy(Path(__file__).resolve().parents[1] / 'config' / 'skill-limits.json'))
     data = json.dumps(config, indent=2) + '\n'
     # Check immediately before writes as well as before merge preparation.
     if expected_revision is not None and file_revision(path) != expected_revision:

@@ -29,6 +29,7 @@ from bgp.federation.runtime import selected, private_dir
 sys.path.insert(0, str(Path(__file__).resolve().parent/'lib'))
 from convergence_member_policy import native_tool_policy
 from ha_setup_guard import require_standalone_home
+import skill_limits
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 HOME = os.path.expanduser("~")
@@ -168,6 +169,11 @@ def spec_skills_section(border_skills, skills):
     entries' apiKey/env/config, extra skill directories and every other key are dropped:
     a skill's settings come from the member's own .env."""
     section = {"workshop": {"autonomous": {"mode": "off"}}}
+    # Spec 188: the member's config is built fresh, so it would otherwise run on OpenClaw's
+    # default limits (200 loaded per source, 150 / 18000 chars in the prompt); give it the
+    # repository policy values so a scoped skill never depends on its position in the tree.
+    section["limits"] = skill_limits.policy_limits(skill_limits.load_policy(
+        Path(REPO) / "config" / "skill-limits.json"))
     entries = (border_skills or {}).get("entries") if isinstance(border_skills, dict) else None
     if isinstance(entries, dict):
         kept = {k: {"enabled": v["enabled"]} for k, v in entries.items()
@@ -851,6 +857,9 @@ def _provision_openclaw(args, runtime, name, spec=None):
                 pl["allow"] = [x for x in pl["allow"]
                                if not any(c in str(x).lower() for c in COMMS_PLUGINS)]
         m["channels"] = {}
+        # Spec 188: the profile member shares the Border's whole skill tree; ensure the
+        # limits cover it even when the Border config predates them (raise-only).
+        skill_limits.raise_limits(m, skill_limits.load_policy(Path(REPO) / "config" / "skill-limits.json"))
 
         # 3. register a DIRECT Anthropic provider at the member's tier model, AND
         #    whitelist that model for agent "main" (agents.defaults.models) — the
