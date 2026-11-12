@@ -1,6 +1,6 @@
 # Verification: Spec 193 (R09C)
 
-Date: 2026-11-12. Honest scope: **fake-runner tested, plus one real single-Border GCP deploy / bootstrap / teardown (clean).** HA and distributed shapes were not created live.
+Date: 2026-11-12. Honest scope: **fake-runner tested, plus real GCP deploy and teardown of all three infrastructure shapes (single Border with bootstrap, HA, distributed), all clean.** No HA/distributed Risk behavior was exercised.
 
 | Item | Evidence | Status |
 |---|---|---|
@@ -15,7 +15,8 @@ Date: 2026-11-12. Honest scope: **fake-runner tested, plus one real single-Borde
 | VS Code 1.146.0 real editor host: extension loads, `netclaw.deployGcp` registered, command with unacknowledged warning opens no terminal and plans nothing | `@vscode/test-electron` run (harness kept outside the repo) | PASS (partial: the acknowledged click-through was not UI-driven) |
 | **Real GCP run, 2026-11-12, project owned by the requester, `gcp-border`, northamerica-northeast1**: plan (read-only) -> apply created 8 resources + 2 IAM bindings, real `gcloud create` flags accepted; second apply `exists` x8, `0 created` (idempotent); status; state file mode 600; foreign-node ssh refused; `bootstrap` over IAP SSH to a real VM | live | PASS |
 | Teardown (real): list printed, wrong hash REFUSED, correct hash deleted instance, address, 3 firewalls, subnet, network, service account and both IAM bindings; "0 owned resource(s) remain"; independent gcloud listing showed 0 `nc-f9378a` resources and 0 IAM bindings | live | PASS |
-| Cost of the live run | about 40 minutes of one e2-standard-2 + one static IP, well under $0.10 | recorded |
+| **Real GCP run, `ha-risk` (2 Borders + witness, Cloud NAT, router, mesh firewall) and `distributed-risk` (3 Borders in northamerica-northeast1, europe-west1, asia-southeast1)**: apply created 14 and 15 resources with real flags; teardown verified 0 remaining; independent listing showed no `nc-` instances, addresses, firewalls, networks, subnets, routers, service accounts or IAM bindings | live | PASS (infrastructure only: no node software, enrollment or HA authority was started) |
+| Cost of the live run | about 40 minutes of one e2-standard-2 + one static IP, well under $0.10 for the single Border; the HA and distributed runs were created and deleted within minutes (a few cents each) | recorded |
 
 ### Defects found by the real run and fixed
 1. `bootstrap` assumed the VM already had Node, npm and uv, so the installer preflight blocked. It now installs git/python/pipx/uv and a **checksum-verified** Node 24.x tarball (`scripts/lib/gcp-bootstrap.sh`).
@@ -23,7 +24,7 @@ Date: 2026-11-12. Honest scope: **fake-runner tested, plus one real single-Borde
 3. SSH failure output showed only IAP/NumPy noise. Output is now filtered to the real error lines.
 
 ### Not exercised
-- HA and distributed topologies against real GCP (only the single-Border shape was created live; the others are fake-runner tested).
+- HA and distributed Risk *behavior*: the infrastructure was created and torn down live, but no etcd, authority, enrollment or traffic was run on it.
 - The acknowledged VS Code click-through and the `install.sh` entry prompt in a full installer run (the menu function itself was driven in a pty).
 - Member roles and HA/etcd bootstrap on a real node.
 
