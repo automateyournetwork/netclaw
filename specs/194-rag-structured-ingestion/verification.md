@@ -12,3 +12,5 @@ Run 2026-11-12, 22:14–22:59 UTC, cfafa46c, branch 194-rag-structured-ingestion
 - `python3 scripts/run-contract-tests.py --list` and `--matrix` exit 2 on both this branch and cfafa46c. Upstream's tests/gcp directory lacks a manifest entry. The component tests above ran directly.
 
 No deployed service, authenticated appliance or production corpus was accessed. The browser check used a fixture upload endpoint. Full reference regeneration also reflected historical changes in unrelated components. Only the release entry and RAG reference were included.
+
+Independent review on c9b9294c passed. A fresh source archive passed 109 unit and 19 integration tests in separate invocations, including the real loopback TLS/HTTP2 transport and endpoint citation checks. Running the two suites together exposes incompatible embedder fixtures on both this branch and unmodified main.
