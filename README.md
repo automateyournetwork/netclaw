@@ -64,7 +64,7 @@ See the [HUD guide](docs/HUD-FUNCTION-FIRST.md) for the broader workspace.
 
 ## RAG — answers grounded in your documents
 
-Teach NetClaw your vendor guides, standards, customer designs and runbooks. Upload through Slack or the HUD RAG panel, ingest a local file, or preview a URL crawl before importing it. PDF, Markdown, HTML, text and modern Office formats are supported; legacy Office conversion uses optional LibreOffice.
+Teach NetClaw your vendor guides, standards, customer designs and runbooks. Upload through Slack or the HUD RAG panel, ingest a local file, or preview a URL crawl before importing it. PDF, Markdown, HTML, text, JSON (including OpenAPI and Swagger), and modern Office formats are supported; legacy Office conversion uses optional LibreOffice.
 
 Hybrid semantic and keyword search, local reranking and structure-aware chunks return **cited passages with document, section and page context**. Retrieval runs locally after the models are installed. NetClaw can refine a search within a bounded budget and report when the corpus cannot answer. Uploaded knowledge stays separate from the agent's experiential memory; captured network snapshots are opt-in and carry their age.
 

@@ -27876,7 +27876,7 @@
       "title": "rag",
       "description": "Ingest user-selected documents and retrieve cited procedures, standards, and design evidence from the local RAG knowledge base. Use for document questions, corpus management, or explicitly requested snapshots.",
       "path": "workspace/skills/rag/SKILL.md",
-      "sha256": "9116ba370913998f88a56de303b6c1a60fe872a8a2fc23c7883ae20e3159a980",
+      "sha256": "ec6489685a60a871d4064f657276d43fd3f6e1cc1285caa513341dd356bec08d",
       "components": [
         "rag-mcp"
       ],

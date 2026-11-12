@@ -118,3 +118,92 @@ def test_download_cap_counts_decoded_bytes_and_closes_stream(monkeypatch):
         monkeypatch.setattr(httpx, 'stream', client.stream)
         assert fetch(BASE, max_bytes=5) == (b'abcde', 'text/plain')
     assert stream.closed
+
+
+def test_html_preview_uses_visible_text_and_scripts():
+    from ingestion.url_fetcher import preview_html
+
+    shell = '<head><title>Documentation</title></head><body><script src="app.js"></script></body>'
+    preview = preview_html(shell, BASE, 5)
+    assert preview["title"] == "Documentation"
+    assert preview["text_chars"] == 0
+    assert preview["thin"] and preview["spa_shell"]
+    assert "OpenAPI" in preview["warning"]
+    assert not preview_html("<p>Maintenance</p>", BASE, 5)["spa_shell"]
+    article = preview_html("<script></script><p>" + "body " * 60 + "</p>", BASE, 5)
+    assert not article["spa_shell"] and article["warning"] is None
+
+
+def test_json_url_media_types():
+    assert filename_for_url(BASE + "/openapi.json", "text/plain").endswith(".json")
+    for media in ("application/json", "application/vnd.oai.openapi+json"):
+        assert filename_for_url(BASE, media).endswith(".json")
+
+
+def test_explicit_unverified_transport_rejects_redirect(monkeypatch):
+    import httpx
+    import pytest
+    from ingestion.url_fetcher import FetchError, fetch
+
+    def stream(method, url, **kwargs):
+        assert kwargs.pop("verify") is False
+        return client.stream(method, url, **kwargs)
+
+    def redirect(request):
+        assert str(request.url) == BASE
+        return httpx.Response(301, headers={"Location": "https://other.example"})
+
+    with httpx.Client(transport=httpx.MockTransport(redirect)) as client:
+        monkeypatch.setattr(httpx, "stream", stream)
+        with pytest.raises(FetchError, match="301"):
+            fetch(BASE, verify_ssl=False)
+
+
+def test_local_http2_transport(tmp_path):
+    """Loopback-only TLS endpoint requiring HTTP/2, with no HTTP/1 fallback."""
+    import shutil
+    import subprocess
+    import pytest
+    from ingestion.local_https import _http2_curl
+    from ingestion.url_fetcher import FetchError, fetch
+
+    if not (_http2_curl() and shutil.which("node") and shutil.which("openssl")):
+        pytest.skip("requires HTTP/2-capable curl, node and openssl")
+    subprocess.run(["openssl", "req", "-x509", "-newkey", "rsa:2048", "-nodes",
+                    "-subj", "/CN=localhost", "-addext", "subjectAltName=DNS:localhost",
+                    "-days", "1", "-keyout", "key.pem", "-out", "cert.pem"],
+                   cwd=tmp_path, check=True, capture_output=True)
+    fixture = """
+const fs = require('node:fs');
+const server = require('node:http2').createSecureServer({
+  key: fs.readFileSync('key.pem'), cert: fs.readFileSync('cert.pem')
+});
+server.on('stream', (stream, headers) => {
+  if (headers[':path'] === '/redirect') {
+    stream.respond({':status': 302, location: '/openapi'});
+    return stream.end();
+  }
+  if (headers[':path'] === '/oversize') {
+    stream.respond({'content-encoding': 'gzip'});
+    return stream.end(require('node:zlib').gzipSync(Buffer.alloc(8192)));
+  }
+  stream.respond({'content-type': 'application/json; charset=utf-8'});
+  stream.end('{"openapi":"3.1.0"}');
+});
+server.listen(0, '127.0.0.1', () => console.log(server.address().port));
+"""
+    with subprocess.Popen(["node", "-e", fixture], cwd=tmp_path,
+                          stdout=subprocess.PIPE, text=True) as server:
+        try:
+            import select
+            assert select.select([server.stdout], [], [], 5)[0], "HTTP/2 fixture failed to start"
+            url = f"https://localhost:{int(server.stdout.readline())}"
+            with pytest.raises(FetchError):
+                fetch(url, timeout=5)
+            assert fetch(url, timeout=5, verify_ssl=False) == (b'{"openapi":"3.1.0"}', 'application/json')
+            with pytest.raises(FetchError, match="302"):
+                fetch(url + "/redirect", timeout=5, verify_ssl=False)
+            with pytest.raises(FetchError, match="exceeds"):
+                fetch(url + "/oversize", timeout=5, verify_ssl=False, max_bytes=100)
+        finally:
+            server.terminate()

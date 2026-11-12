@@ -9929,7 +9929,7 @@
         {
           "name": "rag_ingest",
           "signature": "file_path: str, doc_type: str='other', title: Optional[str]=None, version: Optional[str]=None, source: Optional[str]=None",
-          "description": "Ingest a document file (PDF/MD/HTML/TXT/DOCX/XLSX/PPTX/VSDX, plus legacy\nDOC/XLS/PPT/VSD via LibreOffice) into the knowledge base. doc_type is one of\nvendor|standard|customer|install-guide|other.",
+          "description": "Ingest a document file (PDF/MD/HTML/TXT/JSON/DOCX/XLSX/PPTX/VSDX, plus legacy\nDOC/XLS/PPT/VSD via LibreOffice) into the knowledge base. doc_type is one of\nvendor|standard|customer|install-guide|other.",
           "source": "mcp-servers/rag-mcp/rag_mcp_server.py",
           "line": 309
         },
@@ -9942,8 +9942,8 @@
         },
         {
           "name": "rag_ingest_url",
-          "signature": "url: str, mode: str='preview', include_linked: bool=False, scope_token: Optional[str]=None, doc_type: str='other', title: Optional[str]=None",
-          "description": "Two-phase URL ingestion. mode='preview' returns the page title, same-domain\ndepth-1 linked pages, and a scope_token \u2014 no ingestion. After the user confirms\nscope, call mode='ingest' (echoing scope_token when include_linked=true).",
+          "signature": "url: str, mode: str='preview', include_linked: bool=False, scope_token: Optional[str]=None, doc_type: str='other', title: Optional[str]=None, verify_ssl: bool=True",
+          "description": "Two-phase URL ingestion. mode='preview' returns the page title, same-domain\ndepth-1 linked pages, and a scope_token \u2014 no ingestion. After the user confirms\nscope, call mode='ingest' (echoing scope_token when include_linked=true). TLS verification defaults to true.\nFor an explicitly trusted self-signed endpoint, verify_ssl=false disables\nverification for this call and refuses redirects.",
           "source": "mcp-servers/rag-mcp/rag_mcp_server.py",
           "line": 467
         },
@@ -9952,49 +9952,49 @@
           "signature": "query: str, k: int=5, collection: str='documents', filters: Optional[Dict[str, Any]]=None, round: Optional[int]=None, sub_query_id: Optional[str]=None",
           "description": "Search the knowledge base. Returns top-k chunks with citation metadata.\nFilters: doc_type, document_id, title, ingested_after, ingested_before.\nResults below the relevance floor are flagged low_confidence, never dropped.",
           "source": "mcp-servers/rag-mcp/rag_mcp_server.py",
-          "line": 626
+          "line": 911
         },
         {
           "name": "rag_list",
           "signature": "kind: str='all'",
           "description": "List indexed documents, snapshots, and replicas (separately) with full\nmetadata. Replicas (feature 065) are collections copied in from a\nfederated peer's RAG via n2n replication \u2014 each carries its source peer\nidentity, source collection id, source embedding model, and replication\ntimestamp, distinguishing it from a locally-authored document.\nkind: documents|snapshots|replicas|all.",
           "source": "mcp-servers/rag-mcp/rag_mcp_server.py",
-          "line": 726
+          "line": 1027
         },
         {
           "name": "rag_stats",
           "signature": "",
           "description": "Corpus totals (docs, chunks, disk usage, models, collections) plus rolling\nretrieval telemetry (query count, mean latency, re-retrieval and low-confidence rates).",
           "source": "mcp-servers/rag-mcp/rag_mcp_server.py",
-          "line": 760
+          "line": 1061
         },
         {
           "name": "rag_update_metadata",
           "signature": "document_id: str, doc_type: Optional[str]=None, title: Optional[str]=None, version: Optional[str]=None",
           "description": "Edit a document's doc_type (vendor|standard|customer|install-guide|other),\ntitle, or version. Updates registry and chunk metadata.",
           "source": "mcp-servers/rag-mcp/rag_mcp_server.py",
-          "line": 788
+          "line": 1089
         },
         {
           "name": "rag_delete",
           "signature": "document_id: str, confirmed: bool=False",
           "description": "Delete a document or snapshot: removes chunks from dense AND keyword\nindexes plus the retained original. Requires confirmed=true after the user\nhas explicitly approved (destructive \u2014 HIIL gate).",
           "source": "mcp-servers/rag-mcp/rag_mcp_server.py",
-          "line": 826
+          "line": 1127
         },
         {
           "name": "rag_reindex",
           "signature": "document_id: str, confirmed: bool=False",
           "description": "Re-chunk and re-embed a document from its retained original (use after\nchunking/embedding config changes). Requires confirmed=true after the user\nhas explicitly approved (HIIL gate).",
           "source": "mcp-servers/rag-mcp/rag_mcp_server.py",
-          "line": 855
+          "line": 1156
         },
         {
           "name": "rag_snapshot",
           "signature": "label: str, content: str, source_description: str, devices: Optional[list]=None, commands: Optional[list]=None, capture_ts: Optional[str]=None",
           "description": "Vectorize explicitly requested live network output into a NEW timestamped\nsnapshot collection (never 'documents'). OPT-IN ONLY: never call this\nautomatically, from a heartbeat, or as a side effect \u2014 the user must\nexplicitly request it and confirm scope first. Content is secret-scrubbed\nbefore vectorization; redaction counts are reported per type.",
           "source": "mcp-servers/rag-mcp/rag_mcp_server.py",
-          "line": 961
+          "line": 1262
         }
       ],
       "coverage": "Source-declared tool signatures/schemas; runtime tools/list is authoritative."

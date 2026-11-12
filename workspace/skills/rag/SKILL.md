@@ -36,7 +36,7 @@ Users teach NetClaw by uploading documents (Slack attachment, HUD Knowledge pane
 - When no investigation snapshots are indexed, the snapshot aliases return an empty corpus and say so. A snapshot collection that is missing or unreadable is skipped; if none can be read, the result is `STORAGE_UNAVAILABLE` — say the history could not be read, not that there is none.
 - `ingested_after` / `ingested_before` filter on when content was indexed (`ingest_ts`), for snapshots too. They do not filter on a snapshot's `capture_ts`; check `capture_ts` / `age_human` on each hit when the capture date matters.
 
-Use `investigations` when an alert or case asks what a prior investigation already recorded. Use `documents` for vendor procedures and standards. Show snapshot staleness (`age_human` / `staleness_notice`) whenever a hit came from a snapshot.
+Search without waiting for a separate request when a procedure, standard, install step or vendor limit depends on documents in the corpus. Use `investigations` when an alert or case asks what a prior investigation already recorded. Use `documents` for vendor procedures and standards. Show snapshot staleness (`age_human` / `staleness_notice`) whenever a hit came from a snapshot.
 
 ## The Four Knowledge Sources (routing rules)
 
@@ -68,7 +68,7 @@ When a user posts a file attachment in the Slack channel and asks NetClaw to lea
 5. If the response is `deduplicated: true`, say the document was already indexed. If `reindexed: true`, say the prior version was replaced.
 6. Errors (unsupported format, size cap, parse failure) are reported verbatim — never silently swallowed.
 
-Supported formats: PDF, Markdown, HTML, TXT, DOCX, XLSX, PPTX, VSDX natively; legacy DOC/XLS/PPT/VSD when LibreOffice is installed.
+Supported formats: PDF, Markdown, HTML, TXT, JSON (including OpenAPI and Swagger), DOCX, XLSX, PPTX, VSDX natively; legacy DOC/XLS/PPT/VSD when LibreOffice is installed.
 
 ## Workflow: URL Ingestion (always preview first)
 
@@ -79,7 +79,11 @@ When a user asks to ingest a web page:
 3. **Ingest**:
    - Single page: `rag_ingest_url {"url": "...", "mode": "ingest"}`
    - Page + linked pages (only after explicit confirmation): `rag_ingest_url {"url": "...", "mode": "ingest", "include_linked": true, "scope_token": "<from preview>"}`
-4. Confirm as with file ingestion. Each page records its own URL as source. PDFs served at URLs are handled automatically.
+4. Confirm as with file ingestion. Each page records its own URL as source. PDFs and JSON served at URLs are handled automatically. API descriptions can be searched by method and endpoint path.
+
+If preview returns `spa_shell: true` or `thin: true`, tell the user how much visible text the page contains. For a JavaScript-rendered portal, ask for the static documentation, a PDF or the exported OpenAPI JSON.
+
+TLS certificates are verified by default. For a self-signed HTTPS endpoint, use `verify_ssl: false` only when the user accepts that exception. Repeat the option on ingestion. Redirects require a new request to the intended destination when verification is disabled.
 
 Never call `mode="ingest"` with `include_linked=true` without having shown the preview and obtained the user's confirmation — the server rejects a missing/stale `scope_token`.
 

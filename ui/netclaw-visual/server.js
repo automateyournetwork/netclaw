@@ -1944,7 +1944,7 @@ const RAG_DATA_DIR = process.env.RAG_DATA_DIR
   : path.join(installation.home, 'rag');
 const RAG_INTAKE_DIR = path.join(RAG_DATA_DIR, 'intake');
 const RAG_MAX_DOC_MB = Number(process.env.RAG_MAX_DOC_MB || '100');
-const RAG_SUPPORTED_EXT = ['.pdf', '.md', '.markdown', '.html', '.htm', '.txt',
+const RAG_SUPPORTED_EXT = ['.pdf', '.md', '.markdown', '.html', '.htm', '.txt', '.json',
   '.docx', '.xlsx', '.pptx', '.vsdx', '.doc', '.xls', '.ppt', '.vsd'];
 
 const callRagTool = createRagQueue(function callRagTool(tool, args = {}, timeoutSec = 300) {

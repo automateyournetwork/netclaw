@@ -365,3 +365,15 @@ def test_ingested_date_filters():
     assert resp["data"]["results"] == []
     resp = server._do_search("boot variable", k=3, filters={"ingested_before": "2099-01-01"})
     assert resp["data"]["results"], f"doc ingested {ts} should pass the before-filter"
+
+
+def test_openapi_search_cites_operation(tmp_path):
+    path = tmp_path / "api.json"
+    path.write_text('{"openapi":"3.1.0","info":{"title":"Port control"},'
+                    '"paths":{"/ports":{"get":{"summary":"List zirqport interfaces"}}}}')
+    ingested = server._do_ingest(str(path))
+    assert ingested["success"], ingested
+    results = server._do_search("zirqport", filters={"document_id": ingested["data"]["document_id"]})
+    assert results["success"], results
+    assert any("GET /ports" in hit["citation"] and "zirqport" in hit["chunk_text"]
+               for hit in results["data"]["results"])
