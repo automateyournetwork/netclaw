@@ -26620,7 +26620,7 @@
       "title": "n2n-federation",
       "description": "Federate your NetClaw with other NetClaw operators over the BGP mesh — exchange capability inventories and ask your claw what a peer can do. (US1; remote invocation and chat land in later phases.)",
       "path": "workspace/skills/n2n-federation/SKILL.md",
-      "sha256": "111752601d3c596e72e017747d396aaac15f4a6fcc3b9890961f1e00cf286315",
+      "sha256": "e16472d60c8a66822cf572b29e4533d6c6cc9afb6f6428558feb33c7ab880bbf",
       "components": [
         "n2n"
       ],
@@ -27316,7 +27316,7 @@
       "title": "protocol-participation",
       "description": "Live BGP and OSPF control-plane participation — NetClaw itself acts as a protocol speaker: peer with real routers, inject/withdraw routes, query its own RIB/LSDB, adjust metrics, GRE tunnel status. Use when injecting or withdrawing BGP routes, checking the state of NetClaw's own BGP peering, querying its own OSPF LSDB, or testing route advertisement in a lab. This does not query an existing device's routing table — for that, use `pyats-routing` (Cisco) or `pyats-junos-routing` (Juniper) instead.",
       "path": "workspace/skills/protocol-participation/SKILL.md",
-      "sha256": "29c1d37f2803878b6928a5d6f42e992f88dc86a5ea3135b949d63815f033a9fa",
+      "sha256": "f2fee76c19372f3928c42d01033b740f318d0756e9a468ab39454402d527df92",
       "components": [
         "protocol"
       ],
@@ -27372,7 +27372,7 @@
       "title": "pyats-config-mgmt",
       "description": "Direct, pyATS-based network change management - pre-change baselines, configuration deployment, post-change verification, rollback procedures, and compliance validation. Use when pushing config to a device, planning a network change, rolling back a configuration, or running compliance checks outside of a governed workflow platform. When the change should go through Itential's golden-config/compliance engine instead, use `itential-automation`.",
       "path": "workspace/skills/pyats-config-mgmt/SKILL.md",
-      "sha256": "07c33be5e29e704703ecabd655358da875719a92b94eba6823910e2debf2cb0d",
+      "sha256": "5053f0c1ff7c39f7bc05407ebc009beb5c2151d634747d73043c6da4d0d96f84",
       "components": [
         "pyats"
       ],

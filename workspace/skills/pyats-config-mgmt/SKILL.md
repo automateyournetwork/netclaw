@@ -312,11 +312,20 @@ python3 $MCP_CALL "python3 -u $SERVICENOW_MCP_SCRIPT" update_change_request '{"c
 
 ### Emergency Changes
 
-For emergency changes (network outage, security incident):
+An emergency change (network outage, security incident) bypasses the CR approval gate,
+so a change qualifies only when **all three** are true:
+
+1. An outage, security incident or actively exploited vulnerability is affecting production now, not one that is predicted.
+2. The operator knows about it and has confirmed the urgency in this conversation.
+3. The fix is a single configuration change that can be rolled back, not a multi-step procedure.
+
+If any one is false, follow the standard CR workflow. Otherwise:
+
 1. Notify human immediately
 2. Create CR with category "Emergency"
 3. Proceed with change (approval gate bypassed)
-4. CR must be retroactively approved within 24 hours
+4. Record in GAIT which conditions held and the evidence for each
+5. CR must be retroactively approved within 24 hours
 
 ## GAIT Audit Trail
 
