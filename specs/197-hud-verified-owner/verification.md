@@ -10,3 +10,9 @@ At the upstream baseline the following checks passed from ui/netclaw-visual afte
 The tests describe today's host behavior. The proposed adapter, handler isolation, future browser workflows and candidate deployments still need their own qualification. No service was installed.
 
 The proposal passed python3 scripts/verify-spec-artifacts.py, python3 scripts/verify-catalog-coverage.py and python3 scripts/reconcile-mcp.py --surface catalog --surface dependencies --surface docs --surface meraki-ids --surface packages --surface portability. Both python3 scripts/run-contract-tests.py --list and --matrix exited 2 because tests/gcp has no manifest entry. Both failures reproduced on a clean cfafa46c checkout.
+
+## Downstream reviewer fixture
+
+An isolated HTTPS fixture ran with two independent Chromium browser contexts and temporary certificates trusted only in that fixture. The API required a client certificate enrolled to the installation. The reviewer listener used the shared Convergence password verifier with two synthetic accounts. Browser sessions rotated at login. A viewer could read its authorized site; an operator disposition recorded that operator, duplicate case IDs at another site did not provide access, and signing one user out left the other session intact. A hostile-origin form POST reached the listener without a reviewer cookie and was denied before service dispatch. Missing trust, a bad hostname, missing or unenrolled client certificates, native owner/terminal routes, WebSocket upgrades, implicit HEAD and spoofed headers were rejected. The test used a minimal review document and in-memory grants, case data and audit. It does not qualify the actual HUD shell, deployment ingress, grant lifecycle across replicas or a production case mutation.
+
+The candidate profile and downstream service contract are discussed in the [Convergence design](https://github.com/byrn-baker/convergence-platform/pull/8).
