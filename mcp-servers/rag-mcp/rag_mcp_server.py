@@ -2,7 +2,7 @@
 """rag-mcp — NetClaw Agentic RAG Knowledge Base MCP server (Feature 062).
 
 Fully offline, free, local document knowledge base:
-- Ingestion: PDF/MD/HTML/TXT native; DOCX/XLSX/PPTX/VSDX via Python parsers;
+- Ingestion: PDF/MD/HTML/TXT/JSON native; DOCX/XLSX/PPTX/VSDX via Python parsers;
   legacy DOC/XLS/PPT/VSD via LibreOffice-headless conversion fallback.
 - Retrieval: hybrid dense (ChromaDB) + BM25 with reciprocal rank fusion and
   a local cross-encoder reranker; every result carries citation metadata.
@@ -313,7 +313,7 @@ def rag_ingest(
     version: Optional[str] = None,
     source: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Ingest a document file (PDF/MD/HTML/TXT/DOCX/XLSX/PPTX/VSDX, plus legacy
+    """Ingest a document file (PDF/MD/HTML/TXT/JSON/DOCX/XLSX/PPTX/VSDX, plus legacy
     DOC/XLS/PPT/VSD via LibreOffice) into the knowledge base. doc_type is one of
     vendor|standard|customer|install-guide|other."""
     return _do_ingest(file_path, doc_type, title, version, source)
@@ -367,7 +367,7 @@ from ingestion.url_fetcher import (
     discover_links,
     fetch,
     filename_for_url,
-    page_title,
+    preview_html,
     scope_token,
     verify_scope_token,
 )
@@ -375,9 +375,10 @@ from ingestion.url_fetcher import (
 
 def _ingest_fetched(url: str, content: bytes, content_type: str, doc_type: str, title: Optional[str]) -> Dict[str, Any]:
     fname = filename_for_url(url, content_type)
-    intake_path = config.INTAKE_DIR / fname
-    intake_path.write_bytes(content)
-    return _do_ingest(str(intake_path), doc_type, title, source=url)
+    with tempfile.TemporaryDirectory(prefix="url-", dir=config.INTAKE_DIR) as staging:
+        intake_path = Path(staging) / fname
+        intake_path.write_bytes(content)
+        return _do_ingest(str(intake_path), doc_type, title, source=url)
 
 
 def _do_ingest_url(
@@ -387,9 +388,10 @@ def _do_ingest_url(
     scope_token_value: Optional[str] = None,
     doc_type: str = "other",
     title: Optional[str] = None,
+    verify_ssl: bool = True,
 ) -> Dict[str, Any]:
     try:
-        content, content_type = fetch(url, max_bytes=config.MAX_DOC_MB * 1024 * 1024)
+        content, content_type = fetch(url, max_bytes=config.MAX_DOC_MB * 1024 * 1024, verify_ssl=verify_ssl)
     except FetchError as exc:
         return error_response("FETCH_FAILED", exc.message)
 
@@ -411,15 +413,13 @@ def _do_ingest_url(
                 }
             )
         html = content.decode("utf-8", errors="replace")
-        links = discover_links(html, url, config.CRAWL_MAX_PAGES)
+        links = preview_html(html, url, config.CRAWL_MAX_PAGES)
         linked_urls = [p["url"] for p in links["linked_pages"]]
         return success_response(
             {
                 "url": url,
-                "title": page_title(html, url),
+                **links,
                 "content_type": content_type,
-                "linked_pages": links["linked_pages"],
-                "truncated": links["truncated"],
                 "scope_token": scope_token(url, linked_urls),
             }
         )
@@ -447,7 +447,7 @@ def _do_ingest_url(
     results = [_ingest_fetched(url, content, content_type, doc_type, title)]
     for page_url in linked_urls:
         try:
-            page_content, page_type = fetch(page_url, max_bytes=config.MAX_DOC_MB * 1024 * 1024)
+            page_content, page_type = fetch(page_url, max_bytes=config.MAX_DOC_MB * 1024 * 1024, verify_ssl=verify_ssl)
             results.append(
                 _ingest_fetched(page_url, page_content, page_type, doc_type, None)
             )
@@ -471,11 +471,14 @@ def rag_ingest_url(
     scope_token: Optional[str] = None,
     doc_type: str = "other",
     title: Optional[str] = None,
+    verify_ssl: bool = True,
 ) -> Dict[str, Any]:
     """Two-phase URL ingestion. mode='preview' returns the page title, same-domain
     depth-1 linked pages, and a scope_token — no ingestion. After the user confirms
-    scope, call mode='ingest' (echoing scope_token when include_linked=true)."""
-    return _do_ingest_url(url, mode, include_linked, scope_token, doc_type, title)
+    scope, call mode='ingest' (echoing scope_token when include_linked=true). TLS verification defaults to true.
+    For an explicitly trusted self-signed endpoint, verify_ssl=false disables
+    verification for this call and refuses redirects."""
+    return _do_ingest_url(url, mode, include_linked, scope_token, doc_type, title, verify_ssl)
 
 
 # ---------------------------------------------------------------------

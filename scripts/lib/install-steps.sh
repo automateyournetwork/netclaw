@@ -3689,6 +3689,16 @@ fi
 echo ""
 }
 
+component_install_greynoise_community() {
+    log_step "Installing GreyNoise Community MCP..."
+    netclaw_pip_install -r "$NETCLAW_DIR/mcp-servers/greynoise-community-mcp/requirements.txt"
+}
+
+component_install_threatintel() {
+    log_step "Installing the community threat intelligence MCP..."
+    python3 "$NETCLAW_DIR/scripts/setup-threatintel.py" "$MCP_DIR"
+}
+
 # ── Globalping remote MCP (spec 079 / roadmap R8) ───────────────
 component_install_bgp_intel() {
 log_step "Installing BGP & Registry Intelligence MCP Server..."

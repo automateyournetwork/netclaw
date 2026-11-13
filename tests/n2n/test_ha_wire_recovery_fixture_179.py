@@ -47,6 +47,21 @@ def test_topology_probe_cannot_become_generic_rpc_surface(method):
     with pytest.raises(ValueError):fixture.validate_request(fixture.encode(value),config)
 
 
+def test_effect_evidence_on_a_long_running_host(tmp_path, monkeypatch):
+    from bgp.federation import protected_contract as contract
+
+    worker = object.__new__(fixture.Worker)
+    worker.home = tmp_path
+    (tmp_path / "effects").mkdir(mode=0o700)
+    worker.journal = SimpleNamespace(incarnation="fixture")
+    observed = 2**53 + 1
+    monkeypatch.setattr(fixture, "time", SimpleNamespace(monotonic_ns=lambda: observed))
+
+    evidence = worker.effect("operation", "tool", 1)
+    assert contract.decode(contract.encode(evidence)) == evidence
+    assert worker.effects() == [dict(evidence, observed_monotonic_ns=observed)]
+
+
 def test_timing_records_three_separate_observations_and_refuses_reordering():
     value=fixture.timings(1_000_000,2_000_000,9_000_000,14_000_000)
     assert [value[k] for k in ('failure_to_detection_ms','failure_to_new_authority_ms','failure_to_service_recovery_ms')]==[1,8,13]

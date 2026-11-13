@@ -1,0 +1,5 @@
+# Spec 141: standalone FastMCP; isolated component runtime only.
+fastmcp==4.0.11
+fastmcp-tasks==4.0.11
+fastmcp-slim==4.0.11
+mcp==2.3.0

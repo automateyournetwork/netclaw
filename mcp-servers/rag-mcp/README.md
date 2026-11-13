@@ -10,7 +10,7 @@ Fully **offline, free, local** document knowledge base for NetClaw (Feature 062)
 |------|-------------|----------------|
 | `rag_ingest` | Ingest a document file on disk | `file_path`, `doc_type` (vendor\|standard\|customer\|install-guide\|other), `title?`, `version?`, `source?` |
 | `rag_ingest_base64` | Ingest a base64-encoded file (Slack attachment path) | `filename`, `content_base64`, `doc_type?`, `title?` |
-| `rag_ingest_url` | Two-phase URL ingestion with crawl-scope gate | `url`, `mode` (preview\|ingest), `include_linked?`, `scope_token?` |
+| `rag_ingest_url` | Two-phase URL ingestion with crawl-scope gate | `url`, `mode` (preview\|ingest), `include_linked?`, `scope_token?`, `verify_ssl=true` |
 | `rag_search` | Hybrid search: dense + BM25 → RRF fusion → local rerank. `investigations` / `snapshots` / `cases` search every ready snapshot; `all` / `*` adds the document corpus; any other name is that collection only | `query`, `k=5`, `collection`, `filters?` (doc_type/document_id/title/date range), `round?`, `sub_query_id?` |
 | `rag_list` | All documents + snapshots (separate) with full metadata | `kind` (documents\|snapshots\|all) |
 | `rag_stats` | Corpus totals + rolling retrieval telemetry | — |
@@ -23,9 +23,11 @@ All responses use the envelope `{"success": bool, "data": ..., "error": {"code",
 
 ## Supported formats
 
-- **Native**: PDF (pymupdf — pages, TOC headings, tables), Markdown, HTML, TXT
+- **Native**: PDF (pymupdf — pages, TOC headings, tables), Markdown, HTML, TXT, JSON (OpenAPI/Swagger operations get method and path headings)
 - **Modern office**: DOCX, XLSX, PPTX, VSDX (Python parsers)
 - **Legacy office**: DOC, XLS, PPT, VSD via LibreOffice headless (`soffice`) conversion — optional system package; other formats work without it
+
+HTML URL previews include `text_chars`, `thin`, `spa_shell`, and an optional `warning` about client-rendered or nearly empty pages. Local HTTPS appliances use system curl with HTTP/2 negotiation when available. The ordinary HTTP client handles other URLs. By default both transports verify certificates. An explicit `verify_ssl=false` applies to this call and disables redirect following.
 
 ## Retrieval pipeline
 

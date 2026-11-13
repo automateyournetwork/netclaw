@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "sourceSha256": "97976ae50430c47da5dcb42df63c2588e23ca5eb0f6ec5ee6cffb2e88baf4d50",
+  "sourceSha256": "f6c010c6db3d28a463c4387c3f839619e2df6fbafd92baa7a8bc554aa0681379",
   "components": [
     {
       "id": "hermes-hud",
@@ -1040,6 +1040,24 @@
       "reason": "Prints administrator instructions only; no install, download or credential access during setup. Registration is written by scripts/cisco-iq-enable.sh.",
       "postcondition": "selected-registration-artifacts-and-discovery",
       "source": "scripts/lib/install-steps.sh#component_install_cisco_iq"
+    },
+    {
+      "id": "greynoise-community",
+      "function": "component_install_greynoise_community",
+      "sha256": "2a1e9ccc93e619ad973d4dde62c2102d9fb7360c5fb00a7d22167f4ed6c58570",
+      "adapter": "isolated-shell",
+      "reason": "Owned source copy, isolated OS home, prefix/cache and component Python; no credentials during dependency installation.",
+      "postcondition": "selected-registration-artifacts-and-discovery",
+      "source": "scripts/lib/install-steps.sh#component_install_greynoise_community"
+    },
+    {
+      "id": "threatintel",
+      "function": "component_install_threatintel",
+      "sha256": "613eac1c48c424586607edd1a5df9726c06a53838fb4cffd6e9fc530bd884d0f",
+      "adapter": "isolated-shell",
+      "reason": "Owned source copy, isolated OS home, prefix/cache and component Python; no credentials during dependency installation.",
+      "postcondition": "selected-registration-artifacts-and-discovery",
+      "source": "scripts/lib/install-steps.sh#component_install_threatintel"
     }
   ]
 }

@@ -239,6 +239,38 @@
         "convergence_flow_evidence",
         "convergence_vm_security"
       ]
+    },
+    "greynoise-community": {
+      "servers": [
+        "greynoise-community-mcp"
+      ],
+      "script": "mcp-servers/greynoise-community-mcp/server.py",
+      "expected_tools": [
+        "greynoise_community_lookup"
+      ],
+      "environment_keys": [
+        "GREYNOISE_API_KEY",
+        "GREYNOISE_TIMEOUT"
+      ]
+    },
+    "threatintel": {
+      "servers": [
+        "threatintel-mcp"
+      ],
+      "script": "mcp-servers/mcp-threatintel/dist/index.js",
+      "expected_tools": [
+        "threatintel_status",
+        "threatintel_lookup_ip",
+        "greynoise_ip",
+        "feodo_tracker"
+      ],
+      "environment_keys": [
+        "GREYNOISE_API_KEY",
+        "ABUSEIPDB_API_KEY",
+        "OTX_API_KEY",
+        "ABUSECH_AUTH_KEY"
+      ],
+      "command": "node"
     }
   }
 }

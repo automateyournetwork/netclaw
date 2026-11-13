@@ -176,3 +176,50 @@ def test_failed_replacement_preserves_ready_document_and_source(server, monkeypa
     assert server.registry.get(original_id) is None
     assert not retained.exists()
     assert Path(server.registry.get(done['data']['document_id'])['source_path']).read_bytes() == contents
+
+
+def test_structured_json_via_url_and_attachment(server, tmp_path, monkeypatch):
+    import base64
+
+    seen = []
+
+    def index(doc_id, parsed, collection, doc_type, source):
+        seen.append([s.heading_path for s in parsed.sections])
+        return len(parsed.sections)
+
+    monkeypatch.setattr(server, "_index_parsed_document", index)
+    monkeypatch.setattr(server, "gait_log", lambda *args: None)
+    body = b'{"openapi":"3.0.0","paths":{"/ports":{"get":{"summary":"Port inventory"}}}}'
+    def fetch(url, *, max_bytes, verify_ssl):
+        assert not verify_ssl
+        return body, "application/vnd.oai.openapi+json"
+
+    monkeypatch.setattr(server, "fetch", fetch)
+    url = "https://docs.example/api-description"
+    preview = server._do_ingest_url(url, verify_ssl=False)
+    assert preview["data"]["linked_pages"] == [] and seen == []
+    ingested = server._do_ingest_url(url, mode="ingest", verify_ssl=False)
+    assert ingested["data"]["ingested"] == 1 and ["GET /ports"] in seen[0]
+    result = server._do_ingest_base64("ports.json", base64.b64encode(body).decode())
+    assert result["data"]["deduplicated"]
+
+
+def test_concurrent_url_ingests_stage_distinct_files(server, monkeypatch):
+    from concurrent.futures import ThreadPoolExecutor
+    import threading
+
+    barrier = threading.Barrier(2)
+    staged = []
+
+    def ingest(path, *args, **kwargs):
+        staged.append(Path(path))
+        barrier.wait(timeout=5)
+        return Path(path).read_bytes()
+
+    monkeypatch.setattr(server, "_do_ingest", ingest)
+    def submit(body):
+        return server._ingest_fetched("https://docs.example/api", body, "application/json", "vendor", None)
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        assert list(pool.map(submit, [b"1", b"2"])) == [b"1", b"2"]
+    assert len(set(staged)) == 2 and all(not p.parent.exists() for p in staged)

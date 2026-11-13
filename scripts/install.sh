@@ -601,6 +601,8 @@ verify_component() {
         fmc)             verify_dir  "$name" "$FMC_MCP_DIR" ;;
         panorama)        verify_cmd_or_module "$name" palo-alto-mcp palo_alto_mcp "pip3 install iflow-mcp-cdot65-palo-alto-mcp" ;;
         fortinet)        verify_file "$name" "$FORTINET_MCP_DIR/server.py" ;;
+        greynoise-community) verify_file "$name" "$NETCLAW_DIR/mcp-servers/greynoise-community-mcp/server.py" ;;
+        threatintel)     verify_file "$name" "$MCP_DIR/mcp-threatintel/dist/index.js" ;;
         bgp-intel)       verify_file "$name" "$BGP_INTEL_MCP_DIR/server.py" ;;
         checkpoint)      verify_dir  "$name" "$CHECKPOINT_MCP_DIR" ;;
         claroty)         verify_dir  "$name" "$CLAROTY_MCP_DIR" ;;

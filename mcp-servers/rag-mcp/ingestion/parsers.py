@@ -1,6 +1,6 @@
 """Two-tier document parsing for rag-mcp (FR-002, FR-008a).
 
-Native tier: PDF (pymupdf), Markdown, HTML (BeautifulSoup), TXT.
+Native tier: PDF (pymupdf), Markdown, HTML (BeautifulSoup), TXT, JSON/OpenAPI.
 Office tier: DOCX/XLSX/PPTX/VSDX via Python parsers; legacy DOC/XLS/PPT/VSD
 via `soffice --headless --convert-to pdf` fallback (graceful failure with an
 actionable message when LibreOffice is absent).
@@ -14,6 +14,7 @@ Blocks are (kind, text, page) tuples where kind is 'text' | 'atomic'
 """
 
 import hashlib
+import json
 import re
 import shutil
 import subprocess
@@ -23,7 +24,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import List, Optional, Tuple
 
-NATIVE_EXTENSIONS = {".pdf", ".md", ".markdown", ".html", ".htm", ".txt"}
+NATIVE_EXTENSIONS = {".pdf", ".md", ".markdown", ".html", ".htm", ".txt", ".json"}
 MODERN_OFFICE_EXTENSIONS = {".docx", ".xlsx", ".pptx", ".vsdx"}
 LEGACY_OFFICE_EXTENSIONS = {".doc", ".xls", ".ppt", ".vsd"}
 SUPPORTED_EXTENSIONS = NATIVE_EXTENSIONS | MODERN_OFFICE_EXTENSIONS | LEGACY_OFFICE_EXTENSIONS
@@ -500,6 +501,60 @@ def _convert_legacy(path: Path, max_pages: int) -> ParsedDocument:
         )
 
 
+def _json_section(heading: List[str], value: object) -> Section:
+    # Stream the representation into prose blocks. One block per JSON token
+    # would make even small numeric arrays expensive to embed and store.
+    encoder = json.JSONEncoder(ensure_ascii=False, allow_nan=False, indent=0)
+    pending = ""
+    section = Section(heading_path=heading)
+    for token in encoder.iterencode(value):
+        # Keep even a single long description or string value searchable beyond
+        # the embedding model's truncation point. Preserve every character.
+        for offset in range(0, len(token), 1200):
+            piece = token[offset:offset + 1200]
+            if pending and len(pending) + len(piece) > 1200:
+                section.blocks.append(("text", pending, None))
+                pending = ""
+            pending += piece
+    if pending:
+        section.blocks.append(("text", pending, None))
+    return section
+
+
+def _parse_json(path: Path) -> ParsedDocument:
+    try:
+        data = json.loads(path.read_bytes())
+        return _json_document(data, path.stem)
+    except (ValueError, RecursionError) as exc:
+        raise IngestError("PARSE_FAILED", f"Invalid JSON in '{path.name}': {exc}") from exc
+
+
+def _json_document(data: object, fallback_title: str) -> ParsedDocument:
+    if not (isinstance(data, dict) and ("openapi" in data or "swagger" in data)
+            and isinstance(data.get("paths"), dict)):
+        return ParsedDocument(fallback_title, [_json_section([], data)], None, "")
+
+    info = data.get("info")
+    title = fallback_title
+    if isinstance(info, dict) and isinstance(info.get("title"), str):
+        title = " ".join(str(v) for v in (info["title"], info.get("version")) if v) or fallback_title
+    sections = []
+    for name, value in data.items():
+        if name != "paths":
+            sections.append(_json_section([name], value))
+    for endpoint, path_item in data["paths"].items():
+        if not isinstance(path_item, dict):
+            continue
+        for method, operation in path_item.items():
+            if method in {"get", "post", "put", "patch", "delete", "head", "options", "trace"}:
+                heading = f"{method.upper()} {endpoint}"
+            else:
+                # Keep path-wide parameters, references and extensions searchable.
+                heading = f"{endpoint} {method}"
+            sections.append(_json_section([heading], operation))
+    return ParsedDocument(title, sections, None, "")
+
+
 # ---------------------------------------------------------------------
 # Dispatch
 # ---------------------------------------------------------------------
@@ -531,6 +586,8 @@ def parse_file(path: Path, max_mb: int = 100, max_pages: int = 1000) -> ParsedDo
         parsed = _parse_markdown(path.read_text(encoding="utf-8", errors="replace"), path.stem)
     elif ext in (".html", ".htm"):
         parsed = parse_html_text(path.read_text(encoding="utf-8", errors="replace"), path.stem)
+    elif ext == ".json":
+        parsed = _parse_json(path)
     elif ext == ".txt":
         parsed = _parse_txt(path.read_text(encoding="utf-8", errors="replace"), path.stem)
     elif ext == ".docx":

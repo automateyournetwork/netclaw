@@ -16,7 +16,7 @@ import { setSafeHtml, appendSafeHtml } from '../security/safe-html.js';
 
 import './KnowledgePanel.css';
 
-const SUPPORTED_EXT = ['.pdf', '.md', '.markdown', '.html', '.htm', '.txt',
+const SUPPORTED_EXT = ['.pdf', '.md', '.markdown', '.html', '.htm', '.txt', '.json',
   '.docx', '.xlsx', '.pptx', '.vsdx', '.doc', '.xls', '.ppt', '.vsd'];
 const DOC_TYPES = ['other', 'vendor', 'standard', 'customer', 'install-guide'];
 

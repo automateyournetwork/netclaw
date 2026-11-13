@@ -276,6 +276,12 @@
     "category": "Guides"
   },
   {
+    "id": "89a81913b9041e1e",
+    "path": "docs/THREAT-INTELLIGENCE.md",
+    "title": "Threat intelligence tools",
+    "category": "Guides"
+  },
+  {
     "id": "198e765cea06959b",
     "path": "docs/UPGRADE-TO-DEFENSECLAW.md",
     "title": "Upgrading to DefenseClaw",
@@ -549,6 +555,18 @@
     "id": "83d5560103dc774a",
     "path": "docs/releases/1.2.1.md",
     "title": "NetClaw 1.2.1",
+    "category": "Guides"
+  },
+  {
+    "id": "61adc592fc60f5f3",
+    "path": "docs/releases/1.23.0.md",
+    "title": "NetClaw 1.23.0",
+    "category": "Guides"
+  },
+  {
+    "id": "0dcaa966de26e4c2",
+    "path": "docs/releases/1.24.0.md",
+    "title": "NetClaw 1.24.0",
     "category": "Guides"
   },
   {

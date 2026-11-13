@@ -41,6 +41,8 @@ def _safe_tree(value, depth=0, *, ascii_keys=True):
     elif isinstance(value, str):
         if any(0xD800 <= ord(c) <= 0xDFFF for c in value) or "\x00" in value:
             raise Invalid("invalid_string")
+    elif type(value) is float:
+        raise Invalid("integer_required")
     elif type(value) is int:
         if abs(value) > 9007199254740991:
             raise Invalid("integer_range")
@@ -48,14 +50,19 @@ def _safe_tree(value, depth=0, *, ascii_keys=True):
         raise Invalid("invalid_value")
 
 
-def loads(data, limit=1024 * 1024, *, ascii_keys=True):
+def loads(data, limit=1024 * 1024, *, ascii_keys=True, object_field=None):
+    """Validate a strict document or one object field embedded in ordinary JSON."""
     try:
         if isinstance(data, str):
             data = data.encode("utf-8", errors="strict")
         if len(data) > limit:
             raise Invalid("size_limit")
         value = json.loads(data.decode("utf-8", errors="strict"), object_pairs_hook=_pairs,
-                           parse_constant=_reject_number, parse_float=_reject_number)
+                           parse_constant=_reject_number, parse_float=float if object_field is not None else _reject_number)
+        if object_field is not None:
+            if not isinstance(value, dict) or not isinstance(value.get(object_field), dict):
+                raise Invalid("object_field_required")
+            value = value[object_field]
         _safe_tree(value, ascii_keys=ascii_keys)
         return value
     except Invalid:

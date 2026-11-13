@@ -87,6 +87,15 @@ def resolve(component, server=None, env=None, repo=ROOT):
     if not executable:
         raise ValueError(f'{component}: launcher unavailable; rerun install.sh --add {component}')
     parts[0] = executable
+    if 'environment_keys' in rule:
+        # Only forward provider settings named by this component, alongside
+        # process and transport settings needed by Python, Node, TLS and proxies.
+        process_keys = {'HOME','PATH','LANG','LC_ALL','TMPDIR','TEMP','TMP','SYSTEMROOT',
+                        'SSL_CERT_FILE','SSL_CERT_DIR','NODE_EXTRA_CA_CERTS',
+                        'HTTP_PROXY','HTTPS_PROXY','ALL_PROXY','NO_PROXY',
+                        'http_proxy','https_proxy','all_proxy','no_proxy'}
+        allowed = process_keys.union(rule['environment_keys'])
+        env = {key: value for key, value in env.items() if key in allowed}
     return parts, env, str(cwd)
 
 

@@ -43,8 +43,8 @@ def test_npm_script_policy(version, flag):
 
 def test_all_reported_components_registered():
     templates = json.loads((ROOT / 'config/openclaw.json').read_text())['mcpServers']
-    assert len(launch.CONTRACT) == 16
-    assert {"netconverter", "convergence-read"} <= set(launch.CONTRACT)
+    assert len(launch.CONTRACT) == 18
+    assert {"netconverter", "convergence-read", "greynoise-community", "threatintel"} <= set(launch.CONTRACT)
     for component, rule in launch.CONTRACT.items():
         if rule.get('access') == 'hud-private':
             assert component == 'hermes-hud'
@@ -128,23 +128,25 @@ def test_legacy_skill_matches_only_owned_invocations():
 
 def test_generated_entries_carry_runtime_location_without_credentials(tmp_path,monkeypatch):
     monkeypatch.delenv('BGP_DAEMON_API',raising=False)
-    convergence_defaults = json.loads((ROOT / 'config/mcp-env-defaults.json').read_text())['servers']['convergence-read-mcp']
-    for key in convergence_defaults:
-        monkeypatch.delenv(key, raising=False)
+    defaults = json.loads((ROOT / 'config/mcp-env-defaults.json').read_text())['servers']
+    optional = {name: defaults[name] for name in ('convergence-read-mcp', 'greynoise-community-mcp', 'threatintel-mcp')}
+    for settings in optional.values():
+        for key in settings:
+            monkeypatch.delenv(key, raising=False)
     out=tmp_path/'selected.json'
     result=subprocess.run([sys.executable,str(ROOT/'scripts/install-mcp-config.py'), '--repo',str(ROOT),
         '--runtime-root',str(tmp_path/'runtimes'),'--components',' '.join(launch.CONTRACT), '--output',str(out)],
         capture_output=True,text=True)
     assert result.returncode==0,result.stderr
     entries=json.loads(out.read_text())['mcpServers']
-    assert len(entries)==16
+    assert set(entries) == {name for rule in launch.CONTRACT.values() if rule.get('access') != 'hud-private' for name in rule['servers']}
     for name, entry in entries.items():
         assert Path(entry['command']).is_absolute()
         assert entry['env']['NETCLAW_RUNTIME_ROOT']==str(tmp_path/'runtimes')
         allowed = {'NETCLAW_RUNTIME_ROOT','NETCLAW_RUNTIME_ENV','BGP_DAEMON_API'}
-        if name == 'convergence-read-mcp':
-            allowed |= set(convergence_defaults)
-            assert {key: entry['env'][key] for key in convergence_defaults} == convergence_defaults
+        if name in optional:
+            allowed.update(optional[name])
+            assert {key: entry['env'][key] for key in optional[name]} == optional[name]
         assert set(entry['env']) <= allowed
         if 'BGP_DAEMON_API' in entry['env']:
             assert entry['env']['BGP_DAEMON_API']=='http://127.0.0.1:8179'
