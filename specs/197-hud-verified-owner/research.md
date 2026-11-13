@@ -1,0 +1,11 @@
+# Existing boundaries
+
+[HUD server startup](../../ui/netclaw-visual/server.js) applies a local-access filter, the remote workspace boundary and the protected legacy boundary. The server later parses JSON globally and rewrites the first installation cookie or legacy fallback to a generic cookie. By that point a new handler cannot reliably detect duplicate owner cookies or impose a smaller pre-buffering body limit.
+
+[Bindings](../../ui/netclaw-visual/src/hud-server/bindings.js) stores installation, runtime and expiry and can revoke an owner. These records survive process restart. A downstream application can bind grants to an opaque process-local handle while ordinary HUD sessions keep working after restart. Built-in [Convergence reads](../../ui/netclaw-visual/src/hud-server/convergence.js) demonstrate rechecking authorization after asynchronous work. The adapter contract requires an explicit installation header even where built-in reads support its omission.
+
+[Local access](../../ui/netclaw-visual/src/security/local-access.js) checks the peer address, Host, fetch metadata and supplied origin. [Vite](../../ui/netclaw-visual/vite.config.js) can expose an explicitly configured UI interface and forward HTTP over loopback to the API. A backend socket address alone cannot establish that the browser entered locally. Protected operations have a separate principal and session lifecycle. [Protected operations](../../ui/netclaw-visual/src/hud-server/protected-operations.js)
+
+Federated [read/write grants](../190-grant-access-class/spec.md) authorize calls from another NetClaw peer to a target. An application's user account and case audit remain with the service that owns those records.
+
+The [remote workspace boundary](../../ui/netclaw-visual/src/hud-server/remote-hud.js) strips ordinary HUD credentials and has its own allowed routes. The [dashboard](../../ui/netclaw-visual/src/dashboard/Dashboard.jsx) initializes host features according to that runtime. A dedicated reviewer document and origin allow a narrow network-facing route table and independent user sessions. Reusing the production owner cookie across a remote proxy would give it an authority it was never designed to convey.
