@@ -40,12 +40,14 @@ Created 2026-11-19; branch `198-percepxion-oob-skill-refresh`, on 1.24.0. Follow
   Nautobot app (PyPI and GitHub), `lantronix.oob` (Automation Hub and GitHub release tags), and the
   community device-type library.
 - FR-007: Related-skill references resolve to skills that exist.
-- FR-008: Documentation surfaces agree: the Percepxion tool count is 38 in README, TOOLS.md, the
-  component catalog and the installer message; TOOLS.md drops endpoint provenance and version history;
+- FR-008: Documentation surfaces agree: the Percepxion tool count is 38 in README, TOOLS.md and the
+  component catalog; TOOLS.md drops endpoint provenance and version history;
   the catalog's skill digest and description are regenerated.
 
 ## Out of scope
 
 Moving the reviewed revisions of the two Lantronix servers forward (newer releases add HTTP
-transports and credential providers but no tools); installer, HUD or `.env.example` changes; any
+transports and credential providers but no tools); installer, HUD or `.env.example` changes (the
+installer's "37 tools" message stays, since `config/components/effects.json` audits the installer
+source by hash); any
 change to `netbox-mcp`, `nautobot-mcp` or other skills.

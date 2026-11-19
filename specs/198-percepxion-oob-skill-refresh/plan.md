@@ -9,7 +9,7 @@
 - `references/workflows.md`: W1 to W8 with corrected parameters.
 - `references/source-of-truth.md`: the public integrations, fields read, W9 (NetBox and Nautobot),
   W10, gate reasons, Percepxion events, refreshing the source of truth.
-- README, TOOLS.md, SOUL.md, `config/components/catalog.json`, `scripts/lib/install-steps.sh`:
+- README, TOOLS.md, SOUL.md, `config/components/catalog.json`:
   tool count and short capability text (FR-008). Regenerate the catalog with
   `node scripts/build-catalog.mjs` and `python3 scripts/build-catalog.py`.
 - Release 1.25.0 (minor: new skill workflows W9 and W10), via `scripts/prepare-release.py`.

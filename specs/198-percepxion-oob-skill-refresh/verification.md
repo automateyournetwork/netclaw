@@ -26,6 +26,9 @@ Python 3.12.3, Node 22, against `main` at a5e7c3a3.
 - `python3 -m pytest tests/unit/test_skill_deployment.py`: 4 passed.
 - `python3 scripts/prepare-release.py --check`: PASS (1.25.0); `python3 scripts/test-prepare-release.py`: OK.
 - `python3 scripts/check-catalog-links.py --base-ref a5e7c3a3...`: no changed catalog links.
+- First CI run: `setup-installer` and `netconverter` failed with `component_effects_changed` because
+  the installer's Percepxion echo line had been edited; `config/components/effects.json` audits
+  `scripts/lib/install-steps.sh` by hash. The edit was reverted, leaving the installer unchanged.
 
 ## Skill content
 
