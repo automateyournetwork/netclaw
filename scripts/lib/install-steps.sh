@@ -3860,7 +3860,7 @@ component_install_percepxion() {
 log_step "Installing Lantronix Percepxion MCP Server..."
 echo "  Source: https://github.com/Lantronix/percepxion-mcp-server"
 echo "  Fleet-wide OOB console-server SaaS — device inventory, firmware compliance/rollout,"
-echo "  config mgmt, Smart Groups, security audit, async CLI dispatch (37 tools)"
+echo "  config mgmt, Smart Groups, security audit, async CLI dispatch (38 tools)"
 echo "  Actively co-developed by Lantronix, not a frozen third-party target — see"
 echo "  specs/104-percepxion-oob-integration/spec.md for why this is external, not vendored."
 
