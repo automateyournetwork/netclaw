@@ -2478,8 +2478,8 @@
       "id": "percepxion",
       "category": "Out-of-Band",
       "title": "Lantronix Percepxion",
-      "description": "Fleet-wide OOB console-server SaaS — device inventory, firmware compliance/rollout, config mgmt, Smart Groups, security audit, async CLI dispatch (37 tools, external/on-demand)",
-      "whenToChoose": "**Fleet-wide OOB console-server management, external/on-demand** — device inventory, firmware compliance/rollout, config mgmt, Smart Groups, security audit, async CLI dispatch with output retrieval across the Percepxion SaaS platform (37 tools). Actively co-developed by Lantronix, not vendored — see [spec 104](specs/104-percepxion-oob-integration/spec.md)",
+      "description": "Fleet-wide OOB console-server SaaS — device inventory, firmware compliance/rollout, config mgmt, Smart Groups, security audit, async CLI dispatch (38 tools, external/on-demand)",
+      "whenToChoose": "**Fleet-wide OOB console-server management, external/on-demand** — device inventory, firmware compliance/rollout, config mgmt, Smart Groups, security audit, async CLI dispatch with output retrieval across the Percepxion SaaS platform (38 tools). Actively co-developed by Lantronix, not vendored — see [spec 104](specs/104-percepxion-oob-integration/spec.md)",
       "order": 10,
       "platforms": [
         "macos",
@@ -2653,7 +2653,7 @@
         "reason": "Verify this component through its selected-harness registration; artifact presence alone is insufficient."
       },
       "estimate": {
-        "schemas": 37,
+        "schemas": 38,
         "method": "documented",
         "source": "README.md#mcp-servers-176",
         "reason": "Source description count; not a live tools/list measurement."
@@ -27414,9 +27414,9 @@
     {
       "id": "percepxion-oob",
       "title": "percepxion-oob",
-      "description": "Manage Lantronix out-of-band (OOB) infrastructure via Percepxion central management platform: device inventory, serial port inspection via SLC CLI, firmware compliance, config management, security auditing, and closed-loop incident remediation. Use during outages, maintenance windows, compliance cycles, and AI-assisted automation workflows.",
+      "description": "Lantronix out-of-band console servers (SLC 9000, SLC 8000, EMG) through the Percepxion and SLC MCP servers: confirm a device's console path before a change, find the console path for a device named in NetBox or Nautobot, run SLC CLI diagnostics, and manage the console-server fleet (inventory, firmware, configuration, access audit). Use when a task touches a console server, a serial console path, or Percepxion. Not for the managed router's or switch's own CLI (pyats skills) or for reconciling NetBox itself (netbox-reconcile).",
       "path": "workspace/skills/percepxion-oob/SKILL.md",
-      "sha256": "e7d85f2b78a99fea689b46965eb00a7d0d51582b5c78de78274424822b9de749",
+      "sha256": "96c4c5f705d157801aca6b55eef3610009d9c3124d47b45f279bec7d5ab8badb",
       "components": [
         "percepxion"
       ],

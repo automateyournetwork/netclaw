@@ -925,8 +925,9 @@ reports discovery · `devnet-catalyst-search` reads docs, this queries an applia
 
 **Spec 104.** Two external, actively co-developed Lantronix repos, not vendored, not registered in
 `config/openclaw.json`, external/on-demand install (dedicated venv per server, see
-`component_install_percepxion`/`component_install_slc` in `scripts/lib/install-steps.sh`). 37 tools each.
-Full install steps, environment variables, and workflows in `workspace/skills/percepxion-oob/SKILL.md`.
+`component_install_percepxion`/`component_install_slc` in `scripts/lib/install-steps.sh`). 38 tools
+(Percepxion) and 37 tools (SLC). Routing rules in `workspace/skills/percepxion-oob/SKILL.md`; install,
+registration and environment variables in its `references/setup.md` (spec 198).
 
 | Server | Repository | Answers |
 |---|---|---|
@@ -938,23 +939,26 @@ Full install steps, environment variables, and workflows in `workspace/skills/pe
 They're not redundant — the highest-value content is the routing rule between them. Percepxion has no
 single-device sync path; slc-mcp-server has no fleet concept. A device reachable only through Percepxion's
 cloud path has no direct-network alternative via slc-mcp-server, and vice versa for a device with no cloud
-enrollment. The skill's "Key Terms" and "CLI Command Routing" sections encode this as tool-routing rules.
+enrollment. The skill's "Two kinds of device" and "Which server answers" sections encode this as
+tool-routing rules.
 
 ### Behaviour worth knowing
 
-- **`get_job_group` never returns CLI command output text** — only job status and metadata. A live root-cause
-  finding (pre-v1.1.0) traced actual output retrieval to a second, undocumented REST call
-  (`POST /v1/telemetry/result/search`), absent from Percepxion's own OpenAPI spec. Shipped as
-  `get_cli_command_output` in `percepxion-mcp-server` v1.1.0.
+- **`get_job_group` never returns CLI command output text**, only job status and metadata. Once the job
+  completes, `get_cli_command_output(job_group_id, device_id)` returns the device's output.
 - **Percepxion's `organization_id` requirement is role-dependent.** Required for Project Admin sessions on
   job/telemetry/content/Smart-Group/audit calls; optional (auto-scoped) for Tenant Admin/Tenant User.
-  Omitting it as a Project Admin previously surfaced as an opaque `400 ACCESS_DENIED: "Invalid access to
-  tenant."`; v1.1.0+ raises a clear error naming the missing parameter instead.
+  Omitting it as a Project Admin raises an error naming the missing parameter.
 - **"OOB device" and "managed device" are not the same identity space.** The OOB device is the Lantronix
   console server; the managed device is the router/switch/firewall cabled to its serial port. Confusing the
   two sends a command to the wrong hardware, not a soft error.
-- Both servers pin `fastmcp>=3.1.0,<4.0`, the same conflict shape as `zabbix-mcp` (five NetClaw servers pin
-  `fastmcp<3`), hence the dedicated venv rather than the shared installer interpreter.
+- Upstream, both servers pin `fastmcp<4`. The installer checks out the reviewed revision recorded in
+  `config/fastmcp-external-patches.json`, patches it to the fleet FastMCP pins (spec 141) and installs it in
+  a dedicated venv rather than the shared installer interpreter.
+- **NetBox and Nautobot hold the console cabling.** With the Lantronix NetBox plugin or Nautobot SSoT app
+  (or `lantronix.oob`'s NetBox playbook) keeping them current, the skill finds a device's console path from
+  the source of truth and runs the console coverage gate before a change (W9 and W10 in
+  `references/source-of-truth.md`). It reads both; the plugins write.
 
 ### Boundaries
 

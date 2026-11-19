@@ -752,7 +752,9 @@ retrieval) and slc-mcp-server (direct, synchronous single-device access, port st
 management, sync CLI output, cellular status). Always disambiguate "OOB device" (the Lantronix console
 server) from "managed device" (the router/switch/firewall cabled to its serial port) before routing any
 tool call — the two device-identity spaces are not interchangeable and confusing them sends a command to
-the wrong hardware. Read-only CLI policy default on both servers.
+the wrong hardware. Read-only CLI policy default on both servers. Before a change, confirm the device's
+console path (preflight); with NetBox or Nautobot holding the console cabling, start from the device's name
+there and run the console coverage gate for every device the change touches.
 
 ---
 
