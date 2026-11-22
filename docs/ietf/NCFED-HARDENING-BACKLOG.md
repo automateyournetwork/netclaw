@@ -382,10 +382,12 @@ NOTIFICATION nuance) are documentation-only and are not repeated here.
   restart. Tests: `mcp-servers/protocol-mcp/tests/test_gateway_ws_token_reresolve.py`. Deployed on the production
   Border on 2026-11-22.
 
-### H22. Skill load cap silently drops delegated skills — *MITIGATED on the main agent; members pending*
+### H22. Skill load cap silently drops delegated skills — *RESOLVED on production (main agent and all iN2N members)*
 - **Reality (T6b, §10–§11):** OpenClaw loads at most 200 skills per source, sorted by name. With 249 workspace skills,
   `subnet-calculator` was never loaded, so a correctly authorised delegated task returned "skill not available".
 - **Fix (§11):** the spec-188 policy (`config/skill-limits.json`) was applied to the production main agent. The
   second re-run then passed end to end.
-- **Open:** iN2N member configs generated before spec 188 lack the limits. viz depends on a partial override of 300
-  for three scoped skills. Consider a startup check that fails loudly when a granted or scoped skill is not loaded.
+- **Members (§11, change 10):** the same policy was applied to all five iN2N member configs on 2026-11-22, with
+  backups. viz no longer depends on its partial override of 300 for three scoped skills.
+- **Remaining hardening (optional):** a startup check that fails loudly when a granted or scoped skill is not loaded,
+  so a future cap breach is not silent.
