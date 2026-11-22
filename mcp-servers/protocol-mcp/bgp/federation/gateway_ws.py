@@ -21,6 +21,7 @@ just enough to send `agent` requests and read matching responses.
 """
 
 import asyncio
+import hashlib
 import json
 import logging
 import os
@@ -44,6 +45,43 @@ _CONNECT_TIMEOUT_S = 10.0
 
 class GatewayWsError(RuntimeError):
     """Raised when the gateway returns an error response or refuses handshake."""
+
+
+class GatewayWsAuthError(GatewayWsError):
+    """The gateway refused the connect handshake because of the auth token
+    (e.g. AUTH_TOKEN_MISMATCH). The client is marked stale so the next
+    get_gateway_ws_client() re-resolves the token instead of retrying the
+    rejected one for the lifetime of the process."""
+
+    def __init__(self, message, code):
+        super().__init__(message)
+        self.code = code
+
+
+_AUTH_CODES = ("AUTH_TOKEN_MISMATCH", "AUTH_TOKEN_MISSING", "AUTH_TOKEN_INVALID",
+               "AUTH_UNAUTHORIZED", "AUTH_REQUIRED")
+
+
+def token_fingerprint(token) -> str:
+    """Non-reversible identifier for logs: sha256(token)[:10]. Never log the
+    token itself."""
+    if not token:
+        return "none"
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()[:10]
+
+
+def _auth_error_code(error):
+    """Return the AUTH_* code from a handshake error payload, or None. The
+    gateway nests the code under error.details (shape varies by version), so
+    search the serialized payload rather than one fixed path."""
+    try:
+        blob = json.dumps(error, sort_keys=True, default=str)
+    except (TypeError, ValueError):
+        blob = str(error)
+    for code in _AUTH_CODES:
+        if code in blob:
+            return code
+    return None
 
 
 def _resolve_token_ref(token, path):
@@ -71,6 +109,12 @@ def _resolve_token_ref(token, path):
 
 
 def resolve_gateway_ws_config(config_path: str = None) -> tuple:
+    """Return (ws_url, token). See resolve_gateway_ws_config_with_source()."""
+    url, token, _source = resolve_gateway_ws_config_with_source(config_path)
+    return url, token
+
+
+def resolve_gateway_ws_config_with_source(config_path: str = None) -> tuple:
     """Resolve (ws_url, token) the same way the `openclaw` CLI resolves gateway
     connection details today: from openclaw.json's gateway.port/bind/auth.token,
     with an env override for parity with gateway.py's OPENCLAW_BIN pattern.
@@ -78,11 +122,15 @@ def resolve_gateway_ws_config(config_path: str = None) -> tuple:
     Only loopback/local mode is supported (matches the Border's own config and
     the trust boundary the CLI path already operates in -- see
     specs/116-border-turn-latency/contracts/gateway-ws-rpc.md).
+
+    Returns (ws_url, token, token_source). token_source names where the token
+    came from -- "env:OPENCLAW_GATEWAY_TOKEN", "config:<path>" (literal) or
+    "secretref-env:<VAR>@<path>" -- and never contains the token value.
     """
     env_url = os.environ.get(_ENV_URL)
     env_token = os.environ.get(_ENV_TOKEN)
     if env_url and env_token:
-        return env_url, env_token
+        return env_url, env_token, f"env:{_ENV_TOKEN}"
 
     path = config_path or os.environ.get('OPENCLAW_CONFIG_PATH')
     if not path:
@@ -95,12 +143,20 @@ def resolve_gateway_ws_config(config_path: str = None) -> tuple:
     gw = cfg.get("gateway", {})
     port = gw.get("port", 18789)
     url = env_url or f"ws://127.0.0.1:{port}"
-    token = env_token or _resolve_token_ref((gw.get("auth", {}) or {}).get("token"), path)
+    if env_token:
+        # The env token wins over gateway.auth.token even without the URL
+        # override, so a stale OPENCLAW_GATEWAY_TOKEN in the service env
+        # shadows the config token. The logged source makes that visible.
+        return url, env_token, f"env:{_ENV_TOKEN}"
+    raw = (gw.get("auth", {}) or {}).get("token")
+    token = _resolve_token_ref(raw, path)
     if not token:
         raise GatewayWsError(
             f"no gateway auth token found in {path} (gateway.auth.token) and "
             f"no {_ENV_TOKEN} override set")
-    return url, token
+    if isinstance(raw, dict):
+        return url, token, f"secretref-env:{raw.get('id')}@{path}"
+    return url, token, f"config:{path}"
 
 
 class GatewayWsClient:
@@ -110,9 +166,13 @@ class GatewayWsClient:
     asyncio event loop (the Border daemon's own loop).
     """
 
-    def __init__(self, url: str, token: str):
+    def __init__(self, url: str, token: str, token_source: str = "unknown"):
         self.url = url
         self.token = token
+        self.token_source = token_source
+        # Set when the gateway rejects this client's token; the process-wide
+        # singleton is then rebuilt from freshly resolved config.
+        self.auth_failed = False
         self._ws = None
         self._lock = asyncio.Lock()
         self._pending = {}  # request id -> asyncio.Future
@@ -138,10 +198,21 @@ class GatewayWsClient:
             self._ws = await websockets.connect(self.url, open_timeout=_CONNECT_TIMEOUT_S)
             try:
                 await self._handshake()
+            except GatewayWsAuthError as exc:
+                self.auth_failed = True
+                logger.warning(
+                    "gateway rejected token: code=%s source=%s fp=%s url=%s "
+                    "(client marked stale; next call re-resolves the token)",
+                    exc.code, self.token_source, token_fingerprint(self.token), self.url)
+                await self._ws.close()
+                self._ws = None
+                raise
             except BaseException:
                 await self._ws.close()
                 self._ws = None
                 raise
+            logger.info("gateway ws connected url=%s token_source=%s fp=%s",
+                        self.url, self.token_source, token_fingerprint(self.token))
             self._pending = {}
             self._reader_task = asyncio.ensure_future(self._read_loop())
 
@@ -179,6 +250,9 @@ class GatewayWsClient:
         raw = await asyncio.wait_for(self._ws.recv(), timeout=_CONNECT_TIMEOUT_S)
         resp = json.loads(raw)
         if resp.get("type") != "res" or resp.get("id") != req_id or not resp.get("ok"):
+            code = _auth_error_code(resp.get("error"))
+            if code:
+                raise GatewayWsAuthError(f"gateway connect handshake failed: {code}", code)
             raise GatewayWsError(f"gateway connect handshake failed: {resp}")
 
     async def _read_loop(self):
@@ -293,7 +367,27 @@ async def get_gateway_ws_client() -> GatewayWsClient:
     entire point of the fix (see module docstring)."""
     global _singleton
     async with _singleton_lock:
-        if _singleton is None:
-            url, token = resolve_gateway_ws_config()
-            _singleton = GatewayWsClient(url, token)
+        stale = _singleton
+        if stale is not None and not stale.auth_failed:
+            return stale
+        url, token, source = resolve_gateway_ws_config_with_source()
+        fp = token_fingerprint(token)
+        if stale is None:
+            logger.info("gateway ws token resolved: source=%s fp=%s url=%s", source, fp, url)
+        else:
+            # Drop the rejected client. Re-resolution only helps if the token
+            # source changed; an env-sourced token is fixed for the process
+            # lifetime, so say so rather than silently reusing it.
+            await stale.close()
+            old_fp = token_fingerprint(stale.token)
+            if fp == old_fp:
+                logger.warning(
+                    "gateway ws token re-resolved after auth failure but is unchanged: "
+                    "source=%s fp=%s; fix the token source%s", source, fp,
+                    " and restart this process" if source.startswith("env:") else "")
+            else:
+                logger.info(
+                    "gateway ws token re-resolved after auth failure: source=%s fp=%s "
+                    "(was source=%s fp=%s)", source, fp, stale.token_source, old_fp)
+        _singleton = GatewayWsClient(url, token, source)
         return _singleton

@@ -1,0 +1,14 @@
+Nov 22 20:45:32,102 [BGPAgent[AS65099]] INFO Incoming connection from 198.51.100.20
+Nov 22 20:45:32,103 [BGPAgent[AS65099]] WARNING Unknown protocol byte from 198.51.100.20: b'\x00'
+Nov 22 20:45:32,104 [BGPAgent[AS65099]] INFO Incoming connection from 198.51.100.20
+Nov 22 20:45:32,104 [BGPAgent[AS65099]] WARNING Unknown protocol byte from 198.51.100.20: b'\x16'
+Nov 22 20:45:32,104 [BGPAgent[AS65099]] INFO Incoming connection from 198.51.100.20
+Nov 22 20:45:32,104 [BGPAgent[AS65099]] WARNING Invalid N-magic from 198.51.100.20: b'NXXXX'
+Nov 22 20:45:32,105 [BGPAgent[AS65099]] INFO Incoming connection from 198.51.100.20
+Nov 22 20:45:32,105 [BGPAgent[AS65099]] WARNING Invalid N-magic from 198.51.100.20: b'NCTUX'
+Nov 22 20:45:32,169 [BGPAgent[AS65099]] INFO Incoming connection from 198.51.100.20
+Nov 22 20:45:32,169 [BGPAgent[AS65099]] INFO NCFED handshake from AS65010 (10.255.250.1) at 198.51.100.20
+Nov 22 20:45:32,171 [n2n.service] INFO NCFED from as65010-10.255.250.1 but no local consent — closing (FR-003)
+Nov 22 20:45:45,866 [BGPAgent[AS65099]] INFO Incoming connection from 198.51.100.20
+Nov 22 20:45:45,866 [BGPAgent[AS65099]] INFO NCFED handshake from AS65010 (10.255.250.1) at 198.51.100.20
+Nov 22 20:45:45,869 [n2n.service] INFO NCFED from as65010-10.255.250.1 but no local consent — closing (FR-003)

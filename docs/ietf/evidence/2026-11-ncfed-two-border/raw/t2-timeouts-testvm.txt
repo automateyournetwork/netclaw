@@ -1,0 +1,4 @@
+2026-11-22T20:44:44Z
+{"t": "2026-11-22T20:45:14Z", "check": "\u00a74 silent connection closed after ~30 s first-octet budget", "result": "PASS", "detail": "closed after 30.0s (eof)"}
+{"t": "2026-11-22T20:45:24Z", "check": "\u00a74 'N' then silence closed after ~10 s magic budget", "result": "PASS", "detail": "closed after 10.0s (eof)"}
+rc=0

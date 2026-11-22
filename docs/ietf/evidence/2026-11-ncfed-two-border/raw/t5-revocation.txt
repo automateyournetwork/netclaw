@@ -1,0 +1,69 @@
+# T5 revocation (sever performed on the TEST VM; production unchanged by operator)
+## test VM: kill switch for production
+2026-11-22T20:54:59Z
+{
+  "severed": true,
+  "peer": "as65099-10.255.255.1"
+}
+{'identity': 'as65099-10.255.255.1', 'state': 'severed', 'trust_model': 'domain-verified', 'verify_state': 'verified', 'channel_state': None, 'consent_local': None, 'consent_remote': None}
+bash: line 1: sqlite3: command not found
+## production: invoke after sever
+2026-11-22T20:55:01Z
+{
+  "error": {
+    "code": -32007,
+    "message": "peer_unreachable: awaiting inbound (higher AS)"
+  }
+}
+## production view of test VM
+{'identity': 'as65010-10.255.250.1', 'state': 'federated', 'trust_model': 'pinned', 'verify_state': 'verified', 'channel_state': None, 'consent_local': None, 'consent_remote': None}
+## production: raw handshake to test VM as production identity
+{"t": "2026-11-22T20:55:01Z", "check": "\u00a75 handshake as as65099-10.255.255.1: acceptor reply", "result": "FAIL", "detail": "0 reply bytes then eof (no handshake reply, no nonce)"}
+## production: daemon redial via /n2n/connect
+2026-11-22T20:55:01Z
+{
+  "error": "missing required field 'peer', 'host', or 'port'"
+}
+{'identity': 'as65010-10.255.250.1', 'state': 'federated', 'trust_model': 'pinned', 'verify_state': 'verified', 'channel_state': None, 'consent_local': None, 'consent_remote': None}
+## test VM log since sever
+Nov 22 20:54:38 netclaw-ncfed-test python[33258]: 2026-11-22 20:54:38,254 [n2n.invocation] INFO inbound n2n/tools/call from as65099-10.255.255.1 req=678cdd8a-6
+Nov 22 20:54:38 netclaw-ncfed-test python[33258]: 2026-11-22 20:54:38,303 [n2n.audit] INFO AUDIT[en2n] inbound as65099-10.255.255.1 tool/ncfed-probe/echo_info → allowlisted/success req=678cdd8a-6 gait=7fc7bfe89d
+Nov 22 20:54:38 netclaw-ncfed-test python[33258]: 2026-11-22 20:54:38,366 [n2n.invocation] INFO inbound n2n/tools/call from as65099-10.255.255.1 req=d2340f81-4
+Nov 22 20:54:38 netclaw-ncfed-test python[33258]: 2026-11-22 20:54:38,413 [n2n.audit] INFO AUDIT[en2n] inbound as65099-10.255.255.1 tool/ncfed-probe/echo_info → allowlisted/success req=d2340f81-4 gait=4362c7236f
+Nov 22 20:54:57 netclaw-ncfed-test python[33258]: 2026-11-22 20:54:57,031 [n2n.service] INFO Peer as65099-10.255.255.1 announced new endpoint <ngrok-endpoint> — will re-dial
+Nov 22 20:54:59 netclaw-ncfed-test python[33258]: 2026-11-22 20:54:59,313 [n2n.manager] INFO Severed federation with as65099-10.255.255.1 (BGP untouched)
+Nov 22 20:55:01 netclaw-ncfed-test python[33258]: 2026-11-22 20:55:01,875 [BGPAgent[AS65010]] INFO NCFED handshake from AS65099 (10.255.255.1) at 198.51.100.10
+Nov 22 20:55:01 netclaw-ncfed-test python[33258]: 2026-11-22 20:55:01,877 [n2n.service] INFO NCFED from as65099-10.255.255.1 but no local consent — closing (FR-003)
+## note: production's view stayed 'federated' after the remote sever (no sever message by design, -00 §13); its invoke got -32007 'peer_unreachable: awaiting inbound (higher AS)'. Production's own consent was never revoked.
+## note: test VM log 20:54:57Z 'Peer as65099 announced new endpoint <ngrok host>:<port> - will re-dial' (production advertises an ngrok endpoint; explains the transport label)
+# T5 re-consent (test VM operator)
+2026-11-22T20:55:23Z
+{
+  "identity": "as65099-10.255.255.1",
+  "state": "consent_pending_remote"
+}
+2026-11-22T20:55:33Z
+{'identity': 'as65099-10.255.255.1', 'state': 'federated', 'trust_model': 'domain-verified', 'verify_state': 'verified', 'claw_domain': 'border.example.com', 'endpoint_host': '<ngrok-endpoint>', 'endpoint_port': <redacted>, 'transport': 'ngrok'}
+## production invoke after re-consent
+2026-11-22T20:55:34Z
+{
+  "source": "as65010-10.255.250.1",
+  "trust": "remote-untrusted",
+  "request_id": "b6487613-c854-4219-8b8a-5a9c4abed6ff",
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"tool\": \"echo_info\", \"host\": \"netclaw-ncfed-test\", \"utc\": \"2026-11-22T20:55:34Z\", \"arguments\": {\"note\": \"t5-after-reconsent\"}}"
+      }
+    ],
+    "isError": false
+  }
+}
+
+{'identity': 'as65010-10.255.250.1', 'state': 'federated', 'trust_model': 'pinned', 'verify_state': 'verified', 'claw_domain': None, 'endpoint_host': None, 'endpoint_port': None, 'transport': 'ngrok'}
+Nov 22 20:54:57 netclaw-ncfed-test python[33258]: 2026-11-22 20:54:57,031 [n2n.service] INFO Peer as65099-10.255.255.1 announced new endpoint <ngrok-endpoint> — will re-dial
+Nov 22 20:54:59 netclaw-ncfed-test python[33258]: 2026-11-22 20:54:59,313 [n2n.manager] INFO Severed federation with as65099-10.255.255.1 (BGP untouched)
+Nov 22 20:55:01 netclaw-ncfed-test python[33258]: 2026-11-22 20:55:01,877 [n2n.service] INFO NCFED from as65099-10.255.255.1 but no local consent — closing (FR-003)
+Nov 22 20:55:23 netclaw-ncfed-test python[33258]: 2026-11-22 20:55:23,564 [n2n.service] INFO Opened NCFED channel to as65099-10.255.255.1
+Nov 22 20:55:27 netclaw-ncfed-test python[33258]: 2026-11-22 20:55:27,040 [n2n.service] INFO Peer as65099-10.255.255.1 announced new endpoint <ngrok-endpoint> — will re-dial

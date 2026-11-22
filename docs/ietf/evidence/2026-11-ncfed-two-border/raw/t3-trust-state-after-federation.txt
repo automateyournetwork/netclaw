@@ -1,0 +1,40 @@
+## 2026-11-22T20:46:14Z PRODUCTION view of the test peer (read-only)
+[
+{
+"identity": "as64512-10.0.0.1",
+"state": "severed",
+"channel_state": "unknown",
+"endpoint": "None:None"
+},
+{
+"identity": "as65001-4.4.4.4",
+"state": "severed",
+"channel_state": "unknown",
+"endpoint": "None:None"
+},
+{
+"identity": "as65007-7.7.7.7",
+"state": "severed",
+"channel_state": "unknown",
+"endpoint": "None:None"
+},
+{
+"identity": "as65010-10.255.250.1",
+"state": "federated",
+"channel_state": "up",
+"endpoint": "None:None"
+}
+]
+[('as65010-10.255.250.1', 'federated', 'pinned', None, 'verified', '131fe7117555cc67')]
+[('as65010-10.255.250.1', 'local_grant', '2026-11-22T20:46:00Z', None), ('as65010-10.255.250.1', 'remote_grant', '2026-11-22T20:46:06Z', None)]
+Nov 22 20:46:06,359 [n2n.service] INFO Accepted NCFED channel from as65010-10.255.250.1 (awaiting possession proof)
+Nov 22 20:46:06,424 [n2n.channel[as65010-10.255.250.1]] INFO Channel closed by peer
+Nov 22 20:46:06,505 [n2n.service] WARNING Secure accept from as65010-10.255.250.1 failed: [SSL: UNSUPPORTED_PROTOCOL] unsupported protocol (_ssl.c:1000)
+Nov 22 20:46:06,567 [n2n.service] INFO Accepted NCFED channel from as65010-10.255.250.1 (awaiting possession proof)
+Nov 22 20:46:07,453 [n2n.service] INFO Cached inventory v1 from as65010-10.255.250.1
+## TEST VM view of production + its own key
+[('as65099-10.255.255.1', 'federated', 'domain-verified', 'border.example.com', 'verified', None)]
+~/.openclaw/n2n/keys/self.crt 131fe7117555cc67
+~/.openclaw/n2n/keys/risk-ca/ca.crt ed1533c9cd0926f5
+~/.openclaw/n2n/keys/risk-ca/hub.crt 6892bb5ff0a3ffc4
+~/.openclaw/n2n/keys/host/host.crt 9163d6e5a206eebb

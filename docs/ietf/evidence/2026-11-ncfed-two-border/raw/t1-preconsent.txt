@@ -1,0 +1,13 @@
+2026-11-22T20:45:32Z
+## production 1179 discrimination cross-check (no 0xFF/BGP)
+{"t": "2026-11-22T20:45:32Z", "check": "\u00a74 0x00 first octet closed with zero bytes", "result": "PASS", "detail": "0 bytes, eof"}
+{"t": "2026-11-22T20:45:32Z", "check": "\u00a74 direct TLS ClientHello record (0x16) closed with zero bytes", "result": "PASS", "detail": "0 bytes, eof"}
+{"t": "2026-11-22T20:45:32Z", "check": "\u00a74 'N' + unknown magic (NXXXX) closed with zero bytes", "result": "PASS", "detail": "0 bytes, eof"}
+{"t": "2026-11-22T20:45:32Z", "check": "\u00a74 'N' + NCTUX (near-miss magic) closed with zero bytes", "result": "PASS", "detail": "0 bytes, eof"}
+rc=0
+## pre-consent: raw handshake to PRODUCTION claiming the test VM identity as65010-10.255.250.1
+{"t": "2026-11-22T20:45:32Z", "check": "\u00a75 handshake as as65010-10.255.250.1: acceptor reply", "result": "FAIL", "detail": "0 reply bytes then eof (no handshake reply, no nonce)"}
+rc=1
+## pre-consent: raw handshake to TEST VM claiming the production identity as65099-10.255.255.1
+{"t": "2026-11-22T20:45:32Z", "check": "\u00a75 handshake as as65099-10.255.255.1: acceptor reply", "result": "FAIL", "detail": "0 reply bytes then eof (no handshake reply, no nonce)"}
+rc=1
