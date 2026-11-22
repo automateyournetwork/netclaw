@@ -408,6 +408,21 @@ Member to GCP**, or `python3 scripts/netclaw-gcp.py`. Full guide: **[NetClaw in 
 >
 > Roadmap: users, SSO and RBAC arrive in R15-R17, after the Azure and AWS stages.
 
+## NetClaw in Azure
+
+Run Borders in Microsoft Azure, alone or as a three-region HA group, attach hosted-Sonnet Members, and pair the group with a GCP group
+(see [multi-cloud mesh](docs/NETCLAW-MULTICLOUD-MESH.md)). Azure is a cost-capped **operator path** (USD 25 cap, pause at USD 15, ledger
+and watchdog) built on the same sandboxed Border (OpenShell + DefenseClaw) proven on GCP. Start from `./scripts/install.sh` (answer yes to
+*Plan a NetClaw Border or HA group in Microsoft Azure*, which runs only a read-only preflight and prints the commands), or follow
+**[NetClaw in Azure](docs/NETCLAW-IN-AZURE.md)**. Connect from VS Code with **NetClaw: Add Connection → Cloud Border**.
+
+> !! NOT BEHIND ANY AUTHENTICATION !!
+> A NetClaw deployment in Azure has NO sign-in, NO users and NO access control today.
+> Anyone who can reach a Border endpoint URL can use it.
+> Keep every URL and IP address private. Do not publish, paste or share them.
+> Users, SSO and RBAC are a much later roadmap phase (R15-R17).
+> Experiment freely (Azure, GCP, on-prem or a mix, HA Risk) with this limit in mind.
+
 ## Enterprise Security (DefenseClaw + OpenShell)
 
 NetClaw includes enterprise-grade security via **Cisco DefenseClaw** and **NVIDIA OpenShell**:

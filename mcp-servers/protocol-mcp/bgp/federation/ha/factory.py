@@ -52,7 +52,7 @@ class HAServiceRuntime:
     def __init__(self, service, config, manifest, envelope, anchor):
         self.service, self.config, self.manifest = service, config, manifest
         self.envelope, self.anchor = envelope, anchor
-        self.operations = self.node = self.attachments = self.server = None
+        self.operations = self.node = self.attachments = self.server = self.federation = None
         self.tasks = set()
 
     def register_member(self, channel):
@@ -88,6 +88,8 @@ class HAServiceRuntime:
                 self.server = await exporter_tls.start_server(self.accept_internal, bind_host, bind_port,
                     cert_file=self.config['transport_certificate_file'], key_file=self.config['private_key_file'],
                     close_clients=True)
+                if getattr(self, 'federation', None) is not None:
+                    await self.federation.start()   # spec 198: pinned cross-group peer listener + dialers
             else:
                 await self.attachments.start()
         except BaseException:
@@ -98,6 +100,7 @@ class HAServiceRuntime:
         if self.server:
             self.server.close()
         if self.attachments: await self.attachments.close()
+        if getattr(self, 'federation', None): await self.federation.close()
         for channel in list(self.service.member_channels.values()): await channel.close()
         for channel in list(getattr(self.service, 'edge_channels', {}).values()): await channel.close()
         for task in list(self.tasks): task.cancel()
@@ -179,6 +182,12 @@ def from_service(service, profile):
         operations = ClusterBorderOperations(adapter.node, state_dir=state, member_channels=service.member_channels,
                                              audit_writer=service.audit.protected, current=current)
         operations.cluster_info = adapter.descriptor
+        peer_file = state / 'peer-federation.json'
+        if peer_file.exists():   # spec 198: cross-group federation is opt-in per Border by this private, change-detected file
+            from .federation import PeerFederation, load_peer_config
+            peer_config, registry, peer_files = load_peer_config(peer_file, manifest)
+            operations.federation = adapter.federation = PeerFederation(operations, registry, peer_config, state_dir=state)
+            file_hashes.update({path: hashlib.sha256(read_private(path)).hexdigest() for path in peer_files})
         from .edge_service import wire
         wire(service, adapter, operations)
         operations.bridge = OperatorBridge(operations, state, service.runtime.installation)

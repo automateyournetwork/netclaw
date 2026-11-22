@@ -1,5 +1,18 @@
 # NetClaw Operating Instructions
 
+## Current sequencing — 2026-11-22
+
+John requested local CML/pyATS/subnet verification and a feasibility-gated
+Genie-to-Genie visualization experiment.199is reserved forAWS;200isGenie.
+If feasible, complete200before returning to unfinished198Azure/GCP, then199.
+The owner subsequently authorized a commit/push checkpoint of the unfinished198
+source on2026-11-22, without merge, release or reactivation. See its checkpoint
+document for the preserved gaps.200has an isolated worktree at
+`/Users/john.capobianco/netclaw-spec200-genie` on200-genie-network-worlds.
+Official Genie4API documentation was located, but no live generated-world proof
+or paid request has run. Read the200verification/resume before claiming readiness.
+This sequencing does not close198acceptance or authorize publication.
+
 ## Startup Protocol
 
 1. Read `SOUL.md` — your identity, expertise, and rules

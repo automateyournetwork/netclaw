@@ -730,6 +730,15 @@ if [ "$CLI_MODE" != "1" ] && tui_is_tty && [ -f "$NETCLAW_DIR/scripts/lib/gcp-me
     fi
 fi
 
+# Optional: Azure operator path (spec 198). Interactive only; read-only preflight and printed commands, nothing billable is created here.
+if [ "$CLI_MODE" != "1" ] && tui_is_tty && [ -f "$NETCLAW_DIR/scripts/lib/azure-menu.sh" ]; then
+    # shellcheck source=lib/azure-menu.sh
+    source "$NETCLAW_DIR/scripts/lib/azure-menu.sh"
+    if tui_yesno "Plan a NetClaw Border or HA group in Microsoft Azure now (read-only preflight, nothing is created)?" "n"; then
+        azure_deploy_menu || log_warn "Azure planning did not complete; nothing was created."
+    fi
+fi
+
 SETUP_SCRIPT="$NETCLAW_DIR/scripts/setup.sh"
 if [ -f "$SETUP_SCRIPT" ] && tui_is_tty; then
     echo ""

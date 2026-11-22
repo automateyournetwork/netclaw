@@ -85,3 +85,21 @@ Baseline ~$147/mo continuous (e2-standard-2 x2 + witness, static IPs). Adopted a
 ## Follow-on scoping (nothing started)
 
 Suggested specs after approval: (a) identity, secrets and firewall hardening (items 3, 4a, 6, 11b, 11c); (b) observability and budgets (8); (c) registry-based images and snapshots (7b, 11a); (d) DNS sub-zone migration (9); (e) witness NAT (5a). Each needs a catalog-priced estimate and owner approval before any billed resource.
+
+## Azure counterpart as built (R10, spec 198)
+
+The GCP reference deployment above was mirrored on Azure as a cost-capped operator path ([guide](../../docs/NETCLAW-IN-AZURE.md); evidence in
+`../198-azure-multicloud-ha/verification.md`). Where R10 followed, adapted or did not follow the adopted items:
+
+| GCP reference item | Azure R10 as built | Status |
+|---|---|---|
+| 1. Per-Border static IP and DNS name | Standard static public IP per VM; a fresh `<code>-<id6>` name under the owner's domain per run | followed, live |
+| 2. Dedicated identity, admin access | no managed identity; SSH key auth restricted by NSG to the operator `/32` (no Bastion); the model provider key is held by OpenShell on the VM and never visible to the agent, and disappears with the VM | adapted |
+| 3. Firewall policy | NSG: SSH and HTTPS from the operator CIDR only; 7444 mutual-TLS; cluster plane over private VNet peering | followed, live |
+| 4. Witness with no external IP | not used: the Azure group is three full Borders (3-voter etcd), no witness | n/a |
+| 5. Images built once, pulled by digest | node image built on each VM from one reviewed context; pinned OpenShell 0.1.7, DefenseClaw 1.0.4 | adapted |
+| 6. Cloud-native DNS with lego DNS-01 | GoDaddy DNS-01 through an exec hook (the long-lived registrar token stays on the operator Mac) | not followed (owner's domain is at GoDaddy) |
+| 7. Ops Agent, uptime checks, budget alerts | subscription budget alert (`nc198-25usd`) plus the local ledger and launchd watchdog; posture endpoint polled by the operator | adapted |
+| 8. Recovery is rebuild-and-rejoin | restart or recreate the sandbox and rejoin; verified for a stopped Border | followed, live |
+
+The two clouds are paired through the [multi-cloud mesh](../../docs/NETCLAW-MULTICLOUD-MESH.md); cross-group execution is a separate security-reviewed design and its live proof is tracked in the spec 198 verification.

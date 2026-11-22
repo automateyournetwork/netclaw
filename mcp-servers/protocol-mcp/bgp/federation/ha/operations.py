@@ -110,7 +110,7 @@ class OperationLedger:
             check(row['review']['principal'] == principal, 'operation_not_found', 404)
         return row
 
-    def prepare(self, client_nonce, candidate_digest, review):
+    def prepare(self, client_nonce, candidate_digest, review, origin=None):
         c.validate_review(review, cluster=True); c.digest_field(candidate_digest)
         old = self.lookup(client_nonce=client_nonce, principal=review['principal'])
         if old is not None:
@@ -129,6 +129,8 @@ class OperationLedger:
                'revision': 1, 'approval': None, 'approval_id': None, 'approval_digest': None,
                'attempt_id': None, 'dispatch_leader': None, 'revoked': False, 'result_ref': None,
                'ack': None, 'member_incarnation': None}
+        if origin is not None:
+            row['origin'] = copy.deepcopy(origin)   # spec 198: cross-group delegation provenance (never present on native rows)
         def transition(rows):
             check(rows[nonce_key][0] is None and rows[key][0] is None, 'client_nonce_conflict', 409)
             self._execution_capacity(rows)

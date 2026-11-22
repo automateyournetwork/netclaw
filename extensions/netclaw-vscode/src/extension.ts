@@ -247,20 +247,19 @@ export async function activate(context: vscode.ExtensionContext) {
       await vscode.commands.executeCommand("netclaw.addConnection");
   });
   register("disconnect", () => connection.disconnect());
-  register("renameConnection", async () => {
-    const item = await vscode.window.showQuickPick(
-      profiles.list().map((p) => ({ label: p.label, p })),
-    );
-    if (!item) return;
+  register("renameConnection", async (target?: unknown) => {
+    const profile = await targetProfile(target, "Rename connection");
+    if (!profile) return;
     const label = await vscode.window.showInputBox({
       title: "Connection label",
-      value: item.p.label,
+      value: profile.label,
+      validateInput: (value) => (value.trim() ? undefined : "Enter a friendly name for this connection."),
     });
-    if (label) {
-      await profiles.save({ ...item.p, label });
-      await management.rename(item.p.id, label);
-      if (connection.profile?.id === item.p.id)
-        connection.profile.label = label;
+    if (label && label.trim()) {
+      await profiles.save({ ...profile, label: label.trim() });
+      await management.rename(profile.id, label.trim());
+      if (connection.profile?.id === profile.id)
+        connection.profile.label = label.trim();
       refresh();
     }
   });
@@ -283,14 +282,30 @@ export async function activate(context: vscode.ExtensionContext) {
       refresh(); await connect(saved); await vscode.commands.executeCommand("netclaw.openOverview");
     } finally { endpointUpdateBusy = false; }
   });
-  register("removeConnection", async () => {
-    const item = await vscode.window.showQuickPick(
-      profiles.list().map((p) => ({ label: p.label, p })),
+  // Row-level menus pass the tree item (with `profileId`); the palette passes nothing and asks.
+  const targetProfile = async (target: unknown, title: string) => {
+    const id = typeof target === "string" ? target : (target as { profileId?: string } | undefined)?.profileId;
+    if (id) {
+      const found = profiles.list().find((p) => p.id === id);
+      if (!found) throw Error("That connection no longer exists.");
+      return found;
+    }
+    const list = profiles.list();
+    if (!list.length) throw Error("There are no saved connections.");
+    return (await vscode.window.showQuickPick(list.map((p) => ({ label: p.label, description: p.url, p })), { title }))?.p;
+  };
+  register("removeConnection", async (target?: unknown) => {
+    const profile = await targetProfile(target, "Remove connection");
+    if (!profile) return;
+    const answer = await vscode.window.showWarningMessage(
+      `Remove the connection "${profile.label}"?`,
+      { modal: true, detail: `${profile.url}\n\nThis forgets the saved connection and its local workspace binding in this editor only. It does not stop, change or delete the NetClaw or the cloud resources behind it, and it does not remove anything from the Border or its cluster.` },
+      "Remove connection",
     );
-    if (!item) return;
-    if (connection.profile?.id === item.p.id) connection.disconnect();
-    await profiles.remove(item.p.id);
-    await management.forget(item.p.id);
+    if (answer !== "Remove connection") return;
+    if (connection.profile?.id === profile.id) connection.disconnect();
+    await profiles.remove(profile.id);
+    await management.forget(profile.id);
     refresh();
   });
   const openDomain = (key: Domain) => {
@@ -566,9 +581,10 @@ export async function activate(context: vscode.ExtensionContext) {
     const remote = connection.profile?.mode === "remote-border";
     const features = remote && connection.client ? remoteHudFeatures(connection.identity) : undefined;
     if (remote && group === "connections") return [
-      ...profiles.list().map(p => ({ label: p.label, description: connection.profile?.id === p.id ? "Connected" : p.url, command: "netclaw.selectConnection", args: [p.id], icon: "remote" })),
+      ...profiles.list().map(p => ({ label: p.label, description: connection.profile?.id === p.id ? "Connected" : p.url, command: "netclaw.selectConnection", args: [p.id], icon: "remote", contextValue: "netclaw.connection", profileId: p.id })),
       { label: "Add connection", command: "netclaw.addConnection", icon: "add" },
       { label: "Rename connection", command: "netclaw.renameConnection", icon: "edit" },
+      { label: "Remove connection", command: "netclaw.removeConnection", icon: "trash" },
       { label: "Replace cloud endpoint", command: "netclaw.replaceCloudEndpoint", icon: "link" },
       { label: "Disconnect", command: "netclaw.disconnect", icon: "debug-disconnect" },
     ];
@@ -634,6 +650,8 @@ export async function activate(context: vscode.ExtensionContext) {
           command: "netclaw.selectConnection",
           args: [p.id],
           icon: "remote",
+          contextValue: "netclaw.connection",
+          profileId: p.id,
         })),
         {
           label: "Add existing NetClaw",
@@ -644,6 +662,11 @@ export async function activate(context: vscode.ExtensionContext) {
           label: "Rename connection",
           command: "netclaw.renameConnection",
           icon: "edit",
+        },
+        {
+          label: "Remove connection",
+          command: "netclaw.removeConnection",
+          icon: "trash",
         },
         { label: "Replace cloud endpoint", command: "netclaw.replaceCloudEndpoint", icon: "link" },
       ];

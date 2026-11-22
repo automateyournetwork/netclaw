@@ -1,8 +1,10 @@
 # netclaw Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2026-11-11
+Auto-generated from all feature plans. Last updated: 2026-11-14
 
 Spec153 installer (source 1.12.0 / extension 1.2.0): [new setup](docs/GETTING-STARTED-VSCODE.md), [Claw Plan/CLI](docs/CLAW-PLAN.md), [assistant flow](docs/ASSISTANT-INSTALL.md), and [deployment Spec Kit](docs/SPEC-KIT-CLAWS.md) share a private, exact-review engine. Use `installer/assistant-skills/netclaw-install/SKILL.md` for end-user deployment; `.agents/skills/speckit-*` remain repository development tools. Native Windows is a read-only WSL gate; actual installation targets local macOS and supported WSL2 Ubuntu. No real-installation or publication qualification is implied by fixture success. See `specs/153-ide-installer/verification.md`.
+
+Azure and multi-cloud (spec 198, operator path, read-only installer step): [NetClaw in Azure](docs/NETCLAW-IN-AZURE.md) and the [GCP and Azure mesh](docs/NETCLAW-MULTICLOUD-MESH.md); evidence in `specs/198-azure-multicloud-ha/verification.md`. Azure deployments are NOT behind any authentication; keep URLs private. The release gate holds: no client build is published without owner approval.
 
 ## Active Technologies
 - N/A (stateless server; subscription state held in-memory during runtime) (003-gnmi-mcp-server)
@@ -166,6 +168,8 @@ Spec153 installer (source 1.12.0 / extension 1.2.0): [new setup](docs/GETTING-ST
 - existing `~/.openclaw/n2n/federation.db`; new additive tables (see data-model.md); `CREATE TABLE IF NOT EXISTS`, idempoten (189-peer-limit-semantics)
 - Python 3.10+ (tests on 3.12 venv) + stdlib only (sqlite3, json); existing FederationManager, Authorizer, Auditor, InventoryBuilder (190-grant-access-class)
 - existing `federation.db`; additive: `ALTER TABLE invocation_grant ADD COLUMN access_class TEXT NOT NULL DEFAULT 'read_write'` through the existing try/except ALTER list, and `CREATE TABLE IF NOT EXISTS tool_classification` (SCHEMA_190) (190-grant-access-class)
+- Bash (driver + deploy glue, matches `scripts/ha-r09-*.sh`), Python 3.10+ (preflight, spend ledger, evidence; stdlib only, matches `labs/ha/r09_*.py`); Border source unchanged (Python 3.12 contract env on the VM) + Azure CLI (`az`, already installed) with no new Python packages; existing lego (ACME DNS-01), etcd 3.6.16 container image, GoDaddy DNS API, existing `r09_prepare.py` / `r09_member.py` / `r09_vm_*.py` (198-azure-multicloud-ha)
+- Local evidence under `specs/198-azure-multicloud-ha/` and `~/.local/share/netclaw/r10-*` (git-ignored); per-VM disks only; spend ledger is a small JSON file; no new datastore (198-azure-multicloud-ha)
 
 - Python 3.10+ + FastMCP (MCP framework), grpcio + grpcio-tools (gRPC transport), pygnmi (gNMI client library), protobuf, cryptography (TLS handling) (003-gnmi-mcp-server)
 
@@ -185,13 +189,9 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python 3.10+: Follow standard conventions
 
 ## Recent Changes
+- 198-azure-multicloud-ha: Added Bash (driver + deploy glue, matches `scripts/ha-r09-*.sh`), Python 3.10+ (preflight, spend ledger, evidence; stdlib only, matches `labs/ha/r09_*.py`); Border source unchanged (Python 3.12 contract env on the VM) + Azure CLI (`az`, already installed) with no new Python packages; existing lego (ACME DNS-01), etcd 3.6.16 container image, GoDaddy DNS API, existing `r09_prepare.py` / `r09_member.py` / `r09_vm_*.py`
 - 188-skill-load-limits: Added Python 3.10+, stdlib only + none new
 - 191-cisco-iq-mcp: Added Python 3.10+ (stdlib only), Bash wrapper + none new. Reuses semantics of `scripts/write-env.py` (private atomic dotenv writes; value from stdin only)
-- 185-openshell-defenseclaw-gcp: Added Python 3.10+ (Border source, role launcher, tooling; contract env 3.12 inside the image), Node 24 (HUD ingress, workspace backend), Bash, YAML policies, Dockerfile. + NVIDIA OpenShell 0.1.7 (Debian package, Docker compute driver), Docker >= 28, Cisco DefenseClaw 1.0.4 (pinned, checksum-verified), OpenClaw 2026.7.1-2 (qualified), etcd 3.6.x, existing R09 tooling (`labs/ha/r09_*.py`, `scripts/ha-r09-*.sh`), qualified R04A Anthropic guard configuration.
-- 182-multi-region-ha-borders: Added Python 3.10+ (Border source `mcp-servers/protocol-mcp/bgp/federation/ha/*`, contrac + etcd (3 voters, per Spec 179), lego (ACME DNS-01), GoDaddy API (Personal Access
-- 190-grant-access-class: Added Python 3.10+ (tests on 3.12 venv) + stdlib only (sqlite3, json); existing FederationManager, Authorizer, Auditor, InventoryBuilder
-- 189-peer-limit-semantics: Added Python 3.10+ source (tests run on 3.12 venv) + stdlib only (sqlite3, time, os, asyncio); existing FederationManager/Auditor/FederationService
-- 185-openshell-defenseclaw-gcp: Added Python 3.10+ (Border source, role launcher, tooling; contract env 3.12 inside the image), Node 24 (HUD ingress, workspace backend), Bash, YAML policies, Dockerfile. + NVIDIA OpenShell 0.1.7 (Debian package, Docker compute driver), Docker >= 28, Cisco DefenseClaw 1.0.4 (pinned, checksum-verified), OpenClaw 2026.7.1-2 (qualified), etcd 3.6.x, existing R09 tooling (`labs/ha/r09_*.py`, `scripts/ha-r09-*.sh`), qualified R04A Anthropic guard configuration.
 
 
 <!-- MANUAL ADDITIONS START -->

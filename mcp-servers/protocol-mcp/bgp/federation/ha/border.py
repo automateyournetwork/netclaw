@@ -32,6 +32,7 @@ class ClusterBorderOperations:
         self.observations = private_directory(self.state / 'ha-observations')
         self.principal = lab_principal(self.manifest.cluster_id)
         self.bridge, self.mobile_enrollment = None, None
+        self.federation = None   # spec 198: PeerFederation, set by ha/factory.py only when a peer file is configured
         node.dispatch = self._local
 
     @contextmanager
@@ -52,11 +53,18 @@ class ClusterBorderOperations:
                   'approval_id': row.get('approval_id'), 'approval_digest': row.get('approval_digest'),
                   'attempt_id': row.get('attempt_id'), 'member': row['review']['member'],
                   'cluster': self.manifest.audience}
+        if row.get('origin'):
+            record['origin'] = row['origin']   # spec 198: both groups' audit rows carry the delegating group
         reference = self.audit_writer(event, record)
         check(isinstance(reference, str) and 0 < len(reference) <= 200, 'audit_unavailable', 503)
         return reference
 
     async def _route(self, action, params):
+        if self.federation is None:
+            return await self._route_core(action, params)
+        return await self.federation.route(self, action, params)
+
+    async def _route_core(self, action, params):
         check(isinstance(params, dict) and 'auth_context' in params, 'cluster_context_refused', 403)
         await self._authenticate(action, params, self.node.node_id)
         try:
@@ -166,6 +174,7 @@ class ClusterBorderOperations:
             'attempt_count': int(row['attempt_id'] is not None), 'reconciliation_required': uncertain,
             'may_have_executed': row['attempt_id'] is not None, 'result': self._result(row),
             'result_reference': row['result_ref'], 'error_code': row.get('error_code'),
+            **({'origin': row['origin']} if row.get('origin') else {}),
             'allowed_actions': (['approve','deny'] if row['state'] == 'review_pending' and not row['revoked'] and review_current else ['reconcile'])
                                + ([] if row['revoked'] else ['revoke']),
             'authority': {'mode': 'cluster', **self.manifest.audience, 'served_by': self.node.node_id,
@@ -202,7 +211,7 @@ class ClusterBorderOperations:
                 'authority': {'mode': 'cluster', **self.manifest.audience, 'served_by': self.node.node_id,
                               'epoch': self.node.authority.epoch, 'observation_only': True}}
 
-    async def _local_prepare(self, params):
+    async def _local_prepare(self, params, origin=None):
         c.exact(params, 'auth_context client_nonce catalog_revision member_id model_profile_id tool arguments')
         candidate = {key: params[key] for key in ('catalog_revision','member_id','model_profile_id','tool','arguments')}
         with self._owner(params['auth_context']) as principal: pass
@@ -222,7 +231,8 @@ class ClusterBorderOperations:
             'limits': dict(tool['limits'], expires_at_ms=int(time.time()*1000) + 180000), 'change_request_ref': None,
             'cluster': {**self.manifest.audience, 'manifest_revision': self.manifest.revision,
                         'issuer_node_id': self.node.node_id, 'authority_epoch': self.node.authority.epoch}}
-        row = await asyncio.to_thread(self.ledger.prepare, params['client_nonce'], c.sha256(candidate), review)
+        row = await asyncio.to_thread(self.ledger.prepare, params['client_nonce'], c.sha256(candidate), review,
+                                      **({'origin': origin} if origin is not None else {}))
         return self._dto(row)
 
     async def _local_decision(self, params):
@@ -299,6 +309,10 @@ class ClusterBorderOperations:
         except (ConnectionError, asyncio.TimeoutError):
             pass
         return self._dto(row)
+
+    async def _local_peer_relay(self, params):
+        check(self.federation is not None, 'cluster_method_refused', 403)
+        return await self.federation.execute_relay(self, params)
 
     async def start(self):
         await self.node.start()

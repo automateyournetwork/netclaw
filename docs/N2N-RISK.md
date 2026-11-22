@@ -638,3 +638,5 @@ from the etcd quorum made it report `no_quorum` within seconds and the other Bor
 rejoined as a follower. A two-Border cluster needs the third (witness) etcd voter: one Border plus the witness is a majority,
 one Border alone is not. Posture (`GET /api/hud/posture`, VS Code "NetClaw: Show Node Posture") lists each component inside
 or outside the sandbox and the guard state. Evidence and gaps: `specs/185-openshell-defenseclaw-gcp/verification.md`.
+
+The same sandboxed Border and a three-region HA group were also built on **Azure** (R10, spec 198): see [NetClaw in Azure](NETCLAW-IN-AZURE.md), the evidence in `specs/198-azure-multicloud-ha/verification.md`, and the [multi-cloud mesh](NETCLAW-MULTICLOUD-MESH.md) for how an Azure group and a GCP group relate.

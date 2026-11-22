@@ -54,3 +54,14 @@ The installer, this wizard flow and the Claw Plan flow can place a Border or Mem
 (`NetClaw: Deploy a Border or Member to GCP`, or `scripts/netclaw-gcp.py`). See [NetClaw in GCP](NETCLAW-IN-GCP.md).
 GCP deployments are **NOT behind any authentication**: keep every URL private; users, SSO and RBAC are a much later
 roadmap phase (R15-R17).
+
+> **Azure (R10, spec 198):** Azure is an operator path, not an interactive deployer. `./scripts/install.sh` offers a read-only Azure preflight and prints the commands; billable steps need your explicit go. See [NetClaw in Azure](NETCLAW-IN-AZURE.md) and the [multi-cloud mesh](NETCLAW-MULTICLOUD-MESH.md). Azure deployments are **NOT behind any authentication**: keep every URL private; users, SSO and RBAC are a much later roadmap phase (R15-R17).
+
+### Connecting to an Azure (or GCP) Border from VS Code
+
+After the operator builds a Border or HA group, each Border has its own HTTPS address. Run **NetClaw: Add Connection → Cloud Border**, enter a
+friendly name and the Border's HTTPS URL, and compare the displayed cluster anchor fingerprint with the operator's record before choosing
+**Trust cluster**. Add one connection per Border to exercise each ingress. Connections are listed under **Connections** in the NetClaw side bar:
+hover a row and use the **pencil** (Rename) or **trash** (Remove) icon, or right-click it. Removing asks for confirmation and only forgets the
+saved connection in this editor; it never stops or deletes the NetClaw or the cloud resources behind it. The palette commands
+**NetClaw: Rename Connection** and **NetClaw: Remove Connection** do the same. Teardown of an Azure run invalidates its URLs; remove their connections.

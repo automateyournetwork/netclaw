@@ -11,7 +11,8 @@ from .config import check, HAError, listen_address
 from .operations import OperationLedger, member_key
 from .signatures import sign
 
-FORWARDED = frozenset({'catalog', 'prepare', 'decision', 'status', 'reconcile', 'revoke'})
+# 'peer_relay' (spec 198) carries a signed cross-group delegation to the leader; it is refused unless federation is configured.
+FORWARDED = frozenset({'catalog', 'prepare', 'decision', 'status', 'reconcile', 'revoke', 'peer_relay'})
 
 
 class ClusterNode:
