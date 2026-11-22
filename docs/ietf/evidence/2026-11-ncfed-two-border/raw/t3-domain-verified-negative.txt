@@ -1,0 +1,11 @@
+2026-11-22T20:47:03Z
+## TEST VM operator sets the WRONG claw_domain for production, then redials
+[('as65099-10.255.255.1', 'domain-verified', 'wrong-domain.example.net', 'verified')]
+2 20:47:03,845 [n2n.service] WARNING open_channel to as65099-10.255.255.1 failed: [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: Hostname mismatch, certificate is not valid for 'wrong-doma
+[('as65099-10.255.255.1', 'federated', 'reconnecting', 'SSLCertVerificationError:1')]
+[('as65099-10.255.255.1', 'domain-verified', 'wrong-domain.example.net', 'verified')]
+## restore correct claw_domain and redial 2026-11-22T20:47:08Z
+[('as65099-10.255.255.1', 'domain-verified', 'border.example.com', 'verified')]
+2 20:47:09,017 [n2n.service] INFO Opened NCFED channel to as65099-10.255.255.1
+[('as65099-10.255.255.1', 'federated', 'up')]
+[('as65099-10.255.255.1', 'domain-verified', 'border.example.com', 'verified')]

@@ -20,6 +20,7 @@ of the *same* content — use it for review and sharing, never edit it by hand.
 | `captures/` | Packet captures cited in Appendix B (Implementation Status) |
 | `SUBMISSION-CHECKLIST.md` | Toolchain + Datatracker submission steps |
 | `NCFED-HARDENING-BACKLOG.md` | Findings/backlog feeding the next revision |
+| `evidence/` | Live test runs against the implementation, with redacted raw output. [`2026-11-ncfed-two-border/`](evidence/2026-11-ncfed-two-border/README.md): two-Border run of `-00` (consent, port discrimination, admission tiers, grants, revocation, delegation), 2026-11-22 |
 | `AGENTPROTO-POSITIONING.md`, `MILESTONE-NOTE.md` | Context notes |
 
 ## Editing workflow

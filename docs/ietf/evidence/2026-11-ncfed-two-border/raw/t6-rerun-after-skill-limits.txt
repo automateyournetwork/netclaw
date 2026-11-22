@@ -1,0 +1,80 @@
+# T6b re-run after skill limit raise (2026-11-22)
+# PRODUCTION CHANGE: temporary skill grant for the test VM (requires_approval=true), revoked after the re-run
+2026-11-22T22:03:35Z
+{
+  "grant_id": 63,
+  "access_class": "read_write"
+}
+# test VM submits subnet-calculator task to production
+2026-11-22T22:03:35Z
+{
+  "task_id": "0551d62e-dd4f-4a44-9245-65feeed26b18",
+  "state": "submitted",
+  "source": "as65099-10.255.255.1",
+  "trust": "remote-untrusted",
+  "request_id": "25db5267-89a2-4420-8696-1e97ef3cb259"
+}
+## production pending approvals
+2026-11-22T22:03:40Z
+{
+  "pending": [
+    {
+      "id": 3,
+      "invocation_id": 304,
+      "status": "pending",
+      "requested_at": "2026-11-22T22:03:35Z",
+      "resolved_at": null,
+      "expires_at": "2026-11-22T22:18:35Z",
+      "resolved_via": null,
+      "request_binding": "966782daae68d335dfa564b08988523dac3cca146ac1548e49e0ae7bb784ab85",
+      "consumed_at": null,
+      "peer_identity": "as65010-10.255.250.1",
+      "target_type": "skill",
+      "target_name": "subnet-calculator"
+    }
+  ]
+}
+## production operator approves the as65010 subnet-calculator task
+2026-11-22T22:03:44Z
+{
+  "resolved": 3,
+  "action": "approve"
+}
+22:03:45Z poll 1: working
+22:03:55Z poll 2: working
+22:04:05Z poll 3: working
+22:04:15Z poll 4: completed
+## final task state (test VM)
+{
+  "task_id": "0551d62e-dd4f-4a44-9245-65feeed26b18",
+  "state": "completed",
+  "tokens_used": 149489,
+  "usage_available": true,
+  "external_sources": [],
+  "output_text": "Network: 192.0.2.64/27\nBroadcast: 192.0.2.95\nUsable host range: 192.0.2.65\u2013192.0.2.94\nSubnet mask: 255.255.255.224",
+  "progress": null
+}
+# PRODUCTION CHANGE REVERTED: revoke grant 63
+2026-11-22T22:04:21Z
+{
+  "revoked": 63
+}
+## after revoke: same submit is refused
+2026-11-22T22:04:21Z
+{
+  "error": {
+    "code": -32001,
+    "message": "skill 'subnet-calculator' not allowlisted for as65010-10.255.250.1"
+  }
+}
+## production pending approvals after revoke
+{
+  "pending": []
+}
+## production evidence (read-only)
+# mesh daemon (patched gateway_ws.py):
+22:03:45Z gateway ws token resolved: source=config:~/.openclaw/openclaw.json fp=cf699848aa url=ws://127.0.0.1:18789
+22:03:45Z gateway ws connected ... fp=cf699848aa
+# OpenClaw main-agent trajectory, session c4faeb06-8af4-4943-9acf-e52cfa567400 (tool calls only):
+seq 6/7   skills_read subnet-calculator
+seq 14/15 subnet-calculator-mcp__subnet_calculator

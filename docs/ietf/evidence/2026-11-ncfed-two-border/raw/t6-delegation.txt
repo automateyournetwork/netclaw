@@ -1,0 +1,12 @@
+# T6a delegation default-deny: test VM submits a skill task to production (no grant on production)
+## skills production advertises to the test VM (cached inventory)
+{'identity': 'str', 'issued_at': 'str', 'version': 'int', 'skills': 252, 'mcp_servers': 27, 'knowledge': 68, 'badges': 3, 'posture': 'dict', 'llm': 'dict', 'harness': 'dict'}
+2026-11-22T20:55:47Z
+{
+  "error": {
+    "code": -32001,
+    "message": "skill 'healthcheck' not allowlisted for as65010-10.255.250.1"
+  }
+}
+Nov 22 20:55:47 Netclaw python[504509]: 2026-11-22 20:55:47,604 [n2n.invocation] INFO inbound n2n/tasks/submit from as65010-10.255.250.1 req=29dac203-6
+Nov 22 20:55:47 Netclaw python[504509]: 2026-11-22 20:55:47,627 [n2n.audit] WARNING AUDIT[en2n] inbound as65010-10.255.250.1 skill/healthcheck → not_allowlisted/denied req=29dac203-6 gait=ca2ea1b402

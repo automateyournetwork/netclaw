@@ -1,0 +1,49 @@
+2026-11-22T20:46:06Z
+## raw probe: handshake to production as as65010-10.255.250.1 AFTER mutual consent (no hello sent)
+{"t": "2026-11-22T20:46:06Z", "check": "\u00a75 handshake as as65010-10.255.250.1: 13-octet NCFED reply", "result": "PASS", "detail": "acceptor as65099-10.255.255.1"}
+{"t": "2026-11-22T20:46:06Z", "check": "\u00a76.1 in-place TLS upgrade after handshake", "result": "PASS", "detail": "TLSv1.3 TLS_AES_256_GCM_SHA384; subject CN=border.example.com, SAN [border.example.com], SPKI sha256 540da1ef9b9acdb5\u2026"}
+{"t": "2026-11-22T20:46:06Z", "check": "\u00a75/\u00a76.3 32-octet nonce received inside TLS", "result": "PASS", "detail": "32 octets (value not logged)"}
+rc=0
+## raw probe: TLS 1.2-max client after handshake (downgrade must fail)
+{"t": "2026-11-22T20:46:06Z", "check": "\u00a75 handshake as as65010-10.255.250.1: 13-octet NCFED reply", "result": "PASS", "detail": "acceptor as65099-10.255.255.1"}
+{"t": "2026-11-22T20:46:06Z", "check": "\u00a76.1 in-place TLS upgrade", "result": "PASS", "detail": "SSLEOFError: [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1000)"}
+rc=0
+## daemon dial: TEST VM POST /n2n/connect
+{
+  "identity": "as65099-10.255.255.1",
+  "state": "consent_pending_remote",
+  "dialing": true
+}
+2 20:46:06,572 [n2n.negotiate] INFO Local capability descriptor: {'proto_version': '053', 'features': ['async_tasks', 'endpoint_reannounce', 'negotiate'], 'agent_invoke': 'session-id', 'reply_shapes': 
+2 20:46:07,418 [n2n.inventory] WARNING Cannot read openclaw.json: [Errno 2] No such file or directory: '/home/ubuntu/.openclaw/openclaw.json'
+2 20:46:07,456 [n2n.service] INFO Cached inventory v1 from as65099-10.255.255.1
+2 20:46:07,457 [n2n.service] INFO Opened NCFED channel to as65099-10.255.255.1
+{
+    "identity": "as65010-10.255.250.1",
+    "peers": [
+        {
+            "identity": "as65099-10.255.255.1",
+            "display_name": "production-border",
+            "state": "federated",
+            "channel_state": "up",
+            "last_seen": 1795380367.4578226,
+            "endpoint": "198.51.100.10:1179",
+            "endpoint_updated_at": "2026-11-22T20:46:07Z",
+            "transport": "ngrok",
+            "edge_gate": "none",
+            "attempts": 0,
+            "dampened": false,
+            "next_retry_at": 0,
+            "last_cause": "IncompleteReadError:",
+            "inventory_stale": false,
+            "in_flight_tasks": []
+        }
+    ],
+    "local_transport_healthy": "n/a",
+    "edge_nodes": [],
+    "edge_listener": {
+        "state": "stack_disabled",
+        "enabled_stacks": "en2n",
+        "hint": "enable the in2n stack: netclaw risk role border <risk-name> in2n"
+    }
+}

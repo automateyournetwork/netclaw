@@ -1,0 +1,33 @@
+2026-11-22T20:46:37Z
+## hello=forged claiming as65010-10.255.250.1 -> production
+{"t": "2026-11-22T20:46:38Z", "check": "\u00a75 handshake as as65010-10.255.250.1: 13-octet NCFED reply", "result": "PASS", "detail": "acceptor as65099-10.255.255.1"}
+{"t": "2026-11-22T20:46:38Z", "check": "\u00a76.1 in-place TLS upgrade after handshake", "result": "PASS", "detail": "TLSv1.3 TLS_AES_256_GCM_SHA384; subject CN=border.example.com, SAN [border.example.com], SPKI sha256 540da1ef9b9acdb5\u2026"}
+{"t": "2026-11-22T20:46:38Z", "check": "\u00a75/\u00a76.3 32-octet nonce received inside TLS", "result": "PASS", "detail": "32 octets (value not logged)"}
+{"note": "probe presented a fresh self-signed key, SPKI sha256 bbb3914e7f882cde\u2026, signature valid"}
+{"t": "2026-11-22T20:46:38Z", "check": "\u00a76.3/\u00a76.4 n2n/hello (forged) refused", "result": "PASS", "detail": "error -32010 'pinned key mismatch'; then eof"}
+rc=0
+## hello=badsig claiming as65010-10.255.250.1 -> production
+{"t": "2026-11-22T20:46:38Z", "check": "\u00a75 handshake as as65010-10.255.250.1: 13-octet NCFED reply", "result": "PASS", "detail": "acceptor as65099-10.255.255.1"}
+{"t": "2026-11-22T20:46:38Z", "check": "\u00a76.1 in-place TLS upgrade after handshake", "result": "PASS", "detail": "TLSv1.3 TLS_AES_256_GCM_SHA384; subject CN=border.example.com, SAN [border.example.com], SPKI sha256 540da1ef9b9acdb5\u2026"}
+{"t": "2026-11-22T20:46:38Z", "check": "\u00a75/\u00a76.3 32-octet nonce received inside TLS", "result": "PASS", "detail": "32 octets (value not logged)"}
+{"note": "probe presented a fresh self-signed key, SPKI sha256 4b292dade0d5902d\u2026, signature made with a different key"}
+{"t": "2026-11-22T20:46:38Z", "check": "\u00a76.3/\u00a76.4 n2n/hello (badsig) refused", "result": "PASS", "detail": "error -32010 'possession proof failed'; then eof"}
+rc=0
+## hello=keyless claiming as65010-10.255.250.1 -> production
+{"t": "2026-11-22T20:46:38Z", "check": "\u00a75 handshake as as65010-10.255.250.1: 13-octet NCFED reply", "result": "PASS", "detail": "acceptor as65099-10.255.255.1"}
+{"t": "2026-11-22T20:46:38Z", "check": "\u00a76.1 in-place TLS upgrade after handshake", "result": "PASS", "detail": "TLSv1.3 TLS_AES_256_GCM_SHA384; subject CN=border.example.com, SAN [border.example.com], SPKI sha256 540da1ef9b9acdb5\u2026"}
+{"t": "2026-11-22T20:46:38Z", "check": "\u00a75/\u00a76.3 32-octet nonce received inside TLS", "result": "PASS", "detail": "32 octets (value not logged)"}
+{"t": "2026-11-22T20:46:38Z", "check": "\u00a76.3/\u00a76.4 n2n/hello (keyless) refused", "result": "PASS", "detail": "error -32010 'peer requires certificate-secured federation \u2014 run scripts/patch-claw-certs.sh'; then eof"}
+rc=0
+## real channel still up on test VM?
+[('as65099-10.255.255.1', 'federated', 'up')]
+## PRODUCTION log + pin after the attempts
+Nov 22 20:46:38,028 [n2n.service] INFO Accepted NCFED channel from as65010-10.255.250.1 (awaiting possession proof)
+Nov 22 20:46:38,097 [n2n.service] WARNING NCFED key changed for as65010-10.255.250.1
+Nov 22 20:46:38,097 [n2n.service] WARNING eN2N ALERT: pinned key changed for federated peer as65010-10.255.250.1 — rejected
+Nov 22 20:46:38,194 [n2n.service] INFO Accepted NCFED channel from as65010-10.255.250.1 (awaiting possession proof)
+Nov 22 20:46:38,275 [n2n.service] WARNING n2n.auth.failed: possession proof failed for claimed as65010-10.255.250.1
+Nov 22 20:46:38,361 [n2n.service] INFO Accepted NCFED channel from as65010-10.255.250.1 (awaiting possession proof)
+Nov 22 20:46:38,434 [n2n.service] WARNING cert enforce: refusing keyless (tier-0) hello from as65010-10.255.250.1
+[('as65010-10.255.250.1', 'federated', 'pinned', 'verified', '131fe7117555cc67')]
+[('as65010-10.255.250.1', 'federated', 'up')]

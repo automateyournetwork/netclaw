@@ -1,0 +1,89 @@
+# T4f limits (policy set on TEST VM for peer as65099; production invokes)
+## rate_per_min=2, action refuse, counters reset
+2026-11-22T20:54:35Z
+{
+  "success": true,
+  "peer": "as65099-10.255.255.1",
+  "chat_enabled": false,
+  "limits": {
+    "policy": {
+      "rate_per_min": 2,
+      "daily_requests": 200,
+      "daily_tokens": 500000,
+      "action": "refuse",
+      "warn_threshold": 0.8,
+      "restart_timer_s": 300
+    },
+    "has_override": true,
+    "requests_used": 0,
+    "tokens_used": 0,
+    "rate_used": 0,
+    "warned": [],
+    "hold_down_remaining_s": 0.0
+  }
+}
+2026-11-22T20:54:35Z call 1: success: {"tool": "echo_info", "host": "netclaw-ncfed-test", "utc": "
+2026-11-22T20:54:36Z call 2: success: {"tool": "echo_info", "host": "netclaw-ncfed-test", "utc": "
+2026-11-22T20:54:36Z call 3: {'code': -32005, 'message': 'per-minute rate limit exceeded'}
+## rate cleared (null), daily_requests=2, counters reset
+2026-11-22T20:54:36Z
+{
+  "success": true,
+  "peer": "as65099-10.255.255.1",
+  "chat_enabled": false,
+  "limits": {
+    "policy": {
+      "rate_per_min": 10,
+      "daily_requests": 2,
+      "daily_tokens": 500000,
+      "action": "refuse",
+      "warn_threshold": 0.8,
+      "restart_timer_s": 300
+    },
+    "has_override": true,
+    "requests_used": 0,
+    "tokens_used": 0,
+    "rate_used": 0,
+    "warned": [],
+    "hold_down_remaining_s": 0.0
+  }
+}
+2026-11-22T20:54:37Z call 1: success: {"tool": "echo_info", "host": "netclaw-ncfed-test", "utc": "
+2026-11-22T20:54:37Z call 2: success: {"tool": "echo_info", "host": "netclaw-ncfed-test", "utc": "
+2026-11-22T20:54:37Z call 3: {'code': -32004, 'message': 'daily budget exhausted'}
+## restore: all limit overrides cleared (null), counters reset
+2026-11-22T20:54:37Z
+{
+  "success": true,
+  "peer": "as65099-10.255.255.1",
+  "chat_enabled": false,
+  "limits": {
+    "policy": {
+      "rate_per_min": 10,
+      "daily_requests": 200,
+      "daily_tokens": 500000,
+      "action": "refuse",
+      "warn_threshold": 0.8,
+      "restart_timer_s": 300
+    },
+    "has_override": true,
+    "requests_used": 0,
+    "tokens_used": 0,
+    "rate_used": 0,
+    "warned": [],
+    "hold_down_remaining_s": 0.0
+  }
+}
+## test VM audit
+{'target_name': 'hold_down:peer', 'decision': 'limit_config', 'outcome': 'cleared'}
+{'target_name': 'all:peer', 'decision': 'limit_reset', 'outcome': 'reset'}
+{'target_name': 'policy:peer', 'decision': 'limit_config', 'outcome': 'success'}
+{'target_name': 'ncfed-probe/echo_info', 'decision': 'budget_exhausted', 'outcome': 'denied'}
+{'target_name': 'ncfed-probe/echo_info', 'decision': 'allowlisted', 'outcome': 'success'}
+{'target_name': 'requests:peer', 'decision': 'limit_warning', 'outcome': 'warning'}
+{'target_name': 'ncfed-probe/echo_info', 'decision': 'allowlisted', 'outcome': 'success'}
+{'target_name': 'all:peer', 'decision': 'limit_reset', 'outcome': 'reset'}
+{'target_name': 'policy:peer', 'decision': 'limit_config', 'outcome': 'success'}
+2026-11-22T20:54:38Z call 1: success: {"tool": "echo_info", "host": "netclaw-ncfed-test", "utc": "
+2026-11-22T20:54:38Z call 2: success: {"tool": "echo_info", "host": "netclaw-ncfed-test", "utc": "
+2026-11-22T20:54:38Z call 3: success: {"tool": "echo_info", "host": "netclaw-ncfed-test", "utc": "
