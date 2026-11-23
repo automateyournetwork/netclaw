@@ -1,6 +1,6 @@
 # Spec200 integration closeout — 2026-11-23
 
-**25/30 tasks complete; feature merge remains held.** Five actual Google recordings
+**25/30 tasks complete; feature merge remains held.** Source review: [draft PR366](https://github.com/automateyournetwork/netclaw/pull/366). Five actual Google recordings
 are delivered. The owner accepted recorded illustrations with documented visual
 and event limits, and clarified that the existing Border owns the Genie member.
 That acceptance closes the visual scope decision; it does not invent collector,
@@ -110,7 +110,7 @@ counts are recorded by the Border and are not represented as settled Google cost
 | Full setup suite after catalog baseline correction | 277 total: 245 pass, 32 explicitly skipped |
 | Member mapping and plan dispatch after routing correction | 52/52 pass |
 | HUD suite | 545/545 pass |
-| VS Code typecheck/build/tests | Builds pass; 221 pass, 3 explicitly skipped |
+| VS Code typecheck/build/tests/package | Builds pass; 221 pass, 3 explicitly skipped; VSIX1.6.2 packaged from2529c777 |
 | Byrne PR360 gateway token-resolution tests | 6/6 pass in isolated dependency environment |
 | Fresh actual component dependency install + six-tool stdio/backend lifecycle | Pass, fixture only |
 | Actual Border/Sonnet/skill/MCP/backend operation | Pass for free fixture in testing posture |
@@ -152,3 +152,17 @@ read-only reachability through the existing selected connection path before
 another bounded capture. Reconcile provider usage on original IDs. Do not
 regenerate the five videos, replay old packets, bypass a hold or create a new
 Border. Merge and resume original Spec198 only after the remaining gates close.
+
+## Source review and handoff
+
+The reviewed source was pushed as2529c777 on `200-genie-network-worlds`, based on
+origin/main220f7962. A local-only backup retains earlier unpublished development
+commits; the published commit excludes the obsolete private controller address
+from the planning brief. Publication-diff checks found no private addresses,
+known credential values or tracked `.spec200-local` artifacts. No force push.
+
+Draft PR366 is open; no merge, release/tag or Marketplace publication occurred.
+Hosted CI was triggered and was pending at this source handoff. Local VSIX1.6.2
+is4,687,969 bytes, SHA256
+`a92ad4add7427550a45d9944b00c44848a034bf4f86af8c35c8c05724fc479c6`.
+It is a local candidate tied to2529c777, not a published extension.
