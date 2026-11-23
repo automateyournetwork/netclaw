@@ -368,10 +368,15 @@ NOTIFICATION nuance) are documentation-only and are not repeated here.
 - **Plan:** map TLS verification failures onto the same refusal path, and keep the good channel until the new one is
   admitted.
 
-### H20. An unauthenticated handshake creates a peer row — *OPEN*
+### H20. An unauthenticated handshake creates a peer row — *FIXED (branch `fix/ncfed-stranger-peer-row`)*
 - **Reality (§5.7):** `accept_channel` → `upsert_peer` runs before the consent check, so a stranger's handshake adds a
   `federation_peer` row. Nothing is sent back, but the table grows from unauthenticated input.
-- **Plan:** check consent before persisting, or record strangers in a bounded, expiring table.
+- **Fix:** `accept_channel` now checks local consent first and calls `upsert_peer` only for a consented peer. A
+  stranger is closed with nothing persisted. `local_consent()` still creates the row when the operator consents, so
+  consenting to a new peer works as before.
+- **Test:** `tests/n2n/test_en2n_auth_baseline_060.py::test_unconsented_stranger_leaves_no_peer_row`.
+- **Existing rows:** rows already created this way (e.g. production's `as65123-203.0.113.99`, `not_federated`) are not
+  removed by the fix. They hold no consent or grants; an operator can delete them.
 
 ### H21. Stale gateway token shadows the config token — *FIXED (branch `fix/gateway-ws-token-reresolve`)*
 - **Reality (T6b, §10):** `OPENCLAW_GATEWAY_TOKEN` in `~/.openclaw/.env` overrode `gateway.auth.token`. The daemon's
