@@ -392,13 +392,17 @@ NOTIFICATION nuance) are documentation-only and are not repeated here.
 - **Remaining hardening (optional):** a startup check that fails loudly when a granted or scoped skill is not loaded,
   so a future cap breach is not silent.
 
-### H23. Border leaves a completed member task at `submitted` — *OPEN (likely H13 recurring)*
+### H23. Border leaves a completed member task at `submitted` — *OPEN (pull-only status, not H13)*
 - **Reality (§13.2):** production delegated task `1a5ec57f-18d6-4e74-9421-de66259ab806` (skill
-  `threejs-network-viz`) to the `byrns-risk/viz` member at 2026-11-22T23:22:43Z. The member ran it to completion and
-  answered (the tool itself failed, a separate issue), but the Border's `delegated_task` row stayed `submitted`, with
-  progress `None` and `updated_at` unchanged. The Border never pulled the result back.
-- **Unknown:** whether the iN2N channel bounced between submit and completion (the H13 trigger). That was not checked.
-  If it did not bounce, completion delivery fails even on a stable channel, which is worse than H13.
-- **Plan:** first establish the trigger from the member's and the Border's logs around 23:22Z. Then apply H13's fix:
-  the submitter reconciles non-terminal outbound tasks via `n2n/tasks/status` (on re-establish, and periodically for
-  tasks past a deadline). The executor re-announces unacknowledged terminal states.
+  `threejs-network-viz`) to the `byrns-risk/viz` member at 2026-11-22T23:22:43Z. The member completed it at 23:23:26Z
+  and stored the result (the tool itself failed, a separate issue). The Border's `delegated_task` row stayed
+  `submitted`, with no `updated_at` change and no `result_ref`.
+- **Log check (read-only, 23:20–23:40Z):** the channel did not bounce. Neither the mesh daemon nor the viz member logged
+  a disconnect, reconnect or error, and the member runs with `--idle-exit 0`. So this is not the H13 trigger.
+- **Cause:** completion is pull-only. The executor never announces a terminal state (`tasks.py` has no completion
+  notice), and the Border writes its outbound row only in `poll_member_task`, which runs only when something calls
+  `GET /n2n/tasks/{id}` (n2n-mcp or the operator API) or the operator path in `operator.py`. Nothing polled this task,
+  so the row stays `submitted` indefinitely. That GET path is not logged, so "nothing polled" is inferred from the row.
+- **Plan:** the Border reconciles its own non-terminal outbound iN2N tasks: on member channel (re-)establish and
+  periodically for rows past a deadline, using `n2n/tasks/result`. Optionally the executor also announces terminal
+  states (H13's re-announce). The draft should state whether a submitter must poll or may expect a completion notice.
