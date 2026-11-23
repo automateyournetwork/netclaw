@@ -166,3 +166,12 @@ Hosted CI was triggered and was pending at this source handoff. Local VSIX1.6.2
 is4,687,969 bytes, SHA256
 `a92ad4add7427550a45d9944b00c44848a034bf4f86af8c35c8c05724fc479c6`.
 It is a local candidate tied to2529c777, not a published extension.
+
+First hosted CI completed with45checks passing and two failing jobs. The new
+Genie Node/Chromium suite passed182/182 on Ubuntu; ten Python graph checks failed
+because a test helper embedded this Mac's Node path. The helper now uses
+NETCLAW_NODE/PATH, and the full146Python checks pass locally with that selection.
+The unit job exposed two installer assertions predating the new19th component
+and its non-secret control-file reference; corrected follow-up tests pass27/27.
+These are test portability/catalog expectation fixes; no runtime guard was weakened.
+The corrected hosted run is pending separately from the retained live gates.

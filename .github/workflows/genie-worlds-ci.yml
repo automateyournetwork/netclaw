@@ -42,6 +42,7 @@ jobs:
           mkdir -p .spec200-local/ci
           export NETCLAW_TEST_TMP="$PWD/.spec200-local/ci"
           export NETCLAW_MCP_PYTHON="$(command -v python)"
+          export NETCLAW_NODE="$(command -v node)"
           export NETCLAW_BROWSER_EXECUTABLE="$(node --input-type=module -e 'import {chromium} from "./scripts/genie-worlds/node_modules/playwright-core/index.mjs"; console.log(chromium.executablePath())')"
           node --test --test-concurrency=1 tests/genie-worlds/*.test.mjs
           python -m unittest discover -s tests/genie-worlds -p '*_test.py' -v

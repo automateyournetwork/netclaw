@@ -933,3 +933,7 @@ member execution is not yet proven. Full US$85.552128 Google reservation remains
 held under US$100. Do not request the accepted visual scope again, regenerate
 videos, claim100%, merge, publish or resume198 before remaining gates close.
 See specs/200-genie-network-worlds/integration-closeout.md and analysis.md.
+
+GAIT API detail observed during this handoff: `gait_branch` creates a branch but
+does not select it. Follow it with `gait_checkout` before recording session turns;
+preserve any records written on the prior branch and cross-reference them.

@@ -2,6 +2,7 @@
 import hashlib
 import importlib.util
 import json
+import os
 import subprocess
 from datetime import datetime, timezone
 from importlib.metadata import version
@@ -89,7 +90,7 @@ assert all(c['value'] is None for c in bound['graph']['counters'])
 counter=next(c for c in bound['graph']['counters'] if c['interface_id']=='port-0' and c['field']=='in_octets')
 assert [s['value'] for s in counter['observed_samples']] == ['9223372036854775825','9223372036854775925']
 assert device.calls == 0
-node='/Users/john.capobianco/.local/share/netclaw/spec155-native-tests/node-standalone/bin/node'
+node=os.environ.get('NETCLAW_NODE', 'node')
 code="import fs from 'node:fs';import {localGraph} from './scripts/genie-worlds/viewer/network-graph.mjs';import {selectionDetails} from './scripts/genie-worlds/viewer/selection.mjs';const g=localGraph(JSON.parse(fs.readFileSync(0,'utf8')));if(!selectionDetails(g,'port-0').rows.some(([k,v])=>v.includes('9223372036854775825 bytes')))throw Error('parser count lost');"
 check=subprocess.run([node,'--input-type=module','-e',code],input=json.dumps(bound['graph']),
     text=True,capture_output=True,cwd=Path(__file__).resolve().parents[2])

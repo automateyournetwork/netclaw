@@ -1,12 +1,13 @@
 import copy
 import json
+import os
 import subprocess
 import unittest
 import neighbors_test as neighbors
 import facts_test as counters
 facts = neighbors.facts
 
-NODE = '/Users/john.capobianco/.local/share/netclaw/spec155-native-tests/node-standalone/bin/node'
+NODE = os.environ.get('NETCLAW_NODE', 'node')
 
 class GraphBridgeTests(unittest.TestCase):
     setUp = neighbors.NeighborsTests.setUp
