@@ -14,6 +14,12 @@ member claw that owns the capability and returns the result. It is the internal
 counterpart to **eN2N** (external federation between *different* operators over
 the NCFED mesh — see [N2N-PEERING-NETCLAWS.md](../N2N-PEERING-NETCLAWS.md)).
 
+## Genie worlds member
+
+The Border owns and routes the optional `genie-worlds` OpenClaw member. Its isolated home is an execution boundary within that Risk. The profile exposes six bounded Google-world controls and the `netclaw-genie-worlds` skill. Configure its private `NETCLAW_GENIE_CONTROL_FILE` reference to the owner-run local backend. It receives no Google key, CML/pyATS credentials or raw snapshot. Setup and discovery do not authorize generation. The backend requires an exact projection review and finite budget, retains unknown outcomes and records terminal evidence independently of the Border/member lifetime.
+
+Actual standalone MCP/Google recordings and a Border-routed Sonnet/skill/MCP fixture lifecycle are verified. Google-backed member execution and production confinement remain separately gated. Use the reviewed member specification and [Genie setup guide](GENIE-WORLDS.md).
+
 ## Why
 
 One monolithic NetClaw carrying 190+ skills is expensive (huge context per turn)

@@ -271,6 +271,26 @@
         "ABUSECH_AUTH_KEY"
       ],
       "command": "node"
+    },
+    "genie-worlds": {
+      "servers": [
+        "genie-worlds-mcp"
+      ],
+      "script": "mcp-servers/genie-worlds-mcp/server.py",
+      "required_env": [
+        "NETCLAW_GENIE_CONTROL_FILE"
+      ],
+      "environment_keys": [
+        "NETCLAW_GENIE_CONTROL_FILE"
+      ],
+      "expected_tools": [
+        "genie_world_prepare",
+        "genie_world_start",
+        "genie_world_status",
+        "genie_world_event",
+        "genie_world_stop",
+        "genie_world_evidence"
+      ]
     }
   }
 }

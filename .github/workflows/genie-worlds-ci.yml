@@ -1,0 +1,47 @@
+name: Genie worlds offline qualification
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/genie-worlds/**'
+      - 'mcp-servers/genie-worlds-mcp/**'
+      - 'tests/genie-worlds/**'
+      - 'workspace/skills/netclaw-genie-worlds/**'
+      - 'config/components/**'
+      - 'config/installer-access.json'
+      - '.github/workflows/genie-worlds-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.19.0'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: npm --prefix scripts/genie-worlds ci --ignore-scripts --no-audit --no-fund
+      - run: python -m pip install -r config/python-components/genie-worlds.txt
+      - name: Install the locked browser test runtime
+        working-directory: scripts/genie-worlds
+        run: node node_modules/playwright-core/cli.js install --with-deps chromium
+      - name: Exercise fixture, browser, lifecycle and MCP boundaries
+        shell: bash
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p .spec200-local/ci
+          export NETCLAW_TEST_TMP="$PWD/.spec200-local/ci"
+          export NETCLAW_MCP_PYTHON="$(command -v python)"
+          export NETCLAW_BROWSER_EXECUTABLE="$(node --input-type=module -e 'import {chromium} from "./scripts/genie-worlds/node_modules/playwright-core/index.mjs"; console.log(chromium.executablePath())')"
+          node --test --test-concurrency=1 tests/genie-worlds/*.test.mjs
+          python -m unittest discover -s tests/genie-worlds -p '*_test.py' -v

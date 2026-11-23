@@ -3954,6 +3954,21 @@ echo ""
 }
 
 # Spec162: only NetClaw guard dependencies; never install/accept the Terminal.
+component_install_genie_worlds() {
+    log_step "Installing optional Genie network worlds..."
+    local genie_source="$NETCLAW_DIR/scripts/genie-worlds"
+    local genie_runtime_root="${NETCLAW_RUNTIME_ROOT:-$RUNTIME_HOME/python-runtimes}"
+    [ -f "$genie_source/package-lock.json" ] || return 1
+    node "$genie_source/check-runtime.mjs" || return 1
+    netclaw_component_venv "$genie_runtime_root/genie-worlds-component" || return 1
+    NETCLAW_VENV="$NETCLAW_COMPONENT_VENV" netclaw_pip_install -r "$NETCLAW_DIR/config/python-components/genie-worlds.txt" || return 1
+    npm ci --prefix "$genie_source" --omit=dev --ignore-scripts --no-audit --no-fund || return 1
+    _set_env_default NETCLAW_GENIE_STATE_DIR "$RUNTIME_HOME/genie-worlds" || return 1
+    _set_env_default NETCLAW_GENIE_CONTROL_FILE "$RUNTIME_HOME/genie-worlds/mcp-control.json" || return 1
+    log_info "Six Genie controls installed. Start the local backend separately; setup creates no Google session."
+    log_info "Google credentials and paid projection review belong to the backend, not the member. See docs/GENIE-WORLDS.md."
+}
+
 component_install_netconverter() {
     log_step "Installing the optional NetConverter guard..."
     local nc_guard_dir="$NETCLAW_DIR/mcp-servers/netconverter-mcp"

@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>NetClaw • Network worlds</title>
+    <link rel="stylesheet" href="/viewer.css" />
+  </head>
+  <body>
+    <main>
+      <header>
+        <p class="eyebrow">NETCLAW / SPEC200</p>
+        <h1>Network worlds</h1>
+        <p>Explore the illustration. Keep the facts in view.</p>
+      </header>
+      <div class="banner" id="mode" role="status">
+        CONNECTING · Media source unconfirmed · No frame decoded
+      </div>
+      <section class="layout">
+        <div class="stage">
+          <canvas
+            id="world"
+            width="640"
+            height="360"
+            tabindex="0"
+            aria-label="Illustrative world. WASD to move; arrow keys to look. Escape releases controls."
+          ></canvas>
+          <p id="status" aria-live="polite">Connecting to local owner…</p>
+          <div class="controls">
+            <button id="start" disabled>Review and start fixture</button
+            ><button id="member-review" disabled>Review for member start</button
+            ><button id="event" disabled>Target visible: dim corridor</button
+            ><button id="stop" disabled>Stop session</button>
+          </div>
+          <p class="hint" id="controls-hint">
+            Focus the world. WASD moves; arrow keys look. Escape releases
+            movement. The fixture checks transport only.
+          </p>
+          <div class="controls">
+            <button id="navshot" disabled>Capture navigation checkpoint</button
+            ><button id="eventshot" disabled>Capture event checkpoint</button
+            ><button id="evidence" disabled>View evidence</button>
+          </div>
+          <p class="hint" id="event-status" aria-live="polite">Event not sent · Visible effect unassessed.</p>
+          <p class="hint" id="capture-status" aria-live="polite">Navigation and event checkpoints not captured.</p>
+          <pre id="result"></pre>
+        </div>
+        <aside>
+          <h2>Independent synthetic scene</h2>
+          <p>
+            Two routing halls. Two switching rooms. Three fictional corridors.
+          </p>
+          <div id="facts"></div>
+          <h2>Session bounds</h2>
+          <p id="bounds">Loading reviewed session bounds…</p>
+          <p id="cost">
+            Loading reviewed cost information…
+          </p>
+          <details>
+            <summary>Review exact outbound scene</summary>
+            <pre id="prompt"></pre>
+          </details>
+          <p class="hint">
+            No live device health, routing behavior or topology is established
+            by these pixels.
+          </p>
+        </aside>
+      </section>
+      <section aria-labelledby="snapshot-title">
+        <h2 id="snapshot-title">Measured network · local snapshot inspector</h2>
+        <p>Historical observations, independent of generated pixels. Select a device or connection to inspect its retained facts and provenance.</p>
+        <div id="snapshots" class="controls"></div>
+        <p id="snapshot-status" role="status">Loading registered local snapshots…</p>
+        <div id="snapshot-items" class="controls"></div>
+        <pre id="snapshot-fact"></pre>
+        <h3>Five world designs for review</h3>
+        <p>Private drafts from the same facts. These are not generated worlds. Outbound scene text remains local until its export and live session are qualified.</p>
+        <div id="world-designs" class="controls"></div>
+        <pre id="world-design"></pre>
+      </section>
+    </main>
+    <script type="module" src="/viewer.mjs"></script>
+  </body>
+</html>

@@ -76,6 +76,8 @@ mcp-servers/*
 !mcp-servers/README.md
 # Built-in MCP servers (tracked in repo)
 !mcp-servers/netclaw-dot-mcp/
+!mcp-servers/genie-worlds-mcp/
+mcp-servers/genie-worlds-mcp/.venv/
 !mcp-servers/tavus-pal-mcp/
 mcp-servers/tavus-pal-mcp/.venv/
 !mcp-servers/n2n-mcp/

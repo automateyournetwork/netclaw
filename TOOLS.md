@@ -1658,3 +1658,67 @@ service-account keys get no tools; keys expire and inherit owner permissions). R
 Admin: `scripts/cisco-iq-enable.sh enable|update|rotate|disable|status|diagnose|policy-check`. Read-only deny-by-default policy:
 `config/cisco-iq-policy.json`. Tool names are discovered at runtime, not assumed. Contract taken from issue #346; the official
 guide could not be fetched by automation. See `docs/CISCO-IQ.md`.
+
+### Spec200 planning access — 2026-11-22
+
+CML certificate-verified system_information and selected native pyats_list_devices
+passed at16:28:52Z; inventory is not current device-health evidence. Earlier same-day
+four-device parsed show-version evidence is retained under Spec200 verification.
+Use selected isolated Python3.12/pyATS25.2; default Node25.3.0 is not the supported
+viewer/NetClaw runtime. Docker29.9.2 responds. No neighbor topology is established.
+Installed pyATS show wrapper executes again on parse failure; retries=1 does not
+remove this fallback. Qualify bounded capture/offline parsing within existing
+read policy before exact-command-count claims. Google API worker/MCP/skill are
+planned only; complete()/cancel() return does not establish provider termination.
+See specs/200-genie-network-worlds/plan.md and verification.md. No private upload,
+generation,installation,device mutation or owner-runtime repair in this session.
+
+### Spec200 implementation checkpoint — 2026-11-22
+
+Owner proceeded to implementation,provided a private Google key and requested one
+cheap sample plus real CDP/LLDP/interfaces/counters in exact and creative local
+views.14/30 tasks complete;24 JS/browser and3 Python tests pass. Google model
+metadata HTTP200;no world generated yet. Exact one-attempt20s/US$15 contingency
+packet awaits owner answer. Private fact graph stays local;synthetic-only Google.
+Native collector,actual generated world and NetClaw MCP/skill remain unqualified.
+Read specs/200-genie-network-worlds/resume.md;no key value or private data here.
+
+
+### Spec200 corrected access evidence — 2026-11-22
+
+Native curl/nc and selected pyATS MCP reach CML/R1/R2/SW1/SW2 while Python direct
+sockets report errno65. Do not infer a host outage from that runtime-specific
+error. Certificate-verified CML ready=true and fresh 16 baseline/status requests
+plus 24 logical collection requests succeeded. CDP/LLDP already enabled globally;
+management Ethernet0/0 excluded on all four. Data Ethernet0/1–0/3 remain shut.
+LLDP has zero neighbors, CDP raw-only; no configuration applied. Corrected product
+requires actual Google Genie4 worlds through Gemini API; local renderer retired.
+See Spec200 direction-correction.md and discovery-change.md.
+
+
+### Spec200 routed CML lab — 2026-11-22 latest state
+
+The owner's explicit OSPF/iBGP/router-on-stick/VLAN/STP request superseded the
+six-port approval question. All four devices now have the reviewed routed lab
+configuration, with management interfaces/exclusions and existing management
+routing preserved. Actual reciprocal CDP/LLDP corroborate the three data links;
+OSPF FULL, two iBGP VLAN prefixes per peer, VLAN trunks/access and STP checks pass.
+All eight five-packet probes passed, including remote reachability to PC1. PC2–PC4
+were not running and remain unqualified. Four native saves and actual startup
+readbacks passed; pre-existing inline/NVRAM certificate representation is recorded
+explicitly. Private exact state and evidence: `.spec200-local/routed-lab*`.
+See specs/200-genie-network-worlds/routed-lab-qualification.md. Historical failed
+syntax/verified rollback and audit statuses are retained; no blind replay.
+Installed IOL-L2 requires `spanning-tree portfast trunk` / `spanning-tree portfast`
+instead of the rejected `spanning-tree portfast edge trunk` spelling. Original
+Rapid-PVST was already configured. Temporary owned Local/Lab write policy is
+disabled; ordinary collector remains read-only. Direct native collection does not
+qualify product capture-once behavior. No private data went to Google.
+
+
+### Spec200 Google production checkpoint — 2026-11-23
+Five actual120-second real-snapshot Genie4 recordings and local static playback are complete. See specs/200-genie-network-worlds/production-recordings.md. Google temporarily rate-limited original-session reconciliation; a later original-ID receipt resolved it, without replacement creation. Terminal receipts do not settle billing: all six full reservations remain held at US$85.552128. Existing Risk-member deployment is still unqualified. Raw snapshots and credentials remain local.
+
+
+### Genie Network Worlds integration — Spec200
+Optional `genie-worlds` catalog component, six stdio controls and `netclaw-genie-worlds` skill. Cisco pyATS evidence stays authoritative; Google Genie4 media is illustrative. Terminal and VS Code setup bind a selected local backend; the Risk member receives only its private control capability. Setup does not create worlds, approve export or transfer Google credentials. Five actual recordings are retained; exact fidelity, billing reconciliation and native Risk-member execution remain separately reported. See docs/GENIE-WORLDS.md.

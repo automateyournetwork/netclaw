@@ -1,5 +1,17 @@
 # NetClaw Operating Instructions
 
+## Spec200 planning workspace — 2026-11-22
+
+The active planning checkout is `/Users/john.capobianco/netclaw-spec200-genie` on
+`200-genie-network-worlds`. The owner requested a thoughtful
+specification and plan for Cisco pyATS Genie to Google Genie worlds. Reuse
+`specs/200-genie-network-worlds/` and its next-session-prompt.md; do not allocate
+a new number or rerun branch creation. The original198Azure/GCP source is
+saved separately at commit856bbc88, with incomplete acceptance preserved.
+199is reserved forAWS. Order: feasible200 → resumed198 →199. No merge of the
+unfinished198source, paid execution, cloud activation or publication is implied
+by this planning stage. Credentials are not required to finish planning.
+
 ## Startup Protocol
 
 1. Read `SOUL.md` — your identity, expertise, and rules
@@ -187,6 +199,8 @@ When unsure about severity or approach: escalate. Say "I'd recommend verifying t
 - Existing private identity/ledger/reference stores; additive bounded identifiers and monotone send markers; private evidence0700/0600. (178-recovery-gate)
 - Python3.12 federation/runtime;Python3.10+host helpers;existing Node24.19/React18,TypeScript5.9,Flutter/Dart. + Existing NCFED/FastMCP/MCP,asyncio,httpx,cryptography/pyOpenSSL,SQLite,Docker;external pinned etcd3.6.16. Existing OpenClaw/DefenseClaw/Ollama qualification closures. (179-border-ha-authority)
 - Private etcd bounded metadata plus member SQLite claims and immutable signed artifacts;0700directories/0600private files. No credentials in frontend state. (179-border-ha-authority)
+- Spec200 planned: JavaScript ESM on repository-supported Node >=24.19 <25 or >=26.1; isolated Python3.12 for existing pyATS/Genie only. + Isolated @google/genai3.6.1 worker package; existing ws8.x, Node HTTP and browser Canvas. Separate wrapper package using the repository-qualified official MCP SDK; no React/FastAPI/media service. (200-genie-network-worlds)
+- Spec200 planned: Private owner-scoped SQLite ledger and bounded artifacts,0700 directories/0600 files; existing GAIT. Reuse qualified private atomic-write/ownership conventions, not federation authority tables. (200-genie-network-worlds)
 
 - Spec 148 implementation: JavaScript ESM/Express/React HUD; HUD Node >=24.19 <25 or >=26.1; isolated bridge/tool Python 3.12 and companion Python 3.14; official MCP Node client 2.3.1 and isolated FastMCP 4.0.11/MCP Python SDK 2.3.0. General OpenClaw installer Node policy remains >=24.16 <25 or >=26.1.
 - Qualified Hermes baseline: v0.21.6, source 818c13be1dc4fd28987e1e881a9408224afd4535. Private MCP bridge/protected companion, schema-2 owned HUD bindings, SQLite admission/evidence records and installation-scoped browser storage. Mac and Ubuntu 26.04 WSL live/browser qualification is recorded in specs/148-hermes-hud-integration/closure.md; broader tool and platform qualification is not implied.
@@ -891,3 +905,31 @@ separate worktrees for R08/Spec179. Root coordinates core service/NCFED authorit
 and serializes all runtime qualification mutations. Parallel source lanes cover
 lifecycle/recovery, HUD/VS Code and Mobile/enrollment. This does not authorize R09,
 cloud deployment, publication, version changes or mutation of retained runtimes.
+
+## Spec200 fresh-context loop authorization — 2026-11-22
+
+Owner requested up to32sequential fresh-context Ralph passes to complete existing
+Spec200 tasks and refine precise/creative/walkthrough views. Use only this isolated
+checkout and existing200branch. loops/PROMPT.md,HANDOFF.md,QUALITY.md and PROGRESS.md
+in specs/200-genie-network-worlds/ are the durable loop memory. One writer at a time;
+no recursive loops or source commits. Exact paid-trial allowance remains pending;
+loop authorization is not permission for repeated paidworlds/private uploads.
+T029 still requires actual human acceptance. Report source/live/native gaps honestly.
+
+
+### Spec200 release integration checkpoint — 2026-11-23
+
+The owner authorized source integration, README/setup/Risk/VS Code updates, version
+preparation and merge only when Spec200 is complete; resume original198 afterward.
+Work remains in the isolated `netclaw-spec200-genie` checkout. Source1.26.0 and
+extension1.6.2 are candidates, not published releases. Upstream Byrne PR360 and
+Percepxion PR359 are reconciled. The owner accepted five recorded Google
+illustrations with documented visual/event limits and clarified existing Border
+ownership. An isolated member is enrolled under the existing Border; actual
+Sonnet/skill/MCP fixture calls pass. No Border/runtime upgrade or new Border.
+25/30 tasks complete; integrated collector attempts timed out on all four saved
+SSH endpoints, original Google usage GET remains HTTP500, and Google-backed
+member execution is not yet proven. Full US$85.552128 Google reservation remains
+held under US$100. Do not request the accepted visual scope again, regenerate
+videos, claim100%, merge, publish or resume198 before remaining gates close.
+See specs/200-genie-network-worlds/integration-closeout.md and analysis.md.
