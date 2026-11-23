@@ -333,7 +333,7 @@ value-per-effort; every item traces to a verified draft state.
 
 The -00 text left what counts toward BUDGET_EXHAUSTED/RATE_LIMITED, per-peer vs global scope, the over-limit action and counter recovery unspecified. Section "Peer Limits" now specifies them (refuse default, warn, teardown with a persisted restart timer, optional aggregate cap, warning threshold). No wire change. Open for -01: whether a global rate cap and a wire-visible hold-down signal are wanted; both were deliberately left out.
 
-## Seed from the 2026-11-22 two-Border evidence run (H15–H22)
+## Seed from the 2026-11-22 two-Border evidence run (H15–H23)
 
 Source: [`evidence/2026-11-ncfed-two-border/README.md`](evidence/2026-11-ncfed-two-border/README.md), live tests of
 `-00` between two Borders at implementation `a5e7c3a3`. Section numbers below refer to that README. Its §5 items 8–11
@@ -382,10 +382,23 @@ NOTIFICATION nuance) are documentation-only and are not repeated here.
   restart. Tests: `mcp-servers/protocol-mcp/tests/test_gateway_ws_token_reresolve.py`. Deployed on the production
   Border on 2026-11-22.
 
-### H22. Skill load cap silently drops delegated skills — *MITIGATED on the main agent; members pending*
+### H22. Skill load cap silently drops delegated skills — *RESOLVED on production (main agent and all iN2N members)*
 - **Reality (T6b, §10–§11):** OpenClaw loads at most 200 skills per source, sorted by name. With 249 workspace skills,
   `subnet-calculator` was never loaded, so a correctly authorised delegated task returned "skill not available".
 - **Fix (§11):** the spec-188 policy (`config/skill-limits.json`) was applied to the production main agent. The
   second re-run then passed end to end.
-- **Open:** iN2N member configs generated before spec 188 lack the limits. viz depends on a partial override of 300
-  for three scoped skills. Consider a startup check that fails loudly when a granted or scoped skill is not loaded.
+- **Members (§11, change 10):** the same policy was applied to all five iN2N member configs on 2026-11-22, with
+  backups. viz no longer depends on its partial override of 300 for three scoped skills.
+- **Remaining hardening (optional):** a startup check that fails loudly when a granted or scoped skill is not loaded,
+  so a future cap breach is not silent.
+
+### H23. Border leaves a completed member task at `submitted` — *OPEN (likely H13 recurring)*
+- **Reality (§13.2):** production delegated task `1a5ec57f-18d6-4e74-9421-de66259ab806` (skill
+  `threejs-network-viz`) to the `byrns-risk/viz` member at 2026-11-22T23:22:43Z. The member ran it to completion and
+  answered (the tool itself failed, a separate issue), but the Border's `delegated_task` row stayed `submitted`, with
+  progress `None` and `updated_at` unchanged. The Border never pulled the result back.
+- **Unknown:** whether the iN2N channel bounced between submit and completion (the H13 trigger). That was not checked.
+  If it did not bounce, completion delivery fails even on a stable channel, which is worse than H13.
+- **Plan:** first establish the trigger from the member's and the Border's logs around 23:22Z. Then apply H13's fix:
+  the submitter reconciles non-terminal outbound tasks via `n2n/tasks/status` (on re-establish, and periodically for
+  tasks past a deadline). The executor re-announces unacknowledged terminal states.
