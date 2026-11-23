@@ -460,11 +460,15 @@ async def n2n_list_grants(peer: Optional[str] = None) -> str:
 
 @mcp.tool()
 async def n2n_invoke(peer: str, target_type: str, target_name: str,
-                     arguments: Optional[str] = None, input_text: Optional[str] = None) -> str:
+                     arguments: Optional[str] = None, input_text: Optional[str] = None,
+                     request_id: Optional[str] = None) -> str:
     """Invoke a remote tool or skill on a federated peer's claw.
 
     Results are marked as remote-untrusted data. The peer must have granted
-    access to the target.
+    access to the target. If the peer's grant requires approval, a tool call
+    returns error -32002 (APPROVAL_PENDING) with data.request_id; once the
+    peer's operator approves, call again with that request_id and the SAME
+    arguments. -32003 means the approval was denied or expired.
 
     Args:
         peer: Peer identity string
@@ -472,8 +476,11 @@ async def n2n_invoke(peer: str, target_type: str, target_name: str,
         target_name: Tool or skill name to invoke
         arguments: JSON string of tool arguments (for target_type='tool')
         input_text: Natural language input (for target_type='skill')
+        request_id: Retry a tool call previously answered -32002 (tool only)
     """
     body = {"peer": peer, "target_type": target_type, "target_name": target_name}
+    if request_id:
+        body["request_id"] = request_id
     if arguments:
         body["arguments"] = json.loads(arguments) if isinstance(arguments, str) else arguments
     if input_text:
