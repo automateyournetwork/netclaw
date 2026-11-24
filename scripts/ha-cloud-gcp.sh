@@ -25,9 +25,9 @@ cloud_firewall() { # <phase>: owner ingress (443, federation) from R10_SSH_ALLOW
   local phase="$1" net="${GCP_NETWORK:-default}" owner="${R10_SSH_ALLOW_CIDR:-}"
   [ -n "$owner" ] || { [ "$HA_DRY" = 1 ] && owner="<owner-ip>/32" || { echo "R10_SSH_ALLOW_CIDR is required (owner public IP /32)" >&2; return 2; }; }
   run gcloud compute firewall-rules create "nc198-$phase-owner" --network="$net" --project="$GCP_PROJECT" --direction=INGRESS \
-    --allow=tcp:443,tcp:7443,tcp:7444 --source-ranges="$owner" --target-tags="nc198-$phase" --quiet
+    --allow=tcp:443,tcp:7443,tcp:7444 --source-ranges="$owner" --target-tags="nc198-$phase" --description="netclaw-spec=198 run-id=${R10_RUN_ID:-}" --quiet
   run gcloud compute firewall-rules create "nc198-$phase-mesh" --network="$net" --project="$GCP_PROJECT" --direction=INGRESS \
-    --allow=tcp:12379,tcp:12380,tcp:7443,tcp:7444 --source-tags="nc198-$phase" --target-tags="nc198-$phase" --quiet
+    --allow=tcp:12379,tcp:12380,tcp:7443,tcp:7444 --source-tags="nc198-$phase" --target-tags="nc198-$phase" --description="netclaw-spec=198 run-id=${R10_RUN_ID:-}" --quiet
 }
 cloud_peer() { echo "gcp: global VPC, no peering needed"; }
 cloud_stop() { run gcloud compute instances stop "$(gcp_vm "$2")" --zone="$(gcp_zone "$2")" --project="$GCP_PROJECT" --quiet; }

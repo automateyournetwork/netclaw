@@ -11,12 +11,15 @@ acceptance. Preserve all six original regions, authority checks and unknown fenc
 
 Fresh inventory is empty of Spec198 assets. Historical ledger USD13.9276 is held
 unchanged, including its full USD5 reserve. The concrete six-hour seven-host run
-reserves USD23.0076 cumulatively. Renewed over-USD15 approval was requested and is
-PENDING; the old global ledger approval flag is not this approval. USD25 remains
-the hard limit; Genie supplies no allowance. No new cloud or provider run occurred.
+reserves USD23.0076 cumulatively. On2026-11-24 the owner explicitly authorized
+completion within USD25 total, superseding the pending over-USD15 question.
+USD25 remains the hard limit; Genie supplies no allowance. No new cloud or provider
+run had occurred at that approval checkpoint.
 GCP actual billing, the three named live gaps, physical cloud NetBox placement,
 native HUD/VS Code and guard fail-closed acceptance remain open. Source checkpoints
-are authorized; merge/publication still require approval. Preserve Spec200 assets
+are authorized; closing/merging198 is authorized AFTER verified acceptance and
+owned cleanup. Client publication remains held. Prepare199AWS without activation.
+Preserve Spec200 assets
 and owner services; never use broad protected-role process cleanup.
 
 ## Active Spec198 workspace — 2026-11-24

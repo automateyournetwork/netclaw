@@ -1,5 +1,19 @@
 # R10 execution authorization — 2026-11-14
 
+## Current owner resumption — 2026-11-24
+
+The owner resumed bounded Azure/GCP qualification and then instructed: "do not
+spend more than $25 in total but get spec198 azure to100% then close and merge etc
+and get ready for spec199 AWS". This approves the reviewed USD23.0075943167
+cumulative six-hour seven-host envelope in `resume-20261124.md`, including crossing
+the USD15 pause once. The USD25 cumulative hard ceiling, historical reserves,
+fresh signed preparation, unknown fencing, actual acceptance and export-before-
+owned-cleanup requirements remain. No Genie allowance is available. Source
+checkpoint/push and closing/merging198 after verified acceptance are authorized.
+Prepare the199AWS handoff; this does not activate AWS or publish clients.
+
+The following records are historical where superseded by this resumption.
+
 The owner authorized choosing three available Azure regions and proceeding with
 Spec198 within the existing USD25 budget. This supersedes the fixed West Europe
 requirement and earlier per-Azure-phase permission pauses. Preserve the USD15

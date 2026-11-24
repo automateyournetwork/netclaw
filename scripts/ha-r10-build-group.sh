@@ -164,7 +164,7 @@ step_image() {
     --hud-tar "$G/hud-source.tar" --workspace-tar "$G/workspace-backend.tar" --require-inputs
   run tar czf "$EV/image-ctx-$GROUP.tgz" -C "$G" image-ctx
   build() { local c="$1"; cl scp "$c" "$EV/image-ctx-$GROUP.tgz" >/dev/null
-    cl ssh "$c" "mkdir -p ~/ctx && tar xzf /tmp/image-ctx-$GROUP.tgz -C ~/ctx && cd ~/ctx/image-ctx && docker build -t $IMAGE . > /tmp/build.log 2>&1; tail -1 /tmp/build.log"; }
+    cl ssh "$c" "mkdir -p ~/ctx && tar xzf /tmp/image-ctx-$GROUP.tgz -C ~/ctx && cd ~/ctx/image-ctx && docker build -t $IMAGE . > /tmp/build.log 2>&1 && tail -1 /tmp/build.log"; }
   each build
 }
 
@@ -258,7 +258,7 @@ step_peer_fw() { # open tcp/7445 ONLY from the other group's three public /32s (
   if [ "$PROVIDER" = azure ]; then
     for c in "${CODES[@]}"; do run az network nsg rule create -g "rg-nc198-$PHASE" --nsg-name "nsg-nc198-$PHASE-$c" -n fed7445 --priority 130 --access Allow --protocol Tcp --destination-port-ranges 7445 --source-address-prefixes $src --output none; done
   else
-    run gcloud compute firewall-rules create "$GCP_VM_PREFIX-allow-fed" --project="$GCP_PROJECT" --network="${GCP_NETWORK:-default}" --direction=INGRESS --allow=tcp:7445 --source-ranges="${src// /,}" --target-tags="nc198-$PHASE" --quiet
+    run gcloud compute firewall-rules create "$GCP_VM_PREFIX-allow-fed" --project="$GCP_PROJECT" --network="${GCP_NETWORK:-default}" --direction=INGRESS --allow=tcp:7445 --source-ranges="${src// /,}" --target-tags="nc198-$PHASE" --description="netclaw-spec=198 run-id=$RUN" --quiet
   fi
 }
 
