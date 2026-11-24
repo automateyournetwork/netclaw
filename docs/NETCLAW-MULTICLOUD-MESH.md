@@ -8,13 +8,7 @@ How NetClaw Borders in **GCP** and **Azure** form one mesh. Design source: `spec
 > Every Border in this mesh has NO sign-in, NO users and NO access control today. Keep every URL and IP address private.
 > Users, SSO and RBAC are a much later roadmap phase (R15-R17).
 
-**Status (read this first).** Live-proven in spec 198, evidence in `specs/198-azure-multicloud-ha/verification.md`: each three-Border group
-works on its own cloud (operations through every Border with durable ACKs, leader loss and rejoin), and an Azure group and a GCP group ran
-side by side. Also live-proven (2026-11-16, two builds): the signed union catalog from every Border of both groups (followers included, after the follower-epoch fix),
-the relay with re-authorization in the receiving group's own ledger (origin recorded), the federation surviving an authority change (epoch 33 to 85),
-certificate rotation, and one cross-cloud operation completing with a durable ACK (a GCP-entered operation on an Azure subnet member).
-**Still pending live proof (three gaps):** an Azure-entered operation completing on a GCP member, cross-group operations through every follower Border,
-and a completed GCP operation after a leader change. They were refused or not reached on an unstable operator link; see verification.md and the contract's live findings.
+**Status.** The bounded November24 Spec198 qualification passed all twelve local/cross-group cells through all six Borders, an Azure-entered physical GCP NetBox read, an operation after actual GCP leader change, native HUD/VS Code approval and GET-only recovery, and a stopped-guard fail-closed test. Original signed results and durable ACKs were independently verified. See [actual closure and limits](../specs/198-azure-multicloud-ha/closure-20261124.md). This is owner-lab evidence; client publication remains held. Live URLs are retired after evidence export.
 
 ## Shape
 
@@ -39,17 +33,15 @@ and a completed GCP operation after a leader change. They were refused or not re
 | Member to Border | 7444, member dials outbound | mutual TLS, pinned keys; the member's certificate is enrolled in the group's ledger |
 | Border to Border inside a group | 7443 | pinned-key mutual TLS from the signed manifest |
 | Border to etcd inside a group | 12379, **private network only** | TLS with RBAC; policy allows exactly the two remote voters by private DNS name |
-| Border to Border across groups | defined by the cross-cloud contract | pinned peer anchors and an explicit peer grant (design; live proof pending) |
+| Border to Border across groups | defined by the cross-cloud contract | pinned peer anchors and an explicit peer grant (live-qualified) |
 
 Nothing crosses clouds over etcd: the two groups never share a quorum, so a cloud outage cannot stall the other cloud's authority.
 
 ## Members in the mesh
 
-Members dial every Border they are enrolled in. Enrollment is per group (one-shot ledger entry, all Borders of the group stopped), so a
-member that serves both groups has an enrollment in each. A member executes one operation at a time per enrollment; concurrent operations use
-separate runtime names, so two groups can use the same host without colliding. A failed result fences the member in the group that issued it.
+Each member dials all three Borders in its single enrolled group. Cross-group reach uses the signed relay, never a shared member identity or a second authority for that identity. A failed or unknown operation retains the member fence in its receiving authority. Physical Linux members use the qualified Unix-socket relay and a short private runtime path; the Mac Docker Desktop TCP host alias is not portable to Linux.
 
-## Cross-group delegation (partly live-proven; three gaps open)
+## Cross-group delegation (live-qualified)
 
 Protected mode refuses the legacy eN2N execution routes by design and stays on. Reaching a member enrolled only in the other group therefore uses a
 protected delegate path (see the contract): the ingress Border signs a delegation carrying the origin cluster, operation, approval digest,
@@ -64,12 +56,11 @@ Each group records its own authority, approval, dispatch and result references; 
 ledger and the receiving reference in the origin. Unknown outcomes stay retained and are never automatically replayed. Recovery of a stopped Border
 is local to its group: restart the sandbox, wait for posture 200 (about three minutes), and the Border rejoins as a follower.
 
-## Limits (honest)
+## Qualification limits
 
-- Cross-group execution is live-proven in one direction only so far, and not through every follower Border (see Status).
-- Member admissions go through the lowest-id Border today; a nearest-Border change is written and tested offline but not live-verified or merged (contract, 'Qualified-code change added offline').
-- The member host must stay awake and on a stable network: sleep kills the member processes, and a stale Docker network or memory pressure makes hosted calls fail (`agent_produced_no_tool_evidence`). Restart Docker Desktop if a container cannot reach api.anthropic.com.
-- Far-region admission: under a degraded two-of-three quorum with a distant leader, `admission_ms=4500` can be exceeded and the operation refused.
-- No automatic release for a fenced member; enroll a fresh identity.
-- Cost: six small VMs run about USD 0.7 per hour in total; the USD 25 cap and USD 15 pause apply across both clouds through one ledger.
-- Release gate: VS Code, mobile and HUD builds that expose multi-region Borders stay unpublished until you approve a release.
+- Admission selects the nearest authenticated attachment. The November24 manifests sign `admission_ms=9000`, and the RPC wait derives from that signed bound. Quorum/attestation latency still matters; slower or degraded topologies may correctly refuse an effect. Stable Wi-Fi alone does not repair expiry.
+- Four Mac qualification member processes required explicit restart with their unchanged contracts/durable state during the leader exercise. Transparent member process recovery is not claimed.
+- After takeover, all twelve original operations remained completed with unchanged digests/counters. Six returned full artifacts and six retained references; old-leader full artifact replication is not claimed. Original member results and ACKs were exported and verified separately.
+- Unknown outcomes and fenced identities remain retained. A timeout never authorizes replay or automatic fence release.
+- The seven-host final reservation used USD0.93/hour plus fixed historical/provider/transfer/cleanup reserves. USD25 was cumulative; the owner explicitly approved crossing USD15 for the concrete USD23.0075943167 envelope. Future runs require their own current inventory, pricing and spend delegation.
+- VS Code, mobile and HUD publication remains subject to explicit approval.

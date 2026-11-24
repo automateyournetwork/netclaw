@@ -1,28 +1,31 @@
 # NetClaw Operating Instructions
 
-## Resumed Spec198 qualification — 2026-11-24
+## Verified Spec198 completion — 2026-11-24
 
-The owner explicitly resumed implementation and bounded live qualification from
-`ca64f507`. Read `specs/198-azure-multicloud-ha/resume-20261124.md` before activation.
-The latest stable-network r10l source ALREADY includes nearest-Border selection;
-the4500ms signed admission window and5sRPC wait are distinct limits. A tested
-manifest-derived wait plus a proposed fresh9000ms preparation is not yet live
-acceptance. Preserve all six original regions, authority checks and unknown fences.
+Spec198 actual acceptance and owned cleanup are complete. Read
+`specs/198-azure-multicloud-ha/closure-20261124.md` for fourteen independently
+verified signed result/ACK pairs, the twelve-cell six-Border matrix, physical GCP
+NetBox read, actual GCP leader-change completion, native HUD/Code recovery and
+stopped-guard fail-closed evidence. Three distinct regions per cloud and all
+authority/unknown fences were retained. The measured admission repair uses a fresh
+signed9000ms window and manifest-derived wait; stable Wi-Fi alone was insufficient.
 
-Fresh inventory is empty of Spec198 assets. Historical ledger USD13.9276 is held
-unchanged, including its full USD5 reserve. The concrete six-hour seven-host run
-reserves USD23.0076 cumulatively. On2026-11-24 the owner explicitly authorized
-completion within USD25 total, superseding the pending over-USD15 question.
-USD25 remains the hard limit; Genie supplies no allowance. No new cloud or provider
-run had occurred at that approval checkpoint.
-GCP actual billing, the three named live gaps, physical cloud NetBox placement,
-native HUD/VS Code and guard fail-closed acceptance remain open. Source checkpoints
-are authorized; closing/merging198 is authorized AFTER verified acceptance and
-owned cleanup. Client publication remains held. Prepare199AWS without activation.
-Preserve Spec200 assets
-and owner services; never use broad protected-role process cleanup.
+All seven VMs, disks/IPs and four generations of DNS are removed and verified;
+empty buckets/repository, residual R01cloud secret (privately exported), automatic
+NetworkWatchers, default GCP VPC/subnets/firewalls and empty Azure groups are removed;
+state/etcd/member exports are private. Both finite watchdogs are unloaded. The
+closed conservative ledger is USD19.589, zero open entries/burn, with all reserves
+retained under USD25. Billing lag and preserved unknowns remain explicit. The owner
+authorized source commit/push/merge and return to main after this acceptance.
+The closure record carries the integration receipt. No client publication or
+version release is authorized.199 remains reserved/prepared for AWS, not activated;
+it receives no Azure/GCP or Genie budget.
 
-## Active Spec198 workspace — 2026-11-24
+Preserve the detached Spec200 checkout97fc1f1a, recordings and existing owner
+services. Never replay spent preparations/operations or restart expired watchdogs.
+Historical resumption/planning records below are superseded by this closure.
+
+## Historical Spec198 resumption workspace — 2026-11-24
 
 The primary checkout is `/Users/john.capobianco/netclaw` on
 `198-azure-multicloud-ha`. The owner requested completing Git housekeeping and

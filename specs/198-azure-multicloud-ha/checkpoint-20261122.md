@@ -1,5 +1,7 @@
 # Spec198 source checkpoint — 2026-11-22
 
+> Current acceptance: [closure-20261124.md](closure-20261124.md). The live matrix, physical GCP member, actual GCP successor, native clients and stopped-guard checks now pass. Dated OPEN/PARTIAL records below are retained history; final cleanup/integration status is in the closure record.
+
 John authorized saving the entire unfinished198 work in Git and putting it on
 the remote branch so it can be resumed after the Genie experiment. The intended
 order is feasible200 → resumed198 →199AWS. This authorizes a branch checkpoint;

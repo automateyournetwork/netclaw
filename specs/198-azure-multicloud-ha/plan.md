@@ -1,15 +1,12 @@
 # Implementation Plan: R10 Azure Multi-Cloud
 
-> Current resumption: [resume-20261124.md](resume-20261124.md). The owner resumed
-> bounded work on November24. Its scope, budget gate and measured latency finding
-> supersede the historical status, topology and sequencing below. No new live
-> acceptance is implied. The binding peer contract uses ONE group per member.
+> Implemented and live-qualified November24. See [closure-20261124.md](closure-20261124.md) for actual acceptance, source changes, cost and teardown evidence. Each member binds to ONE authority group; signed peer relay supplies cross-cloud execution.
 
 **Branch**: `198-azure-multicloud-ha` | **Date**: 2026-11-14 | **Spec**: [spec.md](spec.md)
 
 ## Summary
 
-Prove the R09/R09A Border, 3-region HA and member model on Microsoft Azure, then federate an Azure Border with a GCP Border. The
+Prove the R09/R09A Border, 3-region HA and member model on Microsoft Azure, then federate two three-Border Azure and GCP HA groups. The
 Border/HA/member code is already cloud-neutral; only the VM lifecycle (create, ssh/scp, firewall, tear-down, cost) is
 GCP-specific. R10 therefore adds a thin **cloud driver layer** (`gcp` existing behavior preserved, `azure` new) under the R09
 scripts, an **Azure preflight and spend guard**, and an **Azure phase runner** with one resource group per phase. No Border,
@@ -17,15 +14,15 @@ HA-authority or federation code is changed unless a live finding forces it, and 
 
 ## Technical Context
 
-**Language/Version**: Bash (driver + deploy glue, matches `scripts/ha-r09-*.sh`), Python 3.10+ (preflight, spend ledger, evidence; stdlib only, matches `labs/ha/r09_*.py`); Border source unchanged (Python 3.12 contract env on the VM)
+**Language/Version**: Bash (driver + deploy glue, matches `scripts/ha-r09-*.sh`), Python 3.10+ (preflight, spend ledger, evidence; stdlib only, matches `labs/ha/r09_*.py`); isolated Python 3.12 Border contract environment, with measured admission and signed relay changes listed in closure
 **Primary Dependencies**: Azure CLI (`az`, already installed) with no new Python packages; existing lego (ACME DNS-01), etcd 3.6.16 container image, GoDaddy DNS API, existing `r09_prepare.py` / `r09_member.py` / `r09_vm_*.py`
 **Storage**: Local evidence under `specs/198-azure-multicloud-ha/` and `~/.local/share/netclaw/r10-*` (git-ignored); per-VM disks only; spend ledger is a small JSON file; no new datastore
 **Testing**: Python unit tests for preflight/ledger parsing (fixtures of `az` JSON), shell dry-run mode for every driver command (prints, never executes), then the live phases as the integration test
-**Target Platform**: Azure Linux VMs (Debian 12, x86_64) in canadacentral, westeurope, southeastasia; the operator's Mac as the on-prem member; GCP Debian VMs for the mesh phase only
+**Target Platform**: Ubuntu24.04 x86_64; Azure canadacentral/eastus2/swedencentral and GCP Montreal/Belgium/Singapore; Mac subnet members and a physical GCP NetBox member
 **Project Type**: Infrastructure tooling and live validation (no application UI)
-**Performance Goals**: Same HA behavior as R09 (signed admission_ms 4500, Montreal-class leader); preflight < 10 min
-**Constraints**: $25 total, pause at $15; nothing created before an explicit go per phase; GCP side only on a separate go; one deletable resource group per phase; no managed services; key on VMs only for the run
-**Scale/Scope**: 3 Border VMs + 1 optional small witness-free layout (etcd runs on the 3 Borders as in R09); members run on the Mac and as a hosted member process
+**Performance Goals**: Preserved HA guarantees with topology-measured, freshly signed admission_ms 9000 and manifest-derived RPC wait; preflight < 10 min
+**Constraints**: USD25 cumulative hard ceiling; owner approved the USD23.0075943167 envelope and one crossing of the USD15 pause; seven bounded VMs with unchanged finite watchdogs; exported state before verified teardown
+**Scale/Scope**: Six Border VMs, three per cloud with colocated etcd voters, plus one physical GCP member VM; fresh isolated Mac members
 
 ## Constitution Check
 
@@ -59,5 +56,4 @@ labs/ha/
 docs/                            # Azure counterparts (see tasks)
 ```
 
-**Structure Decision**: extend `scripts/` and `labs/ha/` in place; do not fork R09. R09 scripts get their hardcoded `gcloud`
-calls routed through the driver with `CLOUD=gcp` as default, so existing R09/R09A behavior is unchanged.
+**Structure Decision**: extend `scripts/` and `labs/ha/` in place. R10 deployment copies route through the cloud driver; existing R09 deployment scripts remain intact. The shared member builder gained dependency closure validation required by the actual fresh Linux host finding.

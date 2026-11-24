@@ -1,5 +1,7 @@
 # Spec198 Git resumption — 2026-11-24
 
+> Current acceptance: [closure-20261124.md](closure-20261124.md). The live matrix, physical GCP member, actual GCP successor, native clients and stopped-guard checks now pass. Dated OPEN/PARTIAL records below are retained history; final cleanup/integration status is in the closure record.
+
 Spec200 and PRs361–367 are integrated into main at `75bb2e77`. The owner requested
 cleaning the remaining Git state and returning the primary workspace to 198.
 

@@ -1788,3 +1788,7 @@ old global approval bit must not be mistaken for that approval. No cloud assets
 were created during diagnosis. Never use broad protected-role pkill: retained
 Spec200/other owner services are outside the run. Run labels, correct firewall
 names, non-replayable watchdog setup and serialized ledger writes were repaired.
+
+### Spec198 Linux member relay qualification — 2026-11-24
+
+Fresh Linux OpenClaw member preparations must validate the executor's lazy MCP imports and immutable dependency closure. The inherited Mac Docker Desktop TCP host alias is unavailable on the qualified GCP Linux host; a fresh identity using the same immutable relay image over a Unix socket and a short private state path completed the real NetBox read. Never mutate a spent member contract or replay its unknown/refused operation. Three-region admission was qualified with a freshly signed9000ms window and manifest-derived RPC wait; nearest authenticated attachment selection does not remove quorum latency. See `specs/198-azure-multicloud-ha/closure-20261124.md`.

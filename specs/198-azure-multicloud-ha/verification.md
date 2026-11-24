@@ -1,5 +1,7 @@
 # Verification: R10 Azure (spec 198)
 
+> Current acceptance: [closure-20261124.md](closure-20261124.md). The live matrix, physical GCP member, actual GCP successor, native clients and stopped-guard checks now pass. Dated OPEN/PARTIAL records below are retained history; final cleanup/integration status is in the closure record.
+
 Honest record. A phase is only "passed" when a live entry below says so.
 
 ## 2026-11-14 free work (no cloud resources created)

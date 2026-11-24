@@ -1,14 +1,13 @@
-# Quickstart: R10 Azure
+# Operator quickstart: R10 Azure/GCP
 
-> Current resumption: [resume-20261124.md](resume-20261124.md). The owner resumed
-> bounded work on November24. Its scope, budget gate and measured latency finding
-> supersede the historical status, topology and sequencing below. No new live
-> acceptance is implied. The binding peer contract uses ONE group per member.
+The November24 bounded run is qualified and retiring; see [closure](closure-20261124.md). This is a maintainer workflow, not authorization to recreate the lab or publish clients.
 
-1. `! az login` (owner), confirm `az account show --query state` is `Enabled`.
-2. `bash scripts/ha-r10-preflight.sh` : read-only go/no-go per region, budget alert status, secrets presence.
-3. Owner says **go phase 2** : `bash scripts/ha-r10-phase.sh up p2-single` (one Border), enroll Mac subnet member + hosted NetBox member, run operations, record evidence, `bash scripts/ha-r10-phase.sh down p2-single`.
-4. Owner says **go phase 3** : 3-region HA, same flow, down.
-5. Owner says **go GCP** : single small GCP Border plus Azure Border, federation proof, tear down both clouds.
-6. Docs/release-gate update (no cloud cost); nothing published without owner approval.
-Dry run any step with `--dry-run`. Emergency teardown: `bash scripts/ha-r10-phase.sh down <phase>` or `az group delete -n <rg> --yes`.
+1. Confirm current Azure/GCP authentication, inventories, posted billing and the cumulative ledger. Obtain any consequential new spend delegation before resource creation; old run reservations/preparations are spent.
+2. Read-only preflight the exact Ubuntu24.04 amd64 image, size and three distinct regions per cloud. The qualified Azure regions were Canada Central/East US2/Sweden Central; GCP Montreal/Belgium/Singapore.
+3. Prepare fresh private run identities, exact immutable ownership manifests, conservative full reservations and finite watchdogs. Never restart an expired watchdog or shrink a reservation to cross a gate.
+4. Use the cloud drivers and `ha-r10-build-group.sh` exact plan. Measure quorum/admission latency; freshly sign the justified admission window (9000ms in the accepted run). Every member binds to one group; signed peer relay supplies cross-group reach.
+5. Validate the fresh Linux dependency closure and Unix-socket relay before effects. Prove six local and six cross-group ingress cells, physical cloud member, native clients and actual successor completion; collect original signed results/ACKs. Fault/unknown tests run last.
+6. Quiesce and export every state/authority/member store, seal an immutable evidence manifest, then use exact owned teardown and all-generation DNS cleanup. Verify resources/boot disks/addresses/DNS absent before closing ledger entries and unloading watchdogs. Retain unknowns, fences and private evidence.
+7. Reconcile posted costs against conservative unposted reserves. Commit/update the SDD record; merge only within owner delegation. Client publication and AWS activation remain separate gates.
+
+See [Azure operator guide](../../docs/NETCLAW-IN-AZURE.md), [mesh contract](contracts/cross-cloud-federation.md) and [activation delegation](activation-delegation.md).

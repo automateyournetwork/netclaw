@@ -1,5 +1,7 @@
 # Spec198 / R10 handoff — 2026-11-14
 
+> Current acceptance: [closure-20261124.md](closure-20261124.md). The live matrix, physical GCP member, actual GCP successor, native clients and stopped-guard checks now pass. Dated OPEN/PARTIAL records below are retained history; final cleanup/integration status is in the closure record.
+
 > Current resumption: [resume-20261124.md](resume-20261124.md). The owner resumed
 > bounded work on November24. Its scope, budget gate and measured latency finding
 > supersede the historical status, topology and sequencing below. No new live

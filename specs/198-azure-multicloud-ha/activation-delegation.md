@@ -12,6 +12,8 @@ owned-cleanup requirements remain. No Genie allowance is available. Source
 checkpoint/push and closing/merging198 after verified acceptance are authorized.
 Prepare the199AWS handoff; this does not activate AWS or publish clients.
 
+The owner further instructed: “drive to100% tear ALL Things down in all clouds; get all things committed and back to main.” This authorizes final evidence-first cleanup of both active cloud scopes, including discovered empty old build buckets/repository and automatic Network Watchers, then source integration and return to main. It does not remove the explicit preservation of the Spec200 detached local evidence checkout/owner services, authorize deletion of cloud accounts/IAM credentials, or publish clients.
+
 The following records are historical where superseded by this resumption.
 
 The owner authorized choosing three available Azure regions and proceeding with

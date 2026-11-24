@@ -1,6 +1,6 @@
 # Cross-cloud federation contract (spec 198, FR-016, tasks T025-T027)
 
-Status: implemented, negative-tested and PARTIALLY live-proven. Six union catalogs, signed receiving-ledger relay and one GCP-to-Azure subnet success exist. Azure-to-GCP success, every-follower execution and GCP successor success remain OPEN. See ../resume-20261124.md.
+Status: implemented, negative-tested and live-qualified on November24. All twelve local/cross-group cells through all six Borders, the Azure-entered physical GCP NetBox read and a GCP successor operation completed with independently verified signed results and durable ACKs. Actual HUD and native Code review/recovery passed using the signed ingress-to-receiving-principal binding. See [closure](../closure-20261124.md), including retained-artifact and member-process recovery limits.
 Code: `mcp-servers/protocol-mcp/bgp/federation/ha/federation.py`, generator `labs/ha/r10_group.py peer-config`.
 Tests: `tests/n2n/test_ha_federation_198.py` (28), `tests/n2n/test_ha_policy_198.py` (federation egress cases),
 `labs/ha/test_r10_group.py`.

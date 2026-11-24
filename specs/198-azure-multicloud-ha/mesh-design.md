@@ -1,6 +1,6 @@
 # Six-Border Azure/GCP mesh
 
-Current implementation and bounded qualification: [resume](resume-20261124.md),
+Actual completed live qualification: [closure](closure-20261124.md),
 [binding contract](contracts/cross-cloud-federation.md), [verification](verification.md).
 The historical dual-enrollment proposal is superseded by this design.
 
@@ -50,7 +50,7 @@ observed leader change are separate witnesses. Guard-unavailable tests run after
 the positive cases. A rendered catalog, a checkbox or a fixture cannot substitute
 for those results.
 
-Fresh signed generation2 runs on the original seven VMs with unchanged deadlines
+Fresh signed generation2 ran on the original seven VMs with unchanged deadlines
 and reservations. Generation1's unknown operation, identities, databases and
 quorum state were exported before replacement and remain retained. Final teardown
 must export all current evidence first, verify all exact run-owned VMs/disks/IPs/

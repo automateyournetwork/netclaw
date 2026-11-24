@@ -2,7 +2,7 @@
 
 **Feature Branch**: `198-azure-multicloud-ha`
 **Created**: 2026-11-14
-**Status**: Live qualification in progress, 2026-11-24. Owner approved the USD23.0076 cumulative envelope and crossing the USD15 pause; USD25 remains the hard ceiling. Merge follows verified acceptance, export and owned cleanup.
+**Status**: Verified live acceptance and owned cleanup complete, 2026-11-24; source integration authorized. See [closure](closure-20261124.md) for original signed receipts, final cleanup, USD19.589 conservative ledger, retained limits and integration record.
 **Input**: User description: "R10 Azure: NetClaw multi-cloud on Microsoft Azure, mirroring the proven GCP R09/R09A roadmap. A Border claw hosted in Azure with an on-prem member and a cloud-hosted member; 3-region HA Borders in Azure; then a cross-cloud mesh proving GCP-hosted Borders federate with Azure-hosted Borders; then update all docs and release-gate notes. Hard constraints: $25 total spend ceiling (stop and ask at $15), tear down right after validation, nothing created until the owner says go."
 
 Latest instruction: resume implementation and bounded live qualification from
@@ -10,8 +10,9 @@ Latest instruction: resume implementation and bounded live qualification from
 another run. Close Azure-to-GCP, execution through every follower and actual GCP
 leader-change success; qualify clients/members, reconcile billing, export and
 verify owned cleanup. See [resume-20261124.md](resume-20261124.md). Three distinct
-regions per cloud, current authority/security guarantees, USD15 pause/USD25 cap,
-Spec200 preservation and merge/publication gates remain. No checkbox/offline-only
+regions per cloud, current authority/security guarantees, USD25 cap and
+Spec200 preservation remain. The owner approved one crossing of USD15 for the exact
+USD23.0075943167 envelope and merging after verified acceptance; client publication is held. No checkbox/offline-only
 completion claim is permitted.
 
 ## Execution amendment — 2026-11-14

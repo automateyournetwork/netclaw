@@ -25,7 +25,7 @@ billable resource by itself. Every billable step needs your explicit go (`R10_GO
 | `p3-ha` | three Borders (Canada Central, East US 2, Sweden Central), 3-voter TLS etcd over global VNet peering | the Spec 179/182 HA behavior on Azure: operations through every Border, leader loss, rejoin |
 | `p4-mesh` | an Azure group and a GCP group together | the [multi-cloud mesh](NETCLAW-MULTICLOUD-MESH.md) (cross-group execution is a separate security-reviewed design) |
 
-Live evidence is in `specs/198-azure-multicloud-ha/verification.md`. Treat anything it does not list as passed as unproven.
+Live acceptance and final teardown/cost evidence are in [Spec198 closure](../specs/198-azure-multicloud-ha/closure-20261124.md). All six local/cross-group ingresses, the physical GCP member, actual successor, native clients and fail-closed guard passed; the recorded recovery limits remain explicit.
 
 ## Prerequisites
 
@@ -62,7 +62,7 @@ Validation does not reserve capacity: re-run the preflight before every run.
 ## Cost control (hard rules)
 
 - **$25** ceiling for the whole programme, **pause and ask at $15** (`labs/ha/r10_ledger.py`; the ceiling cannot be approved past).
-  A fixed $5 reserve entry covers transfer, model calls and cleanup; it is not billed spend.
+  Historical reserves are retained; the final November24 run additionally held USD3.50 for provider/transfer/cleanup. Reserves are not measured billed spend and must never be reduced to bypass a gate.
 - A subscription budget alert (`nc198-25usd`, 50 percent and 80 percent) must exist before the first billable phase. It warns; it
   does not stop spending. Creating or removing it needs an interactive `az login`.
 - A launchd **watchdog** (`scripts/ha-r10-run-init.sh <run-id> <hours> <resource-group...>`) deletes the run's resource groups
@@ -82,9 +82,9 @@ PROVIDER=azure GROUP=az bash scripts/ha-r10-build-group.sh plan               # 
 
 `scripts/ha-r10-build-group.sh` builds one three-Border group in re-runnable steps (`--dry-run` prints every command and changes
 nothing): `nodes`, `zone` (Azure private DNS names the sandbox policy accepts), `bootstrap`, `prepare` (identities, manifest, etcd
-PKI; admission window 4500 ms), `dns` and `cert` (need `R10_GO_DNS=1` and `R10_ACME_EMAIL`; they change public DNS), `policy-payload`
+PKI; November24 qualification explicitly used `R10_ADMISSION_MS=9000`), `dns` and `cert` (need `R10_GO_DNS=1` and `R10_ACME_EMAIL`; they change public DNS), `policy-payload`
 (needs `R10_GUARD_DIR`), `image`, `provider` (hosted Sonnet via the guard; the key is read at run time, stdin only), `etcd`,
-`sandbox`, `authority`, `enroll-members`, `start`, `status`. Each step is idempotent; read the plan before running.
+`sandbox`, `authority`, `enroll-members`, `start`, `status`. Read the exact plan before running. Never replay a spent preparation, rematerialize a used identity or restart an expired watchdog. A source change requires a fresh signed preparation.
 
 A single Border (`p2-single`) is the same flow with one node. The HUD of each Border is `https://<code>-<id6>.<your domain>`;
 add it in VS Code with **NetClaw: Add Connection → Cloud Border** (see [VS Code guide](GETTING-STARTED-VSCODE.md)).
@@ -120,9 +120,7 @@ lag by a day; reconcile the final spend against the Azure cost view, not only th
 ## Known limits (honest)
 
 - No authentication, users, SSO or RBAC (R15-R17). NSGs restrict SSH and HTTPS to your address; federation ports use pinned-key mutual TLS.
-- **Admission window.** `admission_ms=3000` is too tight for three regions; the build uses 4500 (`R10_ADMISSION_MS`). Under a degraded
-  two-of-three quorum with a far-region leader (for example Belgium entering to a Singapore leader) the window can still be exceeded and the
-  operation is refused (`agent_produced_no_tool_evidence`), which also fences that member.
+- **Admission window.** The older4500ms window and fixed five-second wait failed on a stable network. November24 used a freshly signed9000ms window (`R10_ADMISSION_MS`) and manifest-derived RPC wait, with measured quorum proposal latency and all three regions retained. Slower/degraded topologies can still refuse safely; do not solve that by removing authority checks.
 - **Member fence.** A failed or refused result fences its member; recover by enrolling a fresh member identity.
 - **First NetBox request.** demo.netbox.dev can stall on the first request after idle; warm it before each operation. A cold Docker Desktop
   network can also fail the hosted call.
