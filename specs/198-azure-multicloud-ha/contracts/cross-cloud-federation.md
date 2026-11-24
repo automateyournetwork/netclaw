@@ -229,3 +229,33 @@ Qualified-code delta: `ha/internal.py:MemberAttachments.send_admission` derives
 its wait from the already-verified signed manifest; no retries or new schema
 fields. The9000ms preparation is explicit for the resumed run, not a silent
 change to old signed manifests or the original R09 defaults.
+
+## November24 client binding repair (fresh deployment required)
+
+Actual HUD preparation exposed that a receiving-group review cannot satisfy the
+origin client's local-cluster/principal checks. Clients must not disable those
+checks or relabel the immutable receiving review as local.
+
+Each remote DTO now includes `remote.client_binding`: the receiving group's
+already verified public manifest/anchor and a domain-separated `peer-client`
+endorsement signed by the serving ingress node. Its exact payload binds the
+origin cluster/generation/node, original principal, peer anchor key, public
+manifest digest and SHA256 of the complete DTO before adding the binding. The
+existing peer-response signature is still verified before producing this
+endorsement. No private anchor material is exported. This evidence does not
+authorize an effect or replace receiving-ledger approval/admission.
+
+HUD and VS Code verify the endorsement against their pinned local manifest,
+verify the endorsed peer manifest and certificates, and bind the immutable
+review to the receiver's derived open-lab principal and issuer. They also require
+the signed origin to name the original local operator and nonce. A remote
+review becomes decision-eligible only after successful verification, unchanged
+DTO/review bytes, local quorum/current epoch and matching receiving review/epoch.
+Server-side grant, quorum, freshness, fencing and approval checks remain intact.
+Unsigned, substituted, foreign-principal and stale data fail closed.
+
+The receiving row now retains the original nonce in its signed `origin` metadata;
+its ledger nonce remains namespaced. All relay responses restore the original
+client nonce, including status through a different ingress without a local index.
+Older rows lacking this provenance are not retroactively certified as new client
+acceptance. Unknown records are never reset or replayed.

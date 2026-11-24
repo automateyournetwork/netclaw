@@ -11,7 +11,7 @@ from bgp.federation.ha import federation as fed
 from bgp.federation.ha.border import ClusterBorderOperations
 from bgp.federation.ha.config import HAError, sign_manifest, verify_manifest
 from bgp.federation.ha.node import ClusterNode
-from bgp.federation.ha.signatures import sign
+from bgp.federation.ha.signatures import sign, verify
 from ha_support_179 import cluster_with_keys
 from test_ha_contract_179 import manifest_fixture
 from test_ha_execution_contract_179 import ha_approval
@@ -133,6 +133,33 @@ async def test_union_catalog_tags_remote_member_and_keeps_local_revision(tmp_pat
     assert remote[0]['remote']['cluster_id'] == b.manifest.cluster_id and remote[0]['remote']['label'] == 'azure'
     assert union['revision'] == local['revision'] and local['members'] == []
     assert union['federation']['peers'][0]['status'] == 'ok'
+
+
+@pytest.mark.asyncio
+async def test_client_endorsement_binds_exact_peer_review_and_original_nonce_across_ingresses(tmp_path):
+    a, b, fa, fb = world(tmp_path)
+    _, _, prepared = await prepare_remote(a, b)
+    nonce = prepared['client_nonce']
+    assert prepared['origin']['client_nonce'] == nonce
+    receiving = b.ops.ledger.lookup(operation_id=prepared['operation_id'])
+    assert receiving['client_nonce'].startswith('peer-') and receiving['client_nonce'] != nonce
+    # Simulate another origin ingress with no local nonce/operation index.
+    for path in fa.state.iterdir():
+        path.unlink()
+    status = await a.ops.status({'auth_context': a.ops.context, 'operation_id': prepared['operation_id']})
+    assert status['client_nonce'] == nonce and status['review'] == prepared['review']
+    for dto in (prepared, status):
+        raw = copy.deepcopy(dto)
+        binding = raw['remote'].pop('client_binding')
+        proof = verify(binding['endorsement'], a.manifest.nodes[0]['certificate'], 'peer-client')
+        assert proof['operation_sha256'] == c.sha256(raw)
+        assert proof['principal']['subject'] == fed.open_lab_subject(a.manifest.cluster_id)
+        assert proof['origin'] == dict(a.manifest.audience, node_id=a.node.node_id)
+        peer = verify_manifest(binding['manifest'], binding['anchor_certificate'],
+                               expected_key_id=proof['peer_anchor_key_id'])
+        assert peer.audience == b.manifest.audience
+        assert proof['peer_manifest_sha256'] == c.sha256(binding['manifest'])
+        assert dto['review']['principal']['subject'] == fed.open_lab_subject(b.manifest.cluster_id)
 
 
 @pytest.mark.asyncio

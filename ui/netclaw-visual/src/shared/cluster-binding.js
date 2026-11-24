@@ -81,12 +81,53 @@ export async function verifyClusterDescriptor(value, { pin, acceptedAnchor, orig
  return {descriptor:structuredClone(value),pin:{cluster_id:m.cluster_id,generation:m.generation,anchor_key_id:value.anchor_key_id,manifest_revision:m.revision,manifest_sha256:manifestHash}};
 }
 export function clusterAudience(cluster, principal) {check(cluster&&uuid(cluster.cluster_id)&&uuid(cluster.generation)&&identifier(principal?.issuer)&&identifier(principal?.subject));return `cluster.${cluster.cluster_id}.${cluster.generation}.${encodeURIComponent(principal.issuer)}.${encodeURIComponent(principal.subject)}`;}
+const federatedReviews = new WeakMap(), federatedOperations = new WeakMap();
+const sameAudience = (a,b) => a?.cluster_id===b?.cluster_id&&a?.generation===b?.generation;
+function federatedReview(cluster, review, principal) {
+ const binding=review&&federatedReviews.get(review);
+ return binding&&sameAudience(binding.local,cluster)&&binding.local.anchor_key_id===cluster.anchor_key_id&&
+   binding.review===clusterCanonical(review)&&(!principal||binding.principal===clusterCanonical(principal))?binding:null;
+}
+/** Verify the trusted ingress's peer endorsement before accepting a remote DTO.
+ * Receiving authority, principal and immutable review remain distinct from ours.
+ * No proof is stored in browser references and no endorsement grants execution.
+ */
+export async function verifyFederatedOperation(cluster, operation, principal, {now=Date.now()}={}) {
+ if(!operation?.remote)return operation;
+ check(cluster&&principal?.issuer==='open-lab','peer_client_refused');
+ const remote=operation.remote,b=remote.client_binding,e=b?.endorsement;
+ check(exact(b,'manifest anchor_certificate endorsement')&&exact(e,'kind payload key_id signature')&&e.kind==='peer-client','peer_client_binding_missing');
+ const p=e.payload;
+ check(exact(p,'origin principal peer_anchor_key_id peer_manifest_sha256 operation_sha256')&&exact(p.origin,'cluster_id generation node_id')&&sameAudience(p.origin,cluster)&&clusterCanonical(p.principal)===clusterCanonical(principal),'peer_client_audience_mismatch');
+ const node=cluster.manifest.manifest.nodes.find(n=>n.node_id===p.origin.node_id);
+ check(node&&e.key_id===node.key_id&&operation.authority?.served_by===node.node_id&&sameAudience(operation.authority,cluster),'peer_client_issuer_mismatch');
+ const key=await globalThis.crypto.subtle.importKey('spki',certificate(node.certificate,now),{name:'ECDSA',namedCurve:'P-256'},false,['verify']);
+ check(await globalThis.crypto.subtle.verify({name:'ECDSA',hash:'SHA-256'},key,rawSignature(e.signature),bytes('netclaw.ncfed.ha/peer-client/v1\0'+clusterCanonical(p))),'peer_client_signature_invalid');
+ const raw=structuredClone(operation);delete raw.remote.client_binding;
+ check(hash(p.operation_sha256)&&await digest(bytes(clusterCanonical(raw)))===p.operation_sha256&&await digest(bytes(clusterCanonical(b.manifest)))===p.peer_manifest_sha256,'peer_client_digest_mismatch');
+ const m=b.manifest?.manifest,served=m?.nodes?.find(n=>n.node_id===remote.served_by);
+ check(served&&sameAudience(m,remote.cluster)&&!sameAudience(m,cluster)&&sameAudience(remote.authority,m)&&remote.authority.mode==='cluster'&&integer(remote.authority.epoch,1),'peer_client_authority_mismatch');
+ // This synthetic no-quorum descriptor validates identity only. It never
+ // supplies authority or claims a live leader observation for the peer.
+ const descriptor={schema_version:1,mode:'cluster',cluster_id:m.cluster_id,generation:m.generation,manifest_revision:m.revision,node_id:served.node_id,installation_id:served.installation_id,manifest:b.manifest,anchor_certificate:b.anchor_certificate,anchor_key_id:p.peer_anchor_key_id,authority:{state:'no_quorum',leader_node_id:null,epoch:null,observed_at_ms:0}};
+ await verifyClusterDescriptor(descriptor,{acceptedAnchor:p.peer_anchor_key_id,now});
+ const peerPrincipal=await clusterLabPrincipal(m.cluster_id),origin=operation.origin;
+ check(sameAudience(origin,cluster)&&origin.principal_subject===principal.subject&&origin.client_nonce===operation.client_nonce&&clusterReviewMatches(descriptor,operation.review,peerPrincipal),'peer_client_review_mismatch');
+ check(operation.review_digest===await digest(bytes(clusterCanonical(operation.review))),'peer_client_review_digest_mismatch');
+ const binding={local:{cluster_id:cluster.cluster_id,generation:cluster.generation,anchor_key_id:cluster.anchor_key_id},principal:clusterCanonical(principal),review:clusterCanonical(operation.review),operation:clusterCanonical(operation),epoch:remote.authority.epoch};
+ federatedReviews.set(operation.review,binding);federatedOperations.set(operation,binding);return operation;
+}
 export function clusterReviewMatches(cluster, review, principal) {
+ if(federatedReview(cluster,review,principal))return true;
  const c=review?.cluster,node=cluster?.manifest?.manifest?.nodes?.find(n=>n.node_id===c?.issuer_node_id);
  return Boolean(c&&exact(c,'cluster_id generation manifest_revision issuer_node_id authority_epoch')&&c.cluster_id===cluster.cluster_id&&c.generation===cluster.generation&&integer(c.manifest_revision,1,cluster.manifest_revision)&&integer(c.authority_epoch,1)&&node&&review.border?.installation_id===node.installation_id&&review.border?.key_id===node.key_id&&(!principal||clusterCanonical(review.principal)===clusterCanonical(principal)));
 }
 export const clusterCanAdmit = c => !c || ['leader','follower'].includes(c.authority?.state)&&integer(c.authority?.epoch,1);
-export const clusterCanDecide = (c,op) => !c || clusterCanAdmit(c)&&clusterReviewMatches(c,op?.review)&&op.review.cluster.authority_epoch===c.authority.epoch;
+export const clusterCanDecide = (c,op) => {
+ if(!c)return true;if(!clusterCanAdmit(c)||!clusterReviewMatches(c,op?.review))return false;
+ if(op?.remote){const b=federatedOperations.get(op);return Boolean(b&&b.operation===clusterCanonical(op)&&op.authority.epoch===c.authority.epoch&&op.review.cluster.authority_epoch===b.epoch);}
+ return op.review.cluster.authority_epoch===c.authority.epoch;
+};
 export function clusterStatusText(c) {if(!c)return '';const a=c.authority;return ({leader:'This Border holds execution authority.',follower:'This Border forwards protected requests to the current authority.',no_quorum:'Quorum is unavailable. New protected work is stopped; retained results remain recoverable.',fenced:'This cluster is fenced. New protected work is stopped.',retired:'This Border is retired. Select a trusted active cluster endpoint.'})[a?.state]||'Cluster authority is unavailable.';}
 export function clusterErrorMessage(code) {return ({no_quorum:'Quorum is unavailable. Recover the same operation after authority returns.',quorum_unavailable:'Quorum is unavailable. Recover the same operation after authority returns.',stale_authority:'Authority changed. Recover the same operation and review its current state.',stale_review:'This review belongs to an earlier authority. Recover the same operation; no decision was resent.',cluster_changed:'Cluster identity or generation changed. The original references are preserved.',node_retired:'This Border is retired. Select an enrolled cluster endpoint.',stale_manifest:'The endpoint advertised an older cluster manifest. The saved binding is preserved.'})[code];}
 export async function clusterLabPrincipal(clusterId) {

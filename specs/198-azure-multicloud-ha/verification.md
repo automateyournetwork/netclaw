@@ -306,3 +306,13 @@ cluster/principal checks is not an acceptable repair. The current DTO also
 returns the original client nonce only for prepare, so status recovery needs
 consistent nonce provenance. Both gaps remain open pending a verified repair and
 fresh signed deployment.
+
+Client repair source validation:74Python federation/manifest/authority/admission
+checks pass under the qualified Python3.12 environment;549HUD tests pass; native
+TypeScript checking/build pass. The extension suite initially found one stale
+region-label expectation from the earlier observed-region display change; it was
+corrected to assert the actual region and reject a false Belgium label for Azure.
+40targeted editor tests and the added native peer-verification test pass. The
+public cross-language fixture contains controlled signatures, no private keys and
+no provider/native-effect evidence. This is source validation only; fresh live
+native acceptance and the matrix remain required.

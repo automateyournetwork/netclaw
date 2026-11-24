@@ -640,8 +640,21 @@ class PeerFederation:
                             'epoch': epoch_now, 'observation_only': True}
         dto['remote'] = {'cluster': peer.audience, 'label': peer.label, 'authority': remote_authority,
                          'served_by': proof['served_by'], 'response_sha256': proof['result_sha256']}
-        if original_nonce is not None:
-            dto['client_nonce'] = original_nonce
+        # Keep the caller's original reference on every response, including a
+        # status read through an ingress without an operation index. The receiving
+        # ledger keeps its separate namespaced nonce and signed origin metadata.
+        client_nonce = (dto.get('origin') or {}).get('client_nonce', original_nonce)
+        if client_nonce is not None:
+            dto['client_nonce'] = client_nonce
+        enrollment = peer.manifest.public_enrollment
+        binding = {'origin': {**self.ops.manifest.audience, 'node_id': self.node.node_id},
+                   'principal': principal, 'peer_anchor_key_id': peer.manifest.anchor_key_id,
+                   'peer_manifest_sha256': c.sha256(enrollment['manifest']),
+                   'operation_sha256': c.sha256(dto)}
+        # Clients trust their pinned local node's explicit endorsement of this
+        # configured peer and exact DTO. This is evidence, never an execution permit.
+        dto['remote']['client_binding'] = {**enrollment,
+                                          'endorsement': sign('peer-client', binding, self.node.private_key)}
         self._audit('protected_peer_relay_result', principal, dto['operation_id'], peer, action,
                     {'state': dto.get('state'), 'remote_operation_id': dto['operation_id'],
                      'response_sha256': proof['result_sha256'], 'remote_epoch': (remote_authority or {}).get('epoch')})
@@ -688,6 +701,7 @@ class PeerFederation:
                     'principal_subject': payload['principal']['subject'],
                     'relay_sha256': c.sha256(payload), 'origin_epoch': payload['origin_epoch']}
         if action == 'prepare':
+            recorded['client_nonce'] = body['client_nonce']
             nonce = 'peer-' + c.sha256({'origin': origin['cluster_id'], 'nonce': body['client_nonce']})[:40]
             return await ops._local_prepare(dict(body, client_nonce=nonce, auth_context=ctx), origin=recorded)
         c.uuid_field(body['operation_id'])

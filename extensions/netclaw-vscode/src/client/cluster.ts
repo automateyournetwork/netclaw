@@ -1,17 +1,29 @@
 import { createHash } from "node:crypto";
 import type { Json } from "./hud";
+type SharedVerifier = {
+  verifyClusterRuntime(runtime: Json, options: Json): Promise<ClusterBinding>;
+  verifyFederatedOperation(cluster: Json | undefined, operation: Json, principal: Json | undefined): Promise<Json>;
+  clusterReviewMatches(cluster: Json, review: Json, principal?: Json): boolean;
+  clusterCanDecide(cluster: Json | undefined, operation: Json): boolean;
+};
+let shared: SharedVerifier | undefined;
+async function sharedVerifier() { return shared ||= await import("../../../../ui/netclaw-visual/src/shared/cluster-binding.js"); }
+export async function verifyFederatedOperation(cluster: Json | undefined, operation: Json, principal: Json | undefined) {
+  return (await sharedVerifier()).verifyFederatedOperation(cluster, operation, principal);
+}
 export type ClusterBinding = { descriptor: Json; pin: Json };
 // Dynamic import is bundled into the native extension; the same verifier runs in HUD.
 export async function verifyClusterRuntime(runtime: Json, options: Json): Promise<ClusterBinding> {
-  return (await import("../../../../ui/netclaw-visual/src/shared/cluster-binding.js")).verifyClusterRuntime(runtime, options);
+  return (await sharedVerifier()).verifyClusterRuntime(runtime, options);
 }
 export const clusterReferencesKey = (c: Json, p: Json) => "owner-cluster-operations." + createHash("sha256").update([c.cluster_id, c.generation, p.issuer, p.subject].join("|")).digest("hex");
 export const clusterCanAdmit = (c?: Json) => !c || ["leader", "follower"].includes(c.authority?.state) && Number.isSafeInteger(c.authority?.epoch) && c.authority.epoch > 0;
-export function clusterReviewMatches(c: Json, review: Json) {
+export function clusterReviewMatches(c: Json, review: Json, principal?: Json) {
+  if (shared) return shared.clusterReviewMatches(c, review, principal);
   const r = review?.cluster, node = c.manifest.manifest.nodes.find((n: Json) => n.node_id === r?.issuer_node_id);
   return Boolean(r && Object.keys(r).sort().join(",") === "authority_epoch,cluster_id,generation,issuer_node_id,manifest_revision" && r.cluster_id === c.cluster_id && r.generation === c.generation && Number.isSafeInteger(r.manifest_revision) && r.manifest_revision > 0 && r.manifest_revision <= c.manifest_revision && Number.isSafeInteger(r.authority_epoch) && r.authority_epoch > 0 && node && node.installation_id === review.border?.installation_id && node.key_id === review.border?.key_id);
 }
-export const clusterCanDecide = (c: Json | undefined, op: Json) => !c || clusterCanAdmit(c) && clusterReviewMatches(c, op.review) && op.review.cluster.authority_epoch === c.authority.epoch;
+export const clusterCanDecide = (c: Json | undefined, op: Json) => shared ? shared.clusterCanDecide(c, op) : !c || !op.remote && clusterCanAdmit(c) && clusterReviewMatches(c, op.review) && op.review.cluster.authority_epoch === c.authority.epoch;
 export function clusterStatus(c?: Json) {
   if (!c) return undefined;
   return ({leader:"This Border holds execution authority.",follower:"This Border forwards protected requests to the current authority.",no_quorum:"Quorum is unavailable. New protected work is stopped; recover retained work.",fenced:"Cluster fenced. New protected work is stopped.",retired:"Border retired. Select a trusted active cluster endpoint."} as Record<string,string>)[c.authority?.state] || "Authority is unavailable.";

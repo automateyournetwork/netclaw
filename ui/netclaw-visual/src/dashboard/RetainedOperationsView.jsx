@@ -68,7 +68,7 @@ export default function RetainedOperationsView({ api, principal, installationId,
     const id = recoverId;
     if (refs.current.length >= REFERENCE_CAPACITY && !refs.current.some(ref => ref.operation_id === id)) { setError('Retained operation capacity reached. Remove a resolved reference first.'); return; }
     locked.current = true; setBusy(true); setError('');
-    try { const expected = { [recoverKind]: id }; const value = await api.status(expected); if ((cluster ? !clusterReviewMatches(cluster, value?.review, principal) : value?.review?.border?.installation_id !== installationId) || value?.review?.principal?.issuer !== principal.issuer || value?.review?.principal?.subject !== principal.subject) throw Error('The recovered operation belongs to a different Border or operator.'); if (alive.current) { setSelectedNonce(retain({ ...value, decision_sent: true, revoke_sent: true }, expected)); setRecoverId(''); } }
+    try { const expected = { [recoverKind]: id }; const value = await api.status(expected); if (cluster ? !clusterReviewMatches(cluster, value?.review, principal) : value?.review?.border?.installation_id !== installationId || value?.review?.principal?.issuer !== principal.issuer || value?.review?.principal?.subject !== principal.subject) throw Error('The recovered operation belongs to a different Border or operator.'); if (alive.current) { setSelectedNonce(retain({ ...value, decision_sent: true, revoke_sent: true }, expected)); setRecoverId(''); } }
     catch (failure) { if (alive.current) setError(failure.message); }
     finally { locked.current = false; if (alive.current) setBusy(false); }
   };

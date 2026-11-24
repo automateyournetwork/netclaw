@@ -1,4 +1,4 @@
-import { clusterCanAdmit, clusterCanDecide, clusterErrorMessage, clusterReviewMatches, clusterAudience } from './cluster-binding.js';
+import { clusterCanAdmit, clusterCanDecide, clusterErrorMessage, clusterReviewMatches, clusterAudience, verifyFederatedOperation } from './cluster-binding.js';
 import { validOperationReference, cleanOperationReference, mergeOperationReference } from './protected-operation-references.js';
 /** Session authority remains in memory; browser persistence holds identifiers only. */
 export function isOpenLabAccess(access) {
@@ -35,6 +35,7 @@ export function createProtectedOperationsApi(installationId, onSessionLost = () 
       const message = clusterErrorMessage(value.code) || (prepareNotSubmitted ? 'The review was rejected before submission. Nothing was executed.' : response.status === 401 && !openLab ? 'Your owner session expired. Sign in again to recover this operation.' : response.status === 403 ? 'The request was refused. Check the configured HUD origin and access mode.' : response.status === 404 ? 'No owned operation was found. Nothing was resent.' : response.status === 429 ? 'Too many sign-in attempts. Wait one minute before trying again.' : 'The request was not confirmed. Check the same operation’s status before continuing.');
       throw Object.assign(Error(message), { status: response.status, code: value.code, uncertain: response.status >= 500, prepareNotSubmitted });
     }
+    if(value?.remote)await verifyFederatedOperation(cluster,value,access?.principal);
     return value;
   };
   const retainSession = value => {
