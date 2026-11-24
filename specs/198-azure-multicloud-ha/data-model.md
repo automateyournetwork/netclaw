@@ -1,5 +1,10 @@
 # Data Model: R10 Azure
 
+> Current resumption: [resume-20261124.md](resume-20261124.md). The owner resumed
+> bounded work on November24. Its scope, budget gate and measured latency finding
+> supersede the historical status, topology and sequencing below. No new live
+> acceptance is implied. The binding peer contract uses ONE group per member.
+
 All state is files; nothing is stored in a database.
 
 - **Phase** `{id: p1-preflight|p2-single|p3-ha|p4-mesh, resource_group, regions[], status: planned|go|up|verified|down, go_at, down_at, est_cost_usd, tag: netclaw-spec=198, phase=<id>}`

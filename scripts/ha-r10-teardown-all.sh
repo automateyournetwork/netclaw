@@ -5,7 +5,9 @@
 set -uo pipefail
 here="$(cd "$(dirname "$0")/.." && pwd)"; cd "$here"; P="${GCP_PROJECT:-netclaw-506315}"; BASE="${DOMAIN_BASE:-automateyournetwork.com}"
 bad=0; say() { printf '%s\n' "$*"; }; retry() { local n=$1; shift; for i in $(seq 1 "$n"); do "$@" && return 0; sleep 8; done; return 1; }
-pkill -f "protected-role.py --contract" || true
+for r in ${AZ_RUN:-} ${GC_RUN:-}; do
+  R10_RUN_ID="$r" bash scripts/ha-r10-members.sh stop || { say "owned member stop failed: $r"; bad=1; }
+done
 if [ -n "${AZ_GROUP:-}" ]; then
   case "$AZ_GROUP" in rg-nc198-*) ;; *) say "refused: $AZ_GROUP"; exit 2;; esac
   retry 6 az group delete -n "$AZ_GROUP" -y --no-wait >/dev/null 2>&1 && say "azure delete requested: $AZ_GROUP" || { say "AZURE DELETE FAILED"; bad=1; }

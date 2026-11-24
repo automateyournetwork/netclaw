@@ -1,7 +1,7 @@
 # Tasks: R10 Azure Multi-Cloud
 
 **Input**: `specs/198-azure-multicloud-ha/` (spec, plan, research, data-model, contracts, quickstart)
-**Paused by owner on 2026-11-14**: stop deployment, tear down this run, leave handoff. Do not resume cloud creation without a new instruction. See `handoff.md`.
+**Resumed by owner on 2026-11-24** from `ca64f507`. Current scope, evidence and the renewed USD15 pause are in `resume-20261124.md`. Historical stops below are superseded by this resume, not by checkbox counts. No new paid run has begun.
 
 **Execution authorization before this pause**: See `activation-delegation.md`. Azure region substitutions and Azure phases are authorized; owner explicitly added the three-Border GCP mesh after Azure qualification. Retain USD15/USD25 gates and publication holds.
 
@@ -37,10 +37,10 @@
 **Independent test**: one Azure Border live over trusted TLS; Mac subnet member and hosted NetBox member each complete a real operation.
 
 - [x] T014 [US2] Superseded: full OpenShell/DefenseClaw requires Ubuntu24.04 amd64, Docker>=28 and Landlock ABI>=3. Adapt/verify the R09A full stack; Debian12 bootstrap is diagnostic only. **[satisfied: the full OpenShell/DefenseClaw stack on Ubuntu 24.04 ran live (verification.md 2026-11-15)]**
-- [x] T015 [US2] `r09_prepare.py` already takes `--node code=internal,public` (cloud-neutral); deploy side covered by the `ha-r10-*` copies. Untested live. NOTE: `ha-r09-vm-net-etcd.sh` public-IP alias/DNAT shim applies on Azure too (public IP is not on the NIC)
+- [x] T015 [US2] `r09_prepare.py` already takes `--node code=internal,public` (cloud-neutral); deploy side covered by the `ha-r10-*` copies. Live preparation/deployment proven by the six-Border runs; fresh preparation required for changed source. NOTE: `ha-r09-vm-net-etcd.sh` public-IP alias/DNAT shim applies on Azure too (public IP is not on the NIC)
 - [x] T016 [US2] Store the owner's current NetBox token in `~/.openclaw/.env` via `scripts/write-env.py` (stdin only, never echoed); verify against demo.netbox.dev
 - [x] T017 [GO] [US2] Phase p2-single: `up` one Border (canadacentral), DNS A record, lego cert, deploy, place provider key (port `ha-r09-place-provider-key.sh` to driver), start Border + HUD **[done in run r10c: one full Azure Border; see verification.md]**
-- [x] T018 [GO] [US2] Enroll Mac subnet-calculator member (`r09_member.py` subnet flavor) and hosted NetBox member; run one operation each; capture workspace + audit evidence **[PARTIAL, left open: hosted NetBox member completed with durable ACK; the Mac subnet member validates but has not run a live operation]**
+- [ ] T018 [GO] [US2] Enroll Mac subnet-calculator member (`r09_member.py` subnet flavor) and hosted NetBox member; run one operation each; capture workspace + audit evidence **[PARTIAL: hosted-Sonnet NetBox and Mac subnet execution have live ACK evidence. Prior members ran on the Mac; physical CLOUD placement of the NetBox member is still unproven. See resumed acceptance.]**
 - [x] T019 [GO] [US2] Teardown p2-single (group delete, DNS records, key shredded), verify empty by tag; append EvidenceRecord with measured cost **[done: r10c torn down and verified empty (handoff.md end-of-session update)]**
 
 ## Phase 5: US3 3-region HA (P3)
@@ -57,10 +57,10 @@
 
 **Independent test**: operation entered on one cloud completes through the other; both audits show it.
 
-- [x] T025 [US4] Write `specs/198-azure-multicloud-ha/contracts/cross-cloud-federation.md` (peer enrollment, pinned keys, which operation crosses, expected audit rows) reusing features 052-066/189/190 **[OPEN: contracts/cross-cloud-federation.md is owned by the mesh-design work and not yet accepted]**
-- [x] T026 [GCP-GO] [US4] Stand up three small GCP Borders in distinct regions (driver `gcp`, label spec 198), form their HA group, and connect it to the retained three-Border Azure HA group (six total) **[PARTIAL, left open: three GCP Borders stood up as a group (r10f); not yet connected to the Azure group]**
-- [ ] T027 (PARTIAL: union catalog + relay + one completed cross-cloud op live; Azure->GCP completed op and all-follower ingress not shown; see verification.md 2026-11-16) [GCP-GO] [US4] Federate the two HA groups; prove all six ingresses, GCP-to-Azure and Azure-to-GCP operations, capture both authority/audit trails and no-replay recovery evidence **[OPEN: cross-group execution has no live proof yet]**
-- [x] T028 [GCP-GO] [US4] Teardown both clouds, delete DNS records, verify empty on both; EvidenceRecord with cost **[PARTIAL, left open: r10e/r10f torn down and verified; repeat after the final federation run]**
+- [x] T025 [US4] Write `specs/198-azure-multicloud-ha/contracts/cross-cloud-federation.md` (peer enrollment, pinned keys, which operation crosses, expected audit rows) reusing features 052-066/189/190 **[DONE as a design/source task: signed peer relay contract implemented and negative-tested; partial live evidence below. Human/live acceptance remains T027, not inferred here.]**
+- [x] T026 [GCP-GO] [US4] Stand up three small GCP Borders in distinct regions (driver `gcp`, label spec 198), form their HA group, and connect it to the retained three-Border Azure HA group (six total) **[DONE: r10k/r10l had both groups, six functioning union catalogs and signed relays; successful execution acceptance remains T027.]**
+- [ ] T027 (PARTIAL: union catalog + relay + one completed cross-cloud op live; Azure->GCP completed op and all-follower ingress not shown; see verification.md 2026-11-16) [GCP-GO] [US4] Federate the two HA groups; prove all six ingresses, GCP-to-Azure and Azure-to-GCP operations, capture both authority/audit trails and no-replay recovery evidence **[OPEN: GCP-to-Azure subnet success exists; Azure-to-GCP success and all-follower execution remain unproven. Latest stable-network r10k/r10l finding is authoritative.]**
+- [ ] T028 [GCP-GO] [US4] Teardown both clouds, delete DNS records, verify empty on both; EvidenceRecord with cost **[PARTIAL: historical runs retired and fresh November24 inventory is empty; export and verified retirement of the resumed final run remain required.]**
 
 ## Phase 7: US5 Docs and release gate (P5, free)
 
@@ -72,9 +72,16 @@
 
 ## Phase 8: Polish
 
-- [ ] T034 (PENDING: Azure cost data lags ~1 day; reconcile against Cost Management, see verification.md closing record) Final spend reconciliation from the Azure billing view vs ledger; record in verification.md (SC-001)
+- [ ] T034 (PARTIAL: November24 Azure Cost Management returns CAD6.8605695141; GCP actual costs, currency reconciliation and final-run costs remain open) Final spend reconciliation from the Azure billing view vs ledger; record in verification.md (SC-001)
 - [x] T035 (drafted at specs/198-azure-multicloud-ha/wordpress-draft.md; NOT published, owner review only) Draft WordPress milestone post for owner review only (constitution XVII), never publish
-- [x] T036 (zero resources confirmed 2026-11-16; PR NOT opened, awaits owner approval) Confirm GCP project and Azure subscription show zero spec-198 resources; open PR only on owner approval
+- [ ] T036 (zero owned resources freshly confirmed 2026-11-24; repeat after resumed qualification; PR NOT authorized) Confirm GCP project and Azure subscription show zero spec-198 resources; open PR only on owner approval
+
+## Resumed acceptance explicitly tracked (2026-11-24)
+
+- [ ] T037 Diagnose r10k/r10l admission and validate the smallest repair in a fresh signed LIVE deployment. **[PARTIAL: source-matched nearest selection; controlled latency reproduction and126tests pass; live qualification pending.]**
+- [ ] T038 Complete a GCP operation with durable ACK after stopping the observed GCP leader and confirming a different leader/increased epoch; retain original unknowns.
+- [ ] T039 Prove actual HUD rendering and native VS Code discovery/review/approval/reconciliation, including a remote operation and GET-only recovery without repeated effects.
+- [ ] T040 Obtain an actual stopped/unavailable-guard fail-closed witness; prior automatic sidecar restart made that test inconclusive.
 
 ## Dependencies
 

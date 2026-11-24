@@ -1,5 +1,10 @@
 # Six-Border mesh design (any cloud, any Border)
 
+> Current resumption: [resume-20261124.md](resume-20261124.md). The owner resumed
+> bounded work on November24. Its scope, budget gate and measured latency finding
+> supersede the historical status, topology and sequencing below. No new live
+> acceptance is implied. The binding peer contract uses ONE group per member.
+
 Owner requirement (2026-11-15): an operation entered on ANY of six Borders (3 Azure, 3 GCP) must reach ANY member, with no
 "blocked by design" carve-out. Protected mode stays on. The legacy eN2N execution routes stay refused; the mesh is built on
 the protected path instead.

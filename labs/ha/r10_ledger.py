@@ -5,10 +5,24 @@ usage: r10_ledger.py [--file F] start <phase> <resource> <usd_per_hour> | stop <
 Exit 3 when a start is refused (paused or over ceiling).
 """
 import argparse, json, math, os, sys, time
+from contextlib import contextmanager
+import fcntl
 
 CEILING = 25.0
 PAUSE = 15.0
 DEFAULT = os.path.expanduser('~/.local/share/netclaw/r10-ledger.json')
+
+
+@contextmanager
+def locked(path):
+    """Serialize the complete read/check/write, including separate phase CLIs."""
+    os.makedirs(os.path.dirname(os.path.abspath(path)), mode=0o700, exist_ok=True)
+    fd = os.open(path + '.lock', os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o600)
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX)
+        yield
+    finally:
+        os.close(fd)
 
 
 def load(path):
@@ -66,6 +80,11 @@ def main(argv=None):
     sub.add_parser('status'); sub.add_parser('approve-over-pause')
     c = sub.add_parser('charge'); c.add_argument('phase'); c.add_argument('resource'); c.add_argument('usd', type=float)
     a = ap.parse_args(argv)
+    with locked(a.file):
+        return execute(a)
+
+
+def execute(a):
     now = time.time() if a.now is None else a.now
     d = load(a.file)
     if a.cmd == 'start':

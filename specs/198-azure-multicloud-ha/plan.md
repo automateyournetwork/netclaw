@@ -1,5 +1,10 @@
 # Implementation Plan: R10 Azure Multi-Cloud
 
+> Current resumption: [resume-20261124.md](resume-20261124.md). The owner resumed
+> bounded work on November24. Its scope, budget gate and measured latency finding
+> supersede the historical status, topology and sequencing below. No new live
+> acceptance is implied. The binding peer contract uses ONE group per member.
+
 **Branch**: `198-azure-multicloud-ha` | **Date**: 2026-11-14 | **Spec**: [spec.md](spec.md)
 
 ## Summary

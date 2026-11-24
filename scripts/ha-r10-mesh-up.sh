@@ -25,10 +25,12 @@ past() { local s; for s in "${STEPS[@]}"; do [ "$s" = "$FROM" ] && return 0; [ "
 step_vms() {
   python3 labs/ha/r10_ledger.py status | grep -q '"paused": false' || { echo "ledger paused" >&2; return 3; }
   bash scripts/ha-r10-run-init.sh "$AZ_RUN" "${R10_HOURS:-8}" "$AZ_GROUP_NAME" >/dev/null
-  bash scripts/ha-r10-run-init.sh "$GC_RUN" "${R10_HOURS:-8}" --gcp-project "${GCP_PROJECT:-netclaw-506315}" --gcp-firewall "$GC_PREFIX-allow" >/dev/null
-  R10_GO=p3-ha-az R10_SIZE="$R10_SIZE_AZ" R10_RATE_USD_PER_H=0.15 bash scripts/ha-r10-phase.sh up p3-ha-az nne1 ew1 ase1 &
-  GCP_VM_PREFIX="$GC_PREFIX" R10_GO=p3-ha-gc R10_SIZE="$R10_SIZE_GCP" R10_RATE_USD_PER_H=0.10 bash scripts/ha-r10-phase.sh up p3-ha-gc nne1 ew1 ase1 --provider gcp &
-  wait
+  bash scripts/ha-r10-run-init.sh "$GC_RUN" "${R10_HOURS:-8}" --gcp-project "${GCP_PROJECT:-netclaw-506315}" \
+    --gcp-firewall "$GC_PREFIX-owner" --gcp-firewall "$GC_PREFIX-mesh" --gcp-firewall "$GC_PREFIX-allow-fed" >/dev/null
+  # Exact run labels are required by the watchdog. Serial phase creation also
+  # propagates a failure instead of masking a failed background `up` with wait.
+  R10_RUN_ID="$AZ_RUN" R10_GO=p3-ha-az R10_SIZE="$R10_SIZE_AZ" R10_RATE_USD_PER_H=0.15 bash scripts/ha-r10-phase.sh up p3-ha-az nne1 ew1 ase1
+  R10_RUN_ID="$GC_RUN" GCP_VM_PREFIX="$GC_PREFIX" R10_GO=p3-ha-gc R10_SIZE="$R10_SIZE_GCP" R10_RATE_USD_PER_H=0.12 bash scripts/ha-r10-phase.sh up p3-ha-gc nne1 ew1 ase1 --provider gcp
 }
 run_step() { # <step>: both groups in parallel; all must succeed
   local s="$1" g rc=0 pids=()

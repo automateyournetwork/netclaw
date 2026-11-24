@@ -2,7 +2,7 @@
 # Spec 198 member tooling for one HA group (hosted Sonnet only, no local model).
 #   R10_RUN_ID=<id> GROUP=<tag> GEN=<gen dir> bash scripts/ha-r10-members.sh build <flavor:name>...   # e.g. netbox:az1 subnet:azsn1
 #   R10_RUN_ID=<id> GROUP=<tag> bash scripts/ha-r10-members.sh start <name>...                       # run on this Mac, dialing the group's Borders
-#   bash scripts/ha-r10-members.sh stop                                                              # stop every member process
+#   R10_RUN_ID=<id> bash scripts/ha-r10-members.sh stop                                               # only this run's members
 # build writes $EV/members/<name>.json (identity for enroll-members). Secrets come from ~/.openclaw/.env and .env at run time only.
 set -euo pipefail
 here="$(cd "$(dirname "$0")/.." && pwd)"; cd "$here"
@@ -30,6 +30,6 @@ case "$verb" in
     : "${RUN:?R10_RUN_ID}"
     for n in "$@"; do M="$EV/member-$n"; P="$(python3 -c "import json;print(json.load(open('$M/contract.json'))['python'])")"; H="$(python3 -c "import json;print(json.load(open('$M/contract.json'))['home'])")"
       (cd "$H" && env -i PATH=/usr/bin:/bin:/usr/local/bin HOME="$H" nohup "$P" -I -B "$M/source/scripts/protected-role.py" --contract "$M/contract.json" run > "$EV/member-$n.log" 2>&1 &); done; echo "started $#";;
-  stop) pkill -f "protected-role.py --contract" || true; echo stopped;;
+  stop) : "${RUN:?R10_RUN_ID}"; "$PY" "$here/labs/ha/r10_processes.py" --root "$EV";;
   *) echo "unknown verb" >&2; exit 2;;
 esac

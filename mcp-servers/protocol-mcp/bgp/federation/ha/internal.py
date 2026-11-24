@@ -226,4 +226,9 @@ class MemberAttachments:
         # reconnection or another available Border never triggers a second send.
         available = nearest_channels(self.channels)
         check(available, 'border_transport_unavailable', 503)
-        return await available[0].call('execution/admission', request, timeout=5)
+        # A signed WAN admission window may exceed the historical five-second
+        # transport timeout. Waiting is not authority: MemberAdmission still
+        # measures from before journal I/O and rejects an expired receipt at
+        # consume and at the effect boundary. Never retry on another attachment.
+        timeout = max(5.0, self.manifest.limits['admission_ms'] / 1000)
+        return await available[0].call('execution/admission', request, timeout=timeout)

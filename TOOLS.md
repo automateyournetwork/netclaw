@@ -1769,3 +1769,22 @@ Five actual120-second real-snapshot Genie4 recordings and local static playback 
 
 ### Genie Network Worlds integration — Spec200
 Optional `genie-worlds` catalog component, six stdio controls and `netclaw-genie-worlds` skill. Cisco pyATS evidence stays authoritative; Google Genie4 media is illustrative. Terminal and VS Code setup bind a selected local backend; the Risk member receives only its private control capability. Setup does not create worlds, approve export or transfer Google credentials. Five actual recordings are retained; exact fidelity, billing reconciliation and native Risk-member execution remain separately reported. See docs/GENIE-WORLDS.md.
+
+
+### Spec198 stable-network admission diagnosis — 2026-11-24
+
+The r10l frozen source ALREADY includes nearest-authenticated-Border selection;
+its signed admission window was4500ms. Controlled real-TLS reproduction with the
+recorded320ms quorum-call cost measures15calls/4.88s through a follower,9calls/2.94s
+through a leader. A transport-only timeout increase does not fix signed expiry.
+The proposed fresh9s manifest plus manifest-derived RPC wait passes controlled
+6.08s admission and rejects a9s timeout without effects; live qualification is
+still pending. Preserve all original unknowns/fences. See Spec198 resume-20261124.
+
+Ledger remains USD13.9276 including the full USD5 reserve; Azure actual cost is
+CAD6.8606, GCP actual reconciliation remains open. A fresh6h seven-host envelope
+is USD23.0076 cumulative and requires renewed approval at the USD15 pause. The
+old global approval bit must not be mistaken for that approval. No cloud assets
+were created during diagnosis. Never use broad protected-role pkill: retained
+Spec200/other owner services are outside the run. Run labels, correct firewall
+names, non-replayable watchdog setup and serialized ledger writes were repaired.

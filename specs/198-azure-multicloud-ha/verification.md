@@ -235,3 +235,27 @@ Results (evidence `~/.local/share/netclaw/r10-matrix-1/`):
 Root cause (measured, not yet fixed): the member's agent container saw `502` after 5021 ms on its first model call, then `403 inference_refused`. `ha/internal.py:229` gives `execution/admission` a 5 s timeout. GCP Borders were in northamerica-northeast1, europe-west1, asia-southeast1 (RTT 107 ms and 238 ms measured from nne1). Each etcd txn on the GCP Border took about 320 ms (3 txns/s from `border-role.log`), so admission exceeds 5 s. Azure Borders are far closer together, so Azure admission fits. Mac-to-Border latency (60-230 ms) was similar in both groups and is not the cause. No GCP network denials, provider profile correct (`auth_style: header`).
 
 Options not taken (owner chose to stop): rebuild the GCP group in tighter regions (no qualified-code change), or raise the admission timeout (qualified code, needs owner review and a fresh signed prepare). The earlier r10i/r10j GCP success predates this finding and should be re-read with it in mind.
+
+
+## November24 resumed investigation (no new paid run)
+
+See [resume-20261124.md](resume-20261124.md) for current authentication, inventory,
+ledger, billing and the concrete proposed USD23.0076 cumulative reservation.
+Azure validation passed for the exact full-host selection in all three regions;
+GCP quotas are available in all three unchanged regions. Zero owned cloud
+resources and zero old R10 watchdogs were observed.
+
+The r10l frozen source ALREADY includes nearest-Border selection (exact hash match
+to the resumed checkout), while its signed admission window is4500ms. A controlled
+real-TLS/fixture-quorum reproduction measured15quorum calls for follower admission:
+4.88s at320ms/call,6.08s at400ms/call. The former fails the original freshness
+limit; the latter also exceeds the old5s RPC wait. A9s signed window plus a
+manifest-derived wait passes both; a700ms/call case times out at9s with zero
+fixture effects.126targeted tests passed. These are controlled tests, not live
+Azure/GCP/provider acceptance. All three actual live gaps remain open.
+
+Azure ActualCost now reports CAD6.8605695141. GCP actual billing remains unavailable
+through the current API/export/browser surfaces. The full historical USD13.9276
+hold remains; no reserve was reduced and no Genie allowance was transferred.
+Checked tasks carrying stale PARTIAL/OPEN notes were reconciled; cloud NetBox
+placement, native HUD/VS Code and fail-closed guard proof remain explicit tasks.

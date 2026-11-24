@@ -1,4 +1,5 @@
 import os, sys, tempfile, unittest
+import subprocess
 sys.path.insert(0, os.path.dirname(__file__))
 import r10_ledger as L
 
@@ -44,6 +45,15 @@ class Ledger(unittest.TestCase):
     def test_duplicate_open_entry_refused(self):
         self.assertEqual(self.run_('start', 'p', 'a', '.1'), 0)
         self.assertEqual(self.run_('start', 'p', 'a', '.1'), 3)
+
+    def test_concurrent_reservations_cannot_bypass_pause_or_lose_entries(self):
+        self.run_('charge', 'all', 'history', '14')
+        commands = [[sys.executable, L.__file__, '--file', self.f, '--now', '0',
+                     'start', 'p', str(i), '.6', '--hours', '1'] for i in range(4)]
+        processes = [subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE) for cmd in commands]
+        for process in processes: process.communicate(timeout=10)
+        self.assertEqual(sorted(p.returncode for p in processes), [0, 3, 3, 3])
+        self.assertEqual(len(L.load(self.f)['entries']), 2)
 
 
 if __name__ == '__main__':

@@ -1,5 +1,10 @@
 # Research: R10 Azure
 
+> Current resumption: [resume-20261124.md](resume-20261124.md). The owner resumed
+> bounded work on November24. Its scope, budget gate and measured latency finding
+> supersede the historical status, topology and sequencing below. No new live
+> acceptance is implied. The binding peer contract uses ONE group per member.
+
 ## R1 VM size
 **Decision**: Standard_B2s (2 vCPU, 4 GiB) by default; preflight falls back to B2ls_v2/B2als_v2 if B2s is unavailable or quota-blocked per region.
 **Rationale**: R09 ran Borders on e2-medium (1 vCPU shared, 4 GiB); B2s is the nearest Azure equivalent at roughly $0.04-0.05/h. The full workspace in R09 (OpenClaw + HUD) fit 4 GiB.

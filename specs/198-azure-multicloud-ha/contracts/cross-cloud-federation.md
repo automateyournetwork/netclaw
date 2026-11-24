@@ -1,6 +1,6 @@
 # Cross-cloud federation contract (spec 198, FR-016, tasks T025-T027)
 
-Status: implemented and unit-tested offline; **not yet proven live** (needs the two-group build in "Live requirements").
+Status: implemented, negative-tested and PARTIALLY live-proven. Six union catalogs, signed receiving-ledger relay and one GCP-to-Azure subnet success exist. Azure-to-GCP success, every-follower execution and GCP successor success remain OPEN. See ../resume-20261124.md.
 Code: `mcp-servers/protocol-mcp/bgp/federation/ha/federation.py`, generator `labs/ha/r10_group.py peer-config`.
 Tests: `tests/n2n/test_ha_federation_198.py` (28), `tests/n2n/test_ha_policy_198.py` (federation egress cases),
 `labs/ha/test_r10_group.py`.
@@ -212,3 +212,20 @@ across a receiving-leader change mid-operation.
 | `ha/internal.py` | `MemberAttachments` records one measured attestation round trip per Border (`channel.rtt_ms`); new `nearest_channels()` orders authenticated attachments nearest-first (node id as tiebreak; unmeasured channels sort last, preserving the old lowest-id order); `send_admission` uses it | Live finding r10h/r10j: the lowest node id was the far Border for one group, starving the 4.5 s admission window |
 | `ha/member.py` | `_execution_channel` uses `nearest_channels()` | same ordering for result/ack traffic |
 Authorization is unchanged: every Border is manifest-verified and forwards to the leader; the call is still sent once with no retry. Tests: `tests/n2n/test_ha_nearest_admission_198.py` (3) and the full HA/protected suites (1481 passed). Because the source manifest is signed, the change only takes effect after a fresh prepare/rebuild of both groups.
+
+
+## November24 correction and bounded repair
+
+The frozen r10l source contains the same nearest-Border implementation as the
+resumed checkout. Its attestation RTT includes a quorum read; it is a latency
+preference, never authority. The signed4500ms expiry is shorter than the measured
+follower admission path. See `../resume-20261124.md` for the controlled15-quorum-call
+reproduction and historical source hashes. The selected repair lets the single
+RPC wait at least the signed admission window, with a proposed fresh9000ms
+manifest. All original freshness, effect, quorum, identity, revocation and
+unknown/fence controls remain. This change is not live-qualified until T037.
+
+Qualified-code delta: `ha/internal.py:MemberAttachments.send_admission` derives
+its wait from the already-verified signed manifest; no retries or new schema
+fields. The9000ms preparation is explicit for the resumed run, not a silent
+change to old signed manifests or the original R09 defaults.

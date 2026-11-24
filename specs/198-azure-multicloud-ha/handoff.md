@@ -1,5 +1,10 @@
 # Spec198 / R10 handoff — 2026-11-14
 
+> Current resumption: [resume-20261124.md](resume-20261124.md). The owner resumed
+> bounded work on November24. Its scope, budget gate and measured latency finding
+> supersede the historical status, topology and sequencing below. No new live
+> acceptance is implied. The binding peer contract uses ONE group per member.
+
 **Owner requested STOP, teardown and this handoff. Do not create cloud resources
 or continue implementation until the owner resumes.** Source is uncommitted on
 `198-azure-multicloud-ha`; preserve the existing dirty tree. No push, merge,

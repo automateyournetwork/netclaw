@@ -17,12 +17,14 @@ esac; done
 set -- "${groups[@]+"${groups[@]}"}"
 here="$(cd "$(dirname "$0")/.." && pwd)"
 ev="$HOME/.local/share/netclaw/r10-run-$run"; mkdir -p "$ev"; chmod 700 "$ev"
+[ ! -e "$ev/watchdog-manifest.json" ] && [ ! -L "$ev/watchdog-manifest.json" ] || { echo "refused: run preparation already spent; choose a fresh run identity" >&2; exit 3; }
+[ ! -e "$HOME/Library/LaunchAgents/com.netclaw.r10-$run-cleanup.plist" ] || { echo "refused: watchdog identity already exists" >&2; exit 3; }
 sub=""; azbin=""; if [ "${#groups[@]}" -gt 0 ]; then sub="$(az account show --query id -o tsv)"; azbin="$(command -v az)"; fi
 export R10_WD_GCP_PROJECT="$gproj" R10_WD_GCLOUD="$(command -v gcloud || true)" R10_WD_FIREWALLS="${gfw[*]-}"
 python3 - "$ev/watchdog-manifest.json" "$run" "$hours" "$sub" "$azbin" "$@" <<'PY'
 import json, os, sys, time
 path, run, hours, sub, az = sys.argv[1:6]
-fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
 with os.fdopen(fd, 'w') as f:
     manifest = {'run_id': run, 'deadline_at': time.time() + float(hours) * 3600, 'subscription_id': sub, 'az': az,
                 'azure_groups': sys.argv[6:]}

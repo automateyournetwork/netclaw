@@ -2,14 +2,17 @@
 
 **Feature Branch**: `198-azure-multicloud-ha`
 **Created**: 2026-11-14
-**Status**: Incomplete; checkpointed for a Spec200 detour, 2026-11-22
+**Status**: Resumed and incomplete, 2026-11-24; new paid qualification awaits the renewed cumulative USD15 pause decision.
 **Input**: User description: "R10 Azure: NetClaw multi-cloud on Microsoft Azure, mirroring the proven GCP R09/R09A roadmap. A Border claw hosted in Azure with an on-prem member and a cloud-hosted member; 3-region HA Borders in Azure; then a cross-cloud mesh proving GCP-hosted Borders federate with Azure-hosted Borders; then update all docs and release-gate notes. Hard constraints: $25 total spend ceiling (stop and ask at $15), tear down right after validation, nothing created until the owner says go."
 
-Latest instruction: preserve the unfinished source with a Git commit and remote
-branch checkpoint, work on feasible Spec200 Genie, then return here before199AWS.
-See [checkpoint-20261122.md](checkpoint-20261122.md). This is not technical
-acceptance, merge, release or cloud reactivation. Later Nov15–16 qualification
-in [verification.md](verification.md) supersedes the Nov14 initial stop history.
+Latest instruction: resume implementation and bounded live qualification from
+`ca64f507`; investigate the stable-network admission failure before paying for
+another run. Close Azure-to-GCP, execution through every follower and actual GCP
+leader-change success; qualify clients/members, reconcile billing, export and
+verify owned cleanup. See [resume-20261124.md](resume-20261124.md). Three distinct
+regions per cloud, current authority/security guarantees, USD15 pause/USD25 cap,
+Spec200 preservation and merge/publication gates remain. No checkbox/offline-only
+completion claim is permitted.
 
 ## Execution amendment — 2026-11-14
 
