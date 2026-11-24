@@ -447,7 +447,8 @@ task, which reads `openclaw.json` at start. All five services stayed active on t
 
 ```bash
 # rollback for one member
-cp -p ~/.openclaw-byrns-risk-<name>/openclaw.json.bak-skilllimits-20261122T225459Z \n      ~/.openclaw-byrns-risk-<name>/openclaw.json
+cp -p ~/.openclaw-byrns-risk-<name>/openclaw.json.bak-skilllimits-20261122T225459Z \
+      ~/.openclaw-byrns-risk-<name>/openclaw.json
 ```
 
 ## 12. Evidence file index
@@ -484,7 +485,7 @@ Related source changes, outside this folder:
   branch `fix/gateway-ws-token-reresolve`.
 - `config/skill-limits.json` and `scripts/lib/skill_limits.py` (spec 188): the skill limit policy applied in §11.
 
-Findings that need follow-up work are tracked as H15–H22 in
+Findings that need follow-up work are tracked as H15–H23 in
 [`../../NCFED-HARDENING-BACKLOG.md`](../../NCFED-HARDENING-BACKLOG.md).
 
 ## 13. Teardown performed and member viz check

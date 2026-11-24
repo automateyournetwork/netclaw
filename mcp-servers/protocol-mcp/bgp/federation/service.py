@@ -752,10 +752,11 @@ class FederationService:
         ident = peer_identity(peer_as, router_id)
         # FR-003 (reconciled): admit only a peer we have locally consented to
         # (every federated / consent-pending-local peer has). A true stranger — no
-        # local_grant — is learned as presence and then closed WITHOUT a nonce/
-        # hello: no channel, not even tier-0. This keeps an un-consented forger off
-        # the wire entirely.
-        self.manager.upsert_peer(peer_as, router_id)
+        # local_grant — is closed WITHOUT a nonce/hello: no channel, not even
+        # tier-0. This keeps an un-consented forger off the wire entirely.
+        # H20: check consent BEFORE persisting anything. The identity here is
+        # unauthenticated, so a stranger must not create a federation_peer row;
+        # local_consent() creates the row when the operator consents.
         if not self.manager._has_consent(ident, "local_grant"):
             logger.info("NCFED from %s but no local consent — closing (FR-003)", ident)
             try:
@@ -763,6 +764,7 @@ class FederationService:
             except Exception:
                 pass
             return
+        self.manager.upsert_peer(peer_as, router_id)
         if self.authz.hold_down_remaining(ident) > 0:
             logger.info("NCFED from %s refused — limit hold-down active (spec 189)", ident)
             try:

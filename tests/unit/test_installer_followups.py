@@ -43,8 +43,8 @@ def test_npm_script_policy(version, flag):
 
 def test_all_reported_components_registered():
     templates = json.loads((ROOT / 'config/openclaw.json').read_text())['mcpServers']
-    assert len(launch.CONTRACT) == 18
-    assert {"netconverter", "convergence-read", "greynoise-community", "threatintel"} <= set(launch.CONTRACT)
+    assert len(launch.CONTRACT) == 19
+    assert {"netconverter", "convergence-read", "greynoise-community", "threatintel", "genie-worlds"} <= set(launch.CONTRACT)
     for component, rule in launch.CONTRACT.items():
         if rule.get('access') == 'hud-private':
             assert component == 'hermes-hud'
@@ -144,6 +144,9 @@ def test_generated_entries_carry_runtime_location_without_credentials(tmp_path,m
         assert Path(entry['command']).is_absolute()
         assert entry['env']['NETCLAW_RUNTIME_ROOT']==str(tmp_path/'runtimes')
         allowed = {'NETCLAW_RUNTIME_ROOT','NETCLAW_RUNTIME_ENV','BGP_DAEMON_API'}
+        if name == 'genie-worlds-mcp':
+            allowed.add('NETCLAW_GENIE_CONTROL_FILE')
+            assert entry['env']['NETCLAW_GENIE_CONTROL_FILE'] == '${NETCLAW_GENIE_CONTROL_FILE}'
         if name in optional:
             allowed.update(optional[name])
             assert {key: entry['env'][key] for key in optional[name]} == optional[name]

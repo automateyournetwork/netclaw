@@ -695,6 +695,12 @@
       "Security",
       "Community Threat Intelligence",
       "Enrich indicators with GreyNoise, Feodo Tracker and configured OTX, AbuseIPDB and abuse.ch sources."
+    ],
+    [
+      "genie-worlds",
+      "Analysis & Diagrams",
+      "Genie Network Worlds",
+      "Measured Cisco Genie facts illustrated by Google Genie 4; six bounded controls and recorded walkthroughs"
     ]
   ],
   "profiles": {
@@ -956,7 +962,8 @@
       "result-analysis",
       "cisco-iq",
       "greynoise-community",
-      "threatintel"
+      "threatintel",
+      "genie-worlds"
     ]
   },
   "skillIds": [
@@ -1102,6 +1109,7 @@
     "n2n-federation",
     "nautobot-sot",
     "netbox-reconcile",
+    "netclaw-genie-worlds",
     "netconverter",
     "network-data-analysis",
     "network-report-documents",

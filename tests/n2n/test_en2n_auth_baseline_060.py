@@ -145,13 +145,23 @@ async def _stranger(tmp_path):
     trailer = await reader.read(64)
     closed_no_nonce = len(trailer) < len(NCFED_MAGIC) + 8 + IN2N_NONCE_SIZE
     registered = FORGE_IDENT in b.channels
+    peer_rows = b.manager._conn.execute(
+        "SELECT COUNT(*) FROM federation_peer WHERE identity=?", (FORGE_IDENT,)).fetchone()[0]
     writer.close(); server.close()
     try: await asyncio.wait_for(server.wait_closed(), 3)
     except asyncio.TimeoutError: pass
     b.manager.close()
-    return dict(closed_no_nonce=closed_no_nonce, registered=registered)
+    return dict(closed_no_nonce=closed_no_nonce, registered=registered, peer_rows=peer_rows)
 
 
 def test_unconsented_stranger_closed(tmp_path):
     r = asyncio.run(asyncio.wait_for(_stranger(tmp_path), 20))
     assert not r["registered"] and r["closed_no_nonce"]
+
+
+def test_unconsented_stranger_leaves_no_peer_row(tmp_path):
+    # H20: an unauthenticated handshake must not persist anything. Before the
+    # fix, accept_channel() upserted a federation_peer row ahead of the consent
+    # check, so any stranger could grow the table.
+    r = asyncio.run(asyncio.wait_for(_stranger(tmp_path), 20))
+    assert r["peer_rows"] == 0
