@@ -1,39 +1,59 @@
-# Six-Border mesh design (any cloud, any Border)
+# Six-Border Azure/GCP mesh
 
-> Current resumption: [resume-20261124.md](resume-20261124.md). The owner resumed
-> bounded work on November24. Its scope, budget gate and measured latency finding
-> supersede the historical status, topology and sequencing below. No new live
-> acceptance is implied. The binding peer contract uses ONE group per member.
+Current implementation and bounded qualification: [resume](resume-20261124.md),
+[binding contract](contracts/cross-cloud-federation.md), [verification](verification.md).
+The historical dual-enrollment proposal is superseded by this design.
 
-Owner requirement (2026-11-15): an operation entered on ANY of six Borders (3 Azure, 3 GCP) must reach ANY member, with no
-"blocked by design" carve-out. Protected mode stays on. The legacy eN2N execution routes stay refused; the mesh is built on
-the protected path instead.
+## Topology and authority
 
-## Topology
-- Two three-voter quorum groups, each with its own TLS etcd + RBAC and its own authority epoch: `az` (nne1/ew1/ase1 on Azure) and
-  `gc` (nne1/ew1/ase1 on GCP). A six-voter etcd is not used (even quorum, WAN commit latency).
-- Every member (NetBox, subnet, on-prem) is enrolled in BOTH groups through the existing one-shot `enroll_member` and dials all six Borders outbound on 7444.
-  One member process holds a per-member execution lock so two groups can never run it concurrently (resource fence stays member-wide per group).
-- An owner entering on any Border sees the union: the HUD catalog asks the local group, and the group's Border asks the peer group's
-  Border over the existing NCFED peer channel for a signed, read-only catalog.
+Two independent three-voter etcd authorities run on three distinct regions each:
+Azure Canada Central/East US2/Sweden Central and GCP Montreal/Belgium/Singapore.
+Each member belongs to exactly one group and keeps its own durable effect/result
+ledger. Mac subnet and NetBox members attach outbound to their group's three
+Borders; the physical GCP NetBox member belongs to GCP. All six ingresses expose
+the signed union catalog through the explicitly configured peer connection.
+There is no six-voter authority and no dual-group member identity.
 
-## Cross-group execution (the new work)
-1. Ingress Border A (group X) authenticates the owner in X's audience, records the review and approval in X's ledger.
-2. A sends a `cluster/delegate` request to a Border of group Y over the pinned-key NCFED peer channel. It carries the X review,
-   X approval digest and X's signed authority epoch observation. Y's grant table must hold an explicit peer grant for X and member.
-3. Y re-authorizes in its OWN ledger: new operation id, `origin = {cluster, op_id, approval_digest, principal}` recorded, own admission, own
-   lease/epoch, own durable ACK from the member. Y never trusts X's principal as Y authority; it trusts only the signed approval digest under the peer grant.
-4. Result returns signed by Y's Border and member; X stores it with Y's durable-ACK reference. Both audit trails carry both ids.
-5. No replay: `(origin cluster, op_id, nonce)` is a unique key in Y's ledger; delegation is send-once like `route()`.
+The measured authenticated attachment round trip selects the nearest live Border.
+That measurement includes attestation/quorum processing and is not a pure network
+ping. A follower forwards to its current leader; proximity never grants authority.
+The signed qualification admission window is9000ms. One admission RPC waits for
+that window, never retries another attachment, and retains the existing monotonic
+consume/effect-boundary expiry checks, quorum proof and single-use nonce journal.
 
-## Phasing
-1. Dual-group member attachment + union catalog (no trust change). Proves any-Border-to-any-member for every member.
-2. `cluster/delegate` with peer grants, so a Border reaches members attached to only one group, with correlated audit.
-3. Live: build both groups, rotate (cert, lease, member re-enroll), takeover, cross calls, teardown.
+## Cross-group execution and clients
 
-Phase 2 changes security-relevant code; it ships with negative tests (no grant, wrong epoch, replayed nonce, revoked peer, wrong audience).
+The ingress authenticates its own operator and sends one exact, signed peer relay
+under the pinned peer policy. The receiving group authorizes the operation under
+its own principal, manifest, lease and epoch, retaining origin cluster/principal/
+nonce provenance. Its internal idempotency key namespaces the original nonce by
+origin; its operation UUID remains the identifier used by the ingress client.
+Status returns the original public client nonce consistently. Each effect still
+requires fresh receiving-group admission and the member retains its signed result
+until the receiving authority durably ACKs it. An uncertain response is retained
+and fenced; it does not authorize another dispatch or a substitute member.
 
-## Status (offline implementation)
-Phase 2 (`cluster/delegate`) is implemented as the peer relay in `ha/federation.py`; the binding contract, qualified-code change list,
-open decisions and live requirements are in `contracts/cross-cloud-federation.md`. Phase 1's "member in both groups" is not needed:
-every group's members appear at every Border through the signed union catalog. Not yet proven live.
+The ingress endorses the exact peer DTO and public enrollment with its own pinned
+node signature. HUD and VS Code verify this endorsement, the receiving public
+manifest/certificates, original principal/nonce, remote authority epoch and exact
+immutable review. A peer identity is never silently treated as local identity.
+The endorsement grants no execution permission. Saved recovery references remain
+bounded non-secret identifiers; original results/ACKs are recovered without a
+second approval or effect.
+
+## Acceptance and retirement
+
+The required matrix is six local plus six cross-group completed operations, with
+all four follower ingresses represented. Actual HUD and native Code approval and
+GET-only cold recovery, a physical cloud NetBox read, and a GCP operation after
+observed leader change are separate witnesses. Guard-unavailable tests run after
+the positive cases. A rendered catalog, a checkbox or a fixture cannot substitute
+for those results.
+
+Fresh signed generation2 runs on the original seven VMs with unchanged deadlines
+and reservations. Generation1's unknown operation, identities, databases and
+quorum state were exported before replacement and remain retained. Final teardown
+must export all current evidence first, verify all exact run-owned VMs/disks/IPs/
+firewalls and both generations' DNS absent, stop owned Mac qualification members,
+and close ledger/watchdog state only after verified cloud absence. The Spec200
+checkout/evidence and unrelated owner services remain preserved.

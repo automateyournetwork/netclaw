@@ -371,3 +371,21 @@ real full-HUD navigation includes a numeric prefix on Approved operations; the
 driver uses its observed accessible name rather than an exact unprefixed label.
 Earlier read-only screenshot attempts timed out on continuous polling/networkidle
 and that label; they performed no approval and remain retained as diagnostics.
+
+Additional current checks: actual Chromium rendered the full HUD on all six
+fresh URLs with no page-script errors in the diagnostic page. Native extension
+suite225passed/3explicitly skipped/0failed (228total). `reconcile-mcp.py` was run
+as required: catalog, docs, package, portability, Meraki IDs and skill limits pass;
+its global dependency/startup checks fail for an existing unbounded HumanRail MCP
+pin and numerous optional MCP environments absent from this checkout. These are
+not silently reported as passing and no unrelated owner installation was changed.
+The isolated signed qualification runtime closure checks and actual operations
+remain the evidence for the deployed stack.
+
+### November24 native review and physical Linux relay findings
+
+The actual HUD operation21d4e8ab-60b8-486a-a9f3-a9102760d1d9 completed Azure Sweden→GCP member with verified result/durable ACK. Same-tab cold recovery sent GETs only (incidental chat-usage POST was blocked); actual member effect/inference counters were unchanged. The first navigation probe sent no preparation; its evidence remains. Eleven of twelve baseline ingress/direction cells now have actual ACK evidence.
+
+Actual Code1.109.0 prepared62438fb1-b26d-4075-88ce-5d224dd7a41c but the view incorrectly compared the receiving cloud principal directly with the ingress principal. No approval was sent. The view now uses the existing cryptographically verified operation-principal binding; a native-dialog regression proves the signed remote review reaches decision review and an unverified clone does not. TypeScript/build and36 relevant tests pass. Fresh native approval remains required.
+
+Physical NetBox member905712 returned signed refusal/ACK for b298ec49-a7d9-4a68-b5ab-3fa9911f2e85 (`agent_produced_no_tool_evidence`, zero tool claims, zero provider forwards). Its identity remains fenced. The inherited Mac TCP relay uses Docker Desktop's host loopback name, absent on this Linux Docker host. The same immutable Linux relay image passed a real Unix-socket HTTP preflight with no provider/device access. A fresh identity/preparation with Unix relay and bounded short private socket path is being validated; the failed operation is not replayed and its reservation is retained.
