@@ -28,7 +28,7 @@ export async function runBrowser(configFile) {
   await page.goto(config.origin,{waitUntil:'domcontentloaded'});
   const runtime=await page.evaluate(async()=>{const r=await fetch('/api/runtime',{redirect:'error',cache:'no-store'});if(!r.ok)throw Error('runtime unavailable');return r.json();});
   const verified=await verifyClusterRuntime(runtime,{pin:bundle.pin,origin:config.origin});assert.equal(verified.descriptor.installation_id,node.installation_id);report.authority=runtime.cluster.authority;
-  const approved=page.getByRole('button',{name:'Approved operations',exact:true});if(await approved.count())await approved.click();
+  const approved=page.getByRole('button',{name:/Approved operations/});if(await approved.count())await approved.click();
   const trust=page.getByRole('button',{name:'Trust cluster',exact:true});
   if(await trust.count()){await trust.waitFor({state:'visible'});await page.waitForFunction(()=>[...document.querySelectorAll('button')].some(b=>b.textContent==='Trust cluster'&&!b.disabled));await trust.click();report.checks.push('Explicit native browser trust accepted only after offline pinned manifest verification');}
   await page.locator('[aria-label="Cluster authority"]').waitFor();

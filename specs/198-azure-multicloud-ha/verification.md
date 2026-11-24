@@ -316,3 +316,58 @@ corrected to assert the actual region and reject a false Belgium label for Azure
 public cross-language fixture contains controlled signatures, no private keys and
 no provider/native-effect evidence. This is source validation only; fresh live
 native acceptance and the matrix remain required.
+
+
+## Fresh generation2 activation and first repaired cross-cloud proof — 2026-11-24
+
+Source0b9d0d11 was freshly signed into gen-az2/gen-gc2 on the same seven run-owned
+VMs and original six-hour watchdogs. No VM reservation or deadline was reduced or
+extended. Before replacement, all six old Border states and all six stopped etcd
+stores were exported and hash-verified. Old etcd state remains archived on each
+host; the failed physical member and all four old Mac member roots also have
+private exports and SQLite integrity checks. The original unknown operation is
+retained and fenced, with its operation-budget claim/reservation unchanged.
+
+The operator cleanup helper initially missed members because protected-role had
+exec'd bgp-daemon-v2.py. da4d61eb adds exact private-source-path matching for that
+owned daemon, immediate command rechecks and verified process exit; existing
+owner/spec200 roots cannot match. Two ownership tests pass and all four old
+qualification member processes were stopped and exported.
+
+GCP fresh quorum health writes measured127.943142/270.495039/393.934520ms across
+Montreal/Belgium/Singapore; Azure24.409284/45.044293/125.291863ms. These are quorum
+proposal timings, not pure network RTT. All six fresh HTTPS postures and five-member
+union catalogs returned200 before effects. Azure Canada leader epoch9 entered
+operation228a28a8-af9d-41f0-b8a7-e7a8befc6944, which completed on GCP-enrolled
+Mac subnet memberhsubnet-a7d3f2 with verified receipt and delivered durable ACK
+at GCP epoch12. Its three model/tool admissions finished. Origin nonce and the
+live signed peer-client endorsement passed the shared client verifier. This is
+real Azure-to-GCP authority execution; physical cloud NetBox execution remains a
+separate required witness.
+
+The demo NetBox token had expired: both Mac and cloud returned403/Invalid v2 token
+before any new NetBox provider execution. The owner supplied a replacement; it
+was written through the private atomic environment writer without echoing it.
+Only the three unspent generation2 qualification member credential files were
+refreshed; the old fenced identity was preserved. Read-only device27 preflights
+then returned200 on Mac and GCP (cloud0.3355s). Source, identities, selected endpoint
+and signed profiles were unchanged; secrets are not embedded in source manifests.
+
+GCP signed-in Billing Reports now isolates project322389837669/netclaw-spec=198:
+CAD3.06 posted gross, CAD-3.06 credits, CAD0 net for November1–24. Actual CSV and
+accessibility evidence are exported privately. Project networking CAD1.90 is
+unattributed and remains conservatively covered by the historical reserve. Azure
+posted CAD6.8605695141 and the
+[Bank of Canada November24 rate](https://www.bankofcanada.ca/rates/exchange/daily-exchange-rates/)
+(1USD=1.4296CAD) give indicative USD4.79894 Azure and USD2.14046 GCP gross; these
+are not card settlement rates. Billing lag is not zero current-run cost. Historical
+USD13.9275943167 held and the full USD23.0075943167 envelope remain unchanged.
+Private root: `~/.local/share/netclaw/r10-live-20261124/`.
+
+Native qualification helpers now validate receiving-cluster endorsement/review
+and ACK keys while retaining original local principal/nonce binding. Ten helper
+checks pass; this remains distinct from actual browser/Code acceptance. The
+real full-HUD navigation includes a numeric prefix on Approved operations; the
+driver uses its observed accessible name rather than an exact unprefixed label.
+Earlier read-only screenshot attempts timed out on continuous polling/networkidle
+and that label; they performed no approval and remain retained as diagnostics.

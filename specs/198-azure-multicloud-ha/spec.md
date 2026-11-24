@@ -2,7 +2,7 @@
 
 **Feature Branch**: `198-azure-multicloud-ha`
 **Created**: 2026-11-14
-**Status**: Resumed and incomplete, 2026-11-24; new paid qualification awaits the renewed cumulative USD15 pause decision.
+**Status**: Live qualification in progress, 2026-11-24. Owner approved the USD23.0076 cumulative envelope and crossing the USD15 pause; USD25 remains the hard ceiling. Merge follows verified acceptance, export and owned cleanup.
 **Input**: User description: "R10 Azure: NetClaw multi-cloud on Microsoft Azure, mirroring the proven GCP R09/R09A roadmap. A Border claw hosted in Azure with an on-prem member and a cloud-hosted member; 3-region HA Borders in Azure; then a cross-cloud mesh proving GCP-hosted Borders federate with Azure-hosted Borders; then update all docs and release-gate notes. Hard constraints: $25 total spend ceiling (stop and ask at $15), tear down right after validation, nothing created until the owner says go."
 
 Latest instruction: resume implementation and bounded live qualification from

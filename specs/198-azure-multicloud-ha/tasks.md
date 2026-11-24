@@ -74,11 +74,11 @@
 
 - [ ] T034 (PARTIAL: November24 Azure Cost Management returns CAD6.8605695141; GCP actual costs, currency reconciliation and final-run costs remain open) Final spend reconciliation from the Azure billing view vs ledger; record in verification.md (SC-001)
 - [x] T035 (drafted at specs/198-azure-multicloud-ha/wordpress-draft.md; NOT published, owner review only) Draft WordPress milestone post for owner review only (constitution XVII), never publish
-- [ ] T036 (zero owned resources freshly confirmed 2026-11-24; repeat after resumed qualification; PR NOT authorized) Confirm GCP project and Azure subscription show zero spec-198 resources; open PR only on owner approval
+- [ ] T036 (zero owned resources freshly confirmed 2026-11-24; repeat after resumed qualification; PR/merge authorized after actual acceptance and verified cleanup) Confirm GCP project and Azure subscription show zero spec-198 resources; open PR only on owner approval
 
 ## Resumed acceptance explicitly tracked (2026-11-24)
 
-- [ ] T037 Diagnose r10k/r10l admission and validate the smallest repair in a fresh signed LIVE deployment. **[PARTIAL: source-matched nearest selection; controlled latency reproduction and126tests pass; live qualification pending.]**
+- [ ] T037 Diagnose r10k/r10l admission and validate the smallest repair in a fresh signed LIVE deployment. **[PARTIAL: source-matched nearest selection; controlled latency reproduction and126tests pass; fresh signed live GCP and Azure-to-GCP admission succeeded with durable ACK; full matrix and leader change remain pending.]**
 - [ ] T038 Complete a GCP operation with durable ACK after stopping the observed GCP leader and confirming a different leader/increased epoch; retain original unknowns.
 - [ ] T039 Prove actual HUD rendering and native VS Code discovery/review/approval/reconciliation, including a remote operation and GET-only recovery without repeated effects.
 - [ ] T040 Obtain an actual stopped/unavailable-guard fail-closed witness; prior automatic sidecar restart made that test inconclusive.
