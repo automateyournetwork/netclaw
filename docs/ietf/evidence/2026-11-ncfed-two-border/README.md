@@ -259,7 +259,7 @@ on production (0600, SQLite backup API, `integrity_check` ok, sha256 `f0554c15�
 
 | # | Time (UTC) | Change | Status |
 |---|---|---|---|
-| 1 | 20:45:51 | `POST /n2n/consent` for `as65010-10.255.250.1` (the test VM only) → consent rows 7/8 and peer row `as65010-…` | **Active** (peering is intentionally left up) |
+| 1 | 20:45:51 | `POST /n2n/consent` for `as65010-10.255.250.1` (the test VM only) → consent rows 7/8 and peer row `as65010-…` | **Severed** 23:21:33 at teardown (§13); consent rows 7/8 revoked 23:21:22 |
 | 2 | 20:56:15 | Grant 61: skill `subnet-calculator` to `as65010-…`, `requires_approval` | **Revoked** 20:58:47 |
 | — | 20:56:24 | Approved production approval id 1 (that task) | consumed; the task failed at the gateway |
 | 3 | 21:17:28 | `~/.openclaw/.env` backed up to `.env.bak-gwtoken-20261122T211728Z`; `OPENCLAW_GATEWAY_TOKEN` aligned to `gateway.auth.token` (§10) | **Active** (the fix) |
@@ -272,7 +272,9 @@ on production (0600, SQLite backup API, `integrity_check` ok, sha256 `f0554c15�
 | 9 | 22:03:35 | Grant 63: skill `subnet-calculator` to `as65010-…`, `requires_approval` (second 6b re-run) | **Revoked** 22:04:21 |
 | — | 22:03:44 | Approved production approval id 3 (second re-run task) | consumed; task `completed` |
 | 10 | 22:54:59 | `skills.limits` raised to the spec-188 policy in all five iN2N member configs (`~/.openclaw-byrns-risk-{cml,guardian-claw,pyats,secops,viz}/openclaw.json`); backups `openclaw.json.bak-skilllimits-20261122T225459Z` beside each (§11) | **Active** (no restart; read by each new per-task agent process) |
-| — | 20:44 / 20:49 | `/tmp/ncfed_wire_probe.py`, `/tmp/ncfed_api.sh` copied to production | `/tmp/ncfed_api.sh` removed from both hosts 22:05 (§11); the probe script is removed at teardown |
+| 11 | 2026-11-23 00:57:53 | Deleted the stale, pre-existing peer row `as65123-203.0.113.99` (`not_federated`, transport ngrok, created 2026-07-18; not part of this run); backup `federation.db.pre-delete-as65123-20261123T005753Z` (§13) | **Done** (no restart) |
+| 12 | 2026-11-23 01:01:07 | Deleted its 7 leftover `budget_counter` rows (days 2026-11-13, -14, -15, -17, -19, -21, -22; all 0 requests and 0 tokens); backup `federation.db.pre-delete-as65123-budget-20261123T010107Z` (§13) | **Done** (no restart) |
+| — | 20:44 / 20:49 | `/tmp/ncfed_wire_probe.py`, `/tmp/ncfed_api.sh` copied to production | `/tmp/ncfed_api.sh` removed from both hosts 22:05 (§11); `/tmp/ncfed_wire_probe.py` removed at teardown (§13) |
 
 Automatic side effects on production: audit/GAIT entries for every probe and invoke; `federation_peer`/
 `consent_record`/`invocation_grant` rows for as65010; inventory cache for as65010.
@@ -285,11 +287,15 @@ Verified unchanged at 20:59Z by a read-only comparison with the backup:
 
 The HUD, mobile enrollment, BGP config and Stage 8 checks were not touched. John (`as65001-4.4.4.4`) was not re-consented.
 
-## 7. Current state (left running and peered)
+## 7. Current state (after teardown, 2026-11-22T23:21Z)
 
-- Test VM: VM 127 is running; `netclaw-ncfed-test.service` is active (PID 33258). The peer is `federated`, `domain-verified`, `verified`.
-  Test VM grants to production: `echo_info` (read), `touch_marker` (read; refused by class), `approval_info` (read, approval).
-- Production: the as65010 peer is `federated`, `pinned`, `verified`. No grants to as65010.
+- Test VM: VM 127 has been destroyed (`qm destroy --purge`); its config no longer exists on Proxmox. Template 8000
+  (`ubuntu-24-04-cloud`) is present and stopped, unchanged.
+- Production: the as65010 peer is `severed`; consent rows 7/8 are revoked; grants 61–63 are revoked; the helper
+  scripts are gone from `/tmp`. The deliberate repairs (changes 3–4, 6, 8 and 10) remain active.
+- Production federation peers: `as64512`, `as65001`, `as65007` and `as65010` are `severed`; `as65099-10.255.255.1`
+  is `not_federated`. The stale `as65123` row was removed (changes 11–12).
+- Mesh daemon PID 852849 and gateway PID 833981 are unchanged since §11; nothing in §13 needed a restart.
 
 ## 8. Teardown and full production revert
 
@@ -479,5 +485,45 @@ Related source changes, outside this folder:
   branch `fix/gateway-ws-token-reresolve`.
 - `config/skill-limits.json` and `scripts/lib/skill_limits.py` (spec 188): the skill limit policy applied in §11.
 
-Findings that need follow-up work are tracked as H15–H22 in
+Findings that need follow-up work are tracked as H15–H23 in
 [`../../NCFED-HARDENING-BACKLOG.md`](../../NCFED-HARDENING-BACKLOG.md).
+
+## 13. Teardown performed and member viz check
+
+### 13.1 Teardown (2026-11-22, §8 steps 1–4)
+
+A pre-teardown backup was taken first: `~/.local/state/ncfed-two-border-20261122/federation.db.pre-teardown-20261122T232112Z`
+(0600, SQLite backup API).
+
+| Step | Result (read-only verification afterwards) |
+|---|---|
+| 1. Sever `as65010-10.255.250.1` | Peer `severed`, `updated_at` 23:21:33Z. Consent rows 7 (`local_grant`, granted 20:46:00Z) and 8 (`remote_grant`, granted 20:46:06Z) both revoked at 23:21:22Z |
+| 2. No active grants for as65010 | Grants 61, 62 and 63 revoked at 20:58:47, 21:21:30 and 22:04:21; none active |
+| 3. Remove helper files | `/tmp/ncfed_wire_probe.py` and `/tmp/ncfed_api.sh` absent on production |
+| 4. Destroy VM 127 | Destroyed with `--purge`; `qm config 127` reports no such VM. Template 8000 present and stopped; no other VM touched |
+
+Not re-consented: John (`as65001-4.4.4.4`) and every other retired peer stay `severed`. The HUD, mobile enrollment,
+BGP config and Stage 8 checks were not touched. Rollback: restore `federation.db.pre-teardown-…` with the daemon stopped
+(same procedure as §8); VM 127 itself cannot be restored and would be re-cloned from template 8000.
+
+### 13.2 Member viz check (change 10 follow-up)
+
+To confirm that the raised `skills.limits` (change 10) reach an iN2N member, production delegated one task to the
+`byrns-risk/viz` member:
+
+- Task `1a5ec57f-18d6-4e74-9421-de66259ab806`, skill `threejs-network-viz`, created 23:22:43Z.
+- The member's agent reported that it **could see the skill**, so the member-side limits load as intended.
+- **Tool execution failed**: the member answered that the "executable tool corresponding to this skill was not found or
+  failed to resolve during the execution attempt". The member's tool config is `null`, so it runs on defaults; no
+  visualization was produced. Not diagnosed further.
+- **Border status mismatch**: the member finished the task, but production's `delegated_task` row stayed `submitted`
+  (progress `None`, `updated_at` 23:22:43Z). The Border does not pull the member's result back. Candidate backlog item.
+
+Result: change 10 is confirmed for skill visibility only. Skill execution on the viz member is not demonstrated.
+
+### 13.3 Stale as65123 cleanup (changes 11–12)
+
+The peer `as65123-203.0.113.99` predates this run (created 2026-07-18, transport ngrok, never federated). It was removed
+together with its 7 empty `budget_counter` rows, after a backup each time (see §6). Neither deletion needed a restart;
+daemon PID 852849 is unchanged. Rollback: restore the matching `federation.db.pre-delete-as65123-*` backup with the daemon
+stopped.

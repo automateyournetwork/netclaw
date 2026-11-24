@@ -333,7 +333,7 @@ value-per-effort; every item traces to a verified draft state.
 
 The -00 text left what counts toward BUDGET_EXHAUSTED/RATE_LIMITED, per-peer vs global scope, the over-limit action and counter recovery unspecified. Section "Peer Limits" now specifies them (refuse default, warn, teardown with a persisted restart timer, optional aggregate cap, warning threshold). No wire change. Open for -01: whether a global rate cap and a wire-visible hold-down signal are wanted; both were deliberately left out.
 
-## Seed from the 2026-11-22 two-Border evidence run (H15–H22)
+## Seed from the 2026-11-22 two-Border evidence run (H15–H23)
 
 Source: [`evidence/2026-11-ncfed-two-border/README.md`](evidence/2026-11-ncfed-two-border/README.md), live tests of
 `-00` between two Borders at implementation `a5e7c3a3`. Section numbers below refer to that README. Its §5 items 8–11
@@ -396,3 +396,18 @@ NOTIFICATION nuance) are documentation-only and are not repeated here.
   backups. viz no longer depends on its partial override of 300 for three scoped skills.
 - **Remaining hardening (optional):** a startup check that fails loudly when a granted or scoped skill is not loaded,
   so a future cap breach is not silent.
+
+### H23. Border leaves a completed member task at `submitted` — *OPEN (pull-only status, not H13)*
+- **Reality (§13.2):** production delegated task `1a5ec57f-18d6-4e74-9421-de66259ab806` (skill
+  `threejs-network-viz`) to the `byrns-risk/viz` member at 2026-11-22T23:22:43Z. The member completed it at 23:23:26Z
+  and stored the result (the tool itself failed, a separate issue). The Border's `delegated_task` row stayed
+  `submitted`, with no `updated_at` change and no `result_ref`.
+- **Log check (read-only, 23:20–23:40Z):** the channel did not bounce. Neither the mesh daemon nor the viz member logged
+  a disconnect, reconnect or error, and the member runs with `--idle-exit 0`. So this is not the H13 trigger.
+- **Cause:** completion is pull-only. The executor never announces a terminal state (`tasks.py` has no completion
+  notice), and the Border writes its outbound row only in `poll_member_task`, which runs only when something calls
+  `GET /n2n/tasks/{id}` (n2n-mcp or the operator API) or the operator path in `operator.py`. Nothing polled this task,
+  so the row stays `submitted` indefinitely. That GET path is not logged, so "nothing polled" is inferred from the row.
+- **Plan:** the Border reconciles its own non-terminal outbound iN2N tasks: on member channel (re-)establish and
+  periodically for rows past a deadline, using `n2n/tasks/result`. Optionally the executor also announces terminal
+  states (H13's re-announce). The draft should state whether a submitter must poll or may expect a completion notice.
