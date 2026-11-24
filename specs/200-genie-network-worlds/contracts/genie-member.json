@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "name": "genie-worlds-member",
+  "description": "Scoped Genie-4 walkthrough member; frozen facts remain in the local backend",
+  "servers": ["genie-worlds-mcp"],
+  "skills": ["netclaw-genie-worlds"],
+  "tools": {
+    "allow": [
+      "genie-worlds-mcp__genie_world_prepare",
+      "genie-worlds-mcp__genie_world_start",
+      "genie-worlds-mcp__genie_world_status",
+      "genie-worlds-mcp__genie_world_event",
+      "genie-worlds-mcp__genie_world_stop",
+      "genie-worlds-mcp__genie_world_evidence"
+    ]
+  }
+}

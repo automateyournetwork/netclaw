@@ -31,6 +31,10 @@ Live model turns can incur provider charges. Every channel test separately revie
 
 Production currently remains blocked without qualified installation-bound evidence for every mandatory control. Two legacy native components (`in2n-production`, `computer-use`), compatible Webex onboarding, complete on-demand service qualification and some safe-canary profiles remain open; see the evidence document before attempting a real installation. The scoped certificate adapter creates a private pinned-trust keypair; it does not register an ACME account or prove peer trust. Cleanup separately reviews owned services and files. It stops verified services before removing their journaled definitions and enable links, then removes unchanged run-created files. Uncertain service ownership retains the installation; shared or changed files, directories and audit evidence are retained.
 
+## Optional Genie Network Worlds setup
+
+With source1.26.0, choose **Genie Network Worlds** in the reviewed component catalog for a focused claw or its eligible OpenClaw Risk member. Setup installs the isolated six-tool MCP and Node backend and derives private binding paths inside the selected home. It starts no Google session and does not copy the Google key into the member or editor. Actual navigation uses the local backend viewer. Border-owned member execution is qualified on Mac in testing posture; live WSL generation and production confinement remain unqualified. See [setup, recording and cost boundaries](GENIE-WORLDS.md).
+
 ## Static or dynamic pyATS inventory (Spec160)
 
 Select pyATS, then choose **Testbed mode & sources** in the VS Code setup wizard

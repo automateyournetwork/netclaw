@@ -702,6 +702,36 @@ defined for eN2N:
 | -32601 | METHOD_NOT_FOUND (JSON-RPC standard) |
 {: title="eN2N error codes"}
 
+### Approval on synchronous calls {#errors-approval}
+
+When a grant requires approval, a callee MUST NOT hold an `n2n/tools/call` open
+while it waits for that approval: the caller's deadline is unrelated to the
+approval window, and an approval granted after the caller has given up would
+execute with no caller waiting for the result. Instead the callee records the
+approval request and responds at once with APPROVAL_PENDING (-32002). The error
+`data` member SHOULD carry the `request_id` the approval is bound to and the time
+at which the approval expires (`expires_at`).
+
+The approval is bound to the requesting peer, the target, the `request_id`, the
+grant under which it was raised, and the request's arguments. To proceed, the
+caller repeats the identical request with the same `request_id`. While the
+approval is pending the callee again responds -32002 without creating a further
+approval request. Once it is granted, the callee admits the request, revalidating
+it exactly as a new request (grant, access class, limits), and consumes the
+approval, so that it authorizes at most one execution. Once the approval has been
+refused or has expired, the callee responds APPROVAL_EXPIRED (-32003). A request
+that differs in any bound element is a new request and requires its own approval.
+A caller SHOULD space its retries and SHOULD stop at `expires_at`.
+
+The NetClaw caller durably binds the request ID to its peer, method and exact
+body. Only an explicit APPROVAL_PENDING response permits another dispatch of
+that binding. Concurrent dispatch, timeout/unknown, completed and refused states
+remain closed; a changed binding requires a new request ID and its own approval.
+This retry mechanism does not replay a call whose execution outcome is unknown.
+
+Delegated tasks (`n2n/tasks/submit`) already return before execution; a callee
+MAY wait for approval inside the task and report it through the task state.
+
 The following application error codes are defined for iN2N ({{trust-in2n}}):
 
 | Code   | Name                  |

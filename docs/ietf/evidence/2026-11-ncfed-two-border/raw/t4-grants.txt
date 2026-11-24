@@ -1,0 +1,62 @@
+# T4 per-peer tool grants (commit a5e7c3a3). Grants/classifications live on the TEST VM (callee); production only invokes.
+## T4a 20:49:44Z production -> test VM, no grant: -32001 NOT_ALLOWLISTED (test VM audit: not_allowlisted/denied)
+## T4b 20:49:51Z test VM classifies echo_info=read, grants as65099 read on echo_info and touch_marker; 20:49:52Z production invoke echo_info -> success (result above in transcript, host netclaw-ncfed-test, trust remote-untrusted)
+## note: POST /n2n/classifications access=read_write -> 400 "access must be 'read' or 'write'" (grant access_class uses read|read_write; classification uses read|write)
+## T4c test VM classifies touch_marker=write
+2026-11-22T20:50:03Z
+{
+  "classifications": [
+    {
+      "target_type": "tool",
+      "target_name": "ncfed-probe/echo_info",
+      "access": "read",
+      "source": "operator",
+      "updated_at": "2026-11-22T20:49:51Z"
+    }
+  ]
+}
+{
+  "target_type": "tool",
+  "target_name": "ncfed-probe/touch_marker",
+  "class": "write"
+}
+## T4c production invokes write-class tool held under a read grant
+2026-11-22T20:50:03Z
+{
+  "error": {
+    "code": -32001,
+    "message": "tool 'ncfed-probe/touch_marker' not allowlisted for as65099-10.255.255.1"
+  }
+}
+## T4c production invokes ungranted tool approval_info
+{
+  "error": {
+    "code": -32001,
+    "message": "tool 'ncfed-probe/approval_info' not allowlisted for as65099-10.255.255.1"
+  }
+}
+## T4b repeat echo_info
+2026-11-22T20:50:03Z
+{
+  "source": "as65010-10.255.250.1",
+  "trust": "remote-untrusted",
+  "request_id": "02b9032c-3c3e-44d3-bc62-b006eb533d80",
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"tool\": \"echo_info\", \"host\": \"netclaw-ncfed-test\", \"utc\": \"2026-11-22T20:50:03Z\", \"arguments\": {\"note\": \"t4b-repeat\"}}"
+      }
+    ],
+    "isError": false
+  }
+}
+## test VM audit (newest first)
+{'direction': 'inbound', 'peer_identity': 'as65099-10.255.255.1', 'target_name': 'ncfed-probe/echo_info', 'decision': 'allowlisted', 'outcome': 'success'}
+{'direction': 'inbound', 'peer_identity': 'as65099-10.255.255.1', 'target_name': 'ncfed-probe/approval_info', 'decision': 'not_allowlisted', 'outcome': 'denied'}
+{'direction': 'inbound', 'peer_identity': 'as65099-10.255.255.1', 'target_name': 'ncfed-probe/touch_marker', 'decision': 'access_class_denied', 'outcome': 'denied'}
+{'direction': 'local', 'peer_identity': '*', 'target_name': 'tool:ncfed-probe/touch_marker', 'decision': 'classified', 'outcome': 'success'}
+{'direction': 'inbound', 'peer_identity': 'as65099-10.255.255.1', 'target_name': 'ncfed-probe/touch_marker', 'decision': 'access_class_denied', 'outcome': 'denied'}
+{'direction': 'inbound', 'peer_identity': 'as65099-10.255.255.1', 'target_name': 'ncfed-probe/echo_info', 'decision': 'allowlisted', 'outcome': 'success'}
+{'direction': 'local', 'peer_identity': 'as65099-10.255.255.1', 'target_name': 'ncfed-probe/touch_marker', 'decision': 'granted', 'outcome': 'success:read'}
+{'direction': 'local', 'peer_identity': 'as65099-10.255.255.1', 'target_name': 'ncfed-probe/echo_info', 'decision': 'granted', 'outcome': 'success:read'}

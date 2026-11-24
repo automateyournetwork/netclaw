@@ -1,0 +1,23 @@
+2026-11-22T20:44:16Z
+{"t": "2026-11-22T20:44:16Z", "check": "\u00a74 0x00 first octet closed with zero bytes", "result": "PASS", "detail": "0 bytes, eof"}
+{"t": "2026-11-22T20:44:16Z", "check": "\u00a74 direct TLS ClientHello record (0x16) closed with zero bytes", "result": "PASS", "detail": "0 bytes, eof"}
+{"t": "2026-11-22T20:44:16Z", "check": "\u00a74 'N' + unknown magic (NXXXX) closed with zero bytes", "result": "PASS", "detail": "0 bytes, eof"}
+{"t": "2026-11-22T20:44:16Z", "check": "\u00a74 'N' + NCTUX (near-miss magic) closed with zero bytes", "result": "PASS", "detail": "0 bytes, eof"}
+{"t": "2026-11-22T20:44:16Z", "check": "\u00a74 0xFF dispatched to BGP (marker replayed; KEEPALIVE-before-OPEN answered by BGP)", "result": "FAIL", "detail": "0 bytes, eof"}
+rc=1
+
+# Daemon log for the run above (test VM, journalctl, host prefix trimmed):
+20:44:16,234 WARNING Unknown protocol byte from 198.51.100.20: b'\x00'
+20:44:16,234 WARNING Unknown protocol byte from 198.51.100.20: b'\x16'
+20:44:16,235 WARNING Invalid N-magic from 198.51.100.20: b'NXXXX'
+20:44:16,235 WARNING Invalid N-magic from 198.51.100.20: b'NCTUX'
+20:44:16,236 INFO No IP match for 198.51.100.20, attempting mesh OPEN-based identification (0 mesh peer(s) configured, mesh_open=True)
+20:44:16,236 WARNING Mesh OPEN read: expected OPEN (1), got type 4
+20:44:16,236 WARNING Failed to read OPEN from 198.51.100.20 for mesh identification, rejecting
+# NOTE: the probe's "FAIL" on the 0xFF line is its own heuristic (it hoped for a NOTIFICATION).
+# The log shows the octet was replayed into the BGP parser, which read the type field (4) at the
+# correct offset and closed without a NOTIFICATION. Follow-up with a well-formed OPEN:
+
+2026-11-22T20:44:30Z  0xFF + full BGP OPEN (AS65020, hold 90, id 10.255.250.99) to 198.51.100.20:1179
+reply bytes 70 marker ok True BGP message types [(1, 51, ''), (4, 19, '')]   # OPEN + KEEPALIVE
+20:44:30,313 [BGPFSM[mesh-as65020]] INFO State transition: OpenSent → OpenConfirm

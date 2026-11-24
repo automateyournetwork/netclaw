@@ -30,6 +30,38 @@ Devices render as color-coded shapes by role (router, switch, firewall, load bal
 
 Any of NetClaw's existing topology-of-record or lab-emulation integrations — Cisco Modeling Labs, GNS3, containerlab, EVE-NG, Nautobot, NetBox/Infrahub, IP Fabric, or Forward Networks — or a freeform plain-language description requiring no live source at all.
 
+## How to run
+
+Run the skill with **one `exec` call**. There is no MCP tool for it; do not look one up with `tool_search`.
+`render.py` prints the absolute path of the written HTML file and nothing else. On failure it prints
+`threejs-network-viz: error: <reason>` on stderr and exits non-zero; report that error and stop.
+
+From a plain-language description (no live source needed):
+
+```bash
+python3 skills/threejs-network-viz/render.py --describe "R1 is a router, R2 is a router, R1 connects to R2"
+```
+
+From topology JSON (a file, or `-` for stdin). `--source` labels where the data came from
+(`cml`, `gns3`, `containerlab`, `eve_ng`, `nautobot`, `netbox_infrahub`, `ip_fabric`, `forward_networks`; default `cml`):
+
+```bash
+python3 skills/threejs-network-viz/render.py --json topology.json --source cml
+```
+
+```json
+{"source": "lab-1",
+ "devices": [{"hostname": "R1", "device_type": "router", "interfaces": [{"name": "Gi0/0"}]},
+             {"hostname": "R2", "device_type": "router", "interfaces": [{"name": "Gi0/0"}]}],
+ "links": [{"source_device": "R1", "source_interface": "Gi0/0",
+            "target_device": "R2", "target_interface": "Gi0/0"}]}
+```
+
+The paths above are relative to the workspace root (`~/.openclaw/workspace` on a standard install); from any
+other directory use the full path to `render.py`. Optional flags: `--output-dir DIR` (default
+`workspace/output/threejs-network-viz/`) and `--open` (also open the file in a browser; omit on headless hosts).
+For a live source, fetch its topology with that source's own tools first, then pass it as JSON.
+
 ## Natural Language Commands
 
 ### Render a live topology (User Story 1 & 2)
@@ -82,6 +114,7 @@ Standard mouse/trackpad controls once the page is open: left-drag to rotate, scr
 | `scene_builder.py` | Builds the embedded topology JSON payload consumed by the HTML template |
 | `html_template.py` | Renders the single self-contained HTML file, inlining vendored Three.js r147 |
 | `output.py` | Writes the timestamped output file and opens it in the browser |
+| `render.py` | Command-line entry point: topology JSON or description in, written file path out (see How to run) |
 | `vendor/three/` | Vendored Three.js r147 core + `OrbitControls`/`GLTFLoader` (the last release with classic global/non-module builds — see `research.md` §1-2) |
 
 ## Environment Variables

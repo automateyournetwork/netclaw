@@ -1,15 +1,15 @@
-# Spec200 — Genie network worlds reservation
+# Spec200 — Genie network worlds
 
-Reserved and started as a feasibility investigation on 2026-11-22.
+Completed and merged on 2026-11-24: all 30 tasks are closed for the owner's
+accepted scope of five recorded Google illustrations with documented visual
+and event limits. See [final qualification](final-qualification.md) and
+[release reconciliation](release-reconciliation.md).
 
-The active specification and research are in the isolated Git worktree:
-`/Users/john.capobianco/netclaw-spec200-genie/specs/200-genie-network-worlds/`.
-Branch: `200-genie-network-worlds`.
+The separate `/Users/john.capobianco/netclaw-spec200-genie` checkout remains at
+detached commit `97fc1f1a` to preserve private recordings, evidence and the running
+gallery/member services. Its completed feature branch has been retired.
 
-This directory reserves the number in the Azure checkout. Do not generate a
-second Spec200 or switch the dirty Spec198 checkout to implement Genie.
-
-Official Google developer documentation establishes an API route for `genie-4`.
-A real generated-world acceptance run is still required. Working pyATS reads,
-an API announcement, a local prompt or a synthetic demonstration alone do not
-close that gate. Execution order is feasible200 → resumed198 → reserved199AWS.
+The primary checkout has resumed Spec198; 199 remains reserved for AWS. Preserve
+the settled visual scope and retained evidence. Final invoices remain unavailable,
+and the full US$99.810816 reservation stays held under the US$100 campaign limit.
+No further paid generation follows from this source reconciliation.

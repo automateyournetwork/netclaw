@@ -51,6 +51,9 @@ ENV_FILE = str(_RUNTIME.env_file)
 # Granularity principle (interview): ONE claw per vendor/platform/tool. Real
 # integrations each get a dedicated, env-gated member; only UTILITIES stay grouped.
 PROFILE_MATCHERS = {
+    "genie-worlds": {"exact": ["netclaw-genie-worlds"],
+                     "requires_env": ["NETCLAW_GENIE_CONTROL_FILE"],
+                     "desc": "Google Genie walkthrough controls with local evidence and bounded generation"},
     "convergence": {"exact": ["convergence-observations"],
                     "requires_env": ["CONVERGENCE_ENABLED", "CONVERGENCE_API_URL", "CONVERGENCE_API_TOKEN", "CONVERGENCE_SITE", "CONVERGENCE_EXPORTERS"],
                     "desc": "Convergence retained flow evidence for Border investigation"},
@@ -893,6 +896,7 @@ def spec_tool_policy(spec):
 MCP_SERVERS = {
     "convergence": ["convergence-read-mcp"],
     "subnet": ["subnet-calc-mcp"],
+    "genie-worlds": ["genie-worlds-mcp"],
     "equinix": ["equinix-mcp"],
     # labs + test
     "cml": ["cml-mcp"], "gns3": ["gns3-mcp"], "pyats": ["pyats-mcp"],

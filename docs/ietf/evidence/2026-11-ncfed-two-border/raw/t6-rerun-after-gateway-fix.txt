@@ -1,0 +1,57 @@
+# T6b re-run after production gateway token fix (2026-11-22 21:17Z)
+# PRODUCTION CHANGE 3: temporary skill grant for the test VM (requires_approval=true), revoked after the re-run
+2026-11-22T21:20:35Z
+{
+  "grant_id": 62,
+  "access_class": "read_write"
+}
+# test VM submits subnet-calculator task to production
+2026-11-22T21:20:35Z
+{
+  "task_id": "fc02d436-b189-48a0-a92a-105322397fd1",
+  "state": "submitted",
+  "source": "as65099-10.255.255.1",
+  "trust": "remote-untrusted",
+  "request_id": "3d9644d4-d118-464e-bc9e-28874fdeab72"
+}
+## production pending approvals (as65010 only)
+2026-11-22T21:20:39Z
+[(2, 'skill', 'subnet-calculator', 'as65010-10.255.250.1', 'pending')]
+## production operator approves the as65010 subnet-calculator task
+2026-11-22T21:20:45Z
+{
+  "resolved": 2,
+  "action": "approve"
+}
+21:20:45Z poll 1: working
+21:20:55Z poll 2: working
+21:21:05Z poll 3: working
+21:21:15Z poll 4: working
+21:21:25Z poll 5: completed
+## final task state (test VM)
+{
+  "task_id": "fc02d436-b189-48a0-a92a-105322397fd1",
+  "state": "completed",
+  "tokens_used": 56953,
+  "usage_available": true,
+  "external_sources": [],
+  "output_text": "Error: Skill \"subnet-calculator\" is not available to this agent.",
+  "progress": null
+}
+# PRODUCTION CHANGE 3 REVERTED: revoke grant 62
+2026-11-22T21:21:30Z
+{
+  "revoked": 62
+}
+## after revoke: same submit is refused
+2026-11-22T21:21:31Z
+{
+  "error": {
+    "code": -32001,
+    "message": "skill 'subnet-calculator' not allowlisted for as65010-10.255.250.1"
+  }
+}
+## production pending approvals after revoke
+{
+  "pending": []
+}

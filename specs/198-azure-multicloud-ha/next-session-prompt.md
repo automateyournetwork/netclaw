@@ -1,3 +1,5 @@
+> **Current resumption — 2026-11-24:** Spec200 and all Byrn PRs are merged. The primary `/Users/john.capobianco/netclaw` checkout is back on198 with current main incorporated. Read [Git resumption](git-resumption-20261124.md) first, then the latest r10k/r10l verification finding; the older Wi-Fi hypothesis below is superseded. Live acceptance, the separate cloud budget and publication limits remain open.
+
 # Spec 198 / R10: prompt to start the session that closes the last three live gaps
 
 **2026-11-22 update:** This is the deferred Azure continuation, not the current

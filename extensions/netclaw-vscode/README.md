@@ -4,6 +4,8 @@ Set up a **new NetClaw or mixed Risk**, or manage your **existing NetClaw or Ris
 inspect operations, converse with its configured runtime, search RAG knowledge and
 review supported settings without leaving your editor.
 
+**Version 1.6.2:** Documents the optional Genie Network Worlds component in source-backed setup. Existing runtime upgrades and paid generation remain separate. See the [Genie guide](../../docs/GENIE-WORLDS.md).
+
 **Version 1.6.1:** Generate a single-use enrollment QR from **Mobile & edge** for your selected compatible installation, then scan it in NetClaw Mobile. The ordinary enrollment flow no longer needs a CLI token command. Requires the enrollment backend in source **1.18.6**; see the [Mobile enrollment guide](../../docs/MOBILE-ENROLLMENT.md) and [actual qualification](../../specs/175-cloud-mobile-enrollment/verification.md).
 
 **New in 1.5.0:** Optional NetConverter setup selects hosted-readonly or local-Terminal mode with independent private settings and cancellation preservation. Requires source **1.18.0**; account capability and exact-file approval remain separate. See the [NetConverter guide](../../docs/NETCONVERTER.md) and [qualification evidence](../../specs/162-netconverterai/verification.md).
@@ -15,6 +17,10 @@ review supported settings without leaving your editor.
 **New in 1.3.0:** Search the OpenClaw and Hermes **Comms** inventory, choose multiple channels, configure private credentials and access, and discover Twilio/Zoom tools with explicit Focused/member ownership. Requires source setup engine **1.13.0 or later** and VS Code **1.109+**. Read [Comms setup](../../docs/COMMS-SETUP.md), [new-claw setup](../../docs/GETTING-STARTED-VSCODE.md) and [release qualification](../../specs/155-border-channel-setup/release-verification.md). Existing installations remain independent; installing the extension does not upgrade or activate their runtimes.
 
 NetClaw remains your runtime. Opening the extension changes no runtime. Explicitly reviewed setup actions can install selected isolated MCP runtimes, register canonical OpenClaw MCPs or restart the owned federation service using existing NetClaw helpers.
+
+## Optional Genie Network Worlds setup
+
+With source1.26.0, choose **Genie Network Worlds** in the reviewed component catalog for a focused claw or its eligible OpenClaw Risk member. Setup installs the isolated six-tool MCP and Node backend and derives private binding paths inside the selected home. It starts no Google session and does not copy the Google key into the member or editor. Actual navigation uses the local backend viewer. Border-owned member execution is qualified on Mac in testing posture; live WSL generation and production confinement remain unqualified. See [setup, recording and cost boundaries](../../docs/GENIE-WORLDS.md).
 
 ## Connect
 

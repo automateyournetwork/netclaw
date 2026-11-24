@@ -1,0 +1,5 @@
+## PRODUCTION CHANGE 1 2026-11-22T20:45:51Z: POST /n2n/consent for as65010-10.255.250.1 only
+{
+  "identity": "as65010-10.255.250.1",
+  "state": "consent_pending_remote"
+}

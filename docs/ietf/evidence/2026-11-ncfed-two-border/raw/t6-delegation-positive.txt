@@ -1,0 +1,64 @@
+# PRODUCTION CHANGE 2: temporary skill grant for the test VM (requires_approval=true), revoked after T6
+2026-11-22T20:56:15Z
+{
+  "grant_id": 61,
+  "access_class": "read_write"
+}
+# T6b test VM submits subnet-calculator task to production
+2026-11-22T20:56:15Z
+{
+  "task_id": "780b5128-141a-457a-818d-5447f54408f7",
+  "state": "submitted",
+  "source": "as65099-10.255.255.1",
+  "trust": "remote-untrusted",
+  "request_id": "9bb5bc30-6547-4e83-a93c-8205ab47c8d7"
+}
+## production pending approvals (as65010 only)
+2026-11-22T20:56:19Z
+[(1, 'skill', 'subnet-calculator', 'pending')]
+## production operator approves the as65010 subnet-calculator task
+2026-11-22T20:56:24Z
+{
+  "resolved": 1,
+  "action": "approve"
+}
+20:56:17Z poll 1: working
+20:56:28Z poll 2: outcome_unknown
+20:56:39Z poll 3: outcome_unknown
+20:56:49Z poll 4: outcome_unknown
+20:57:00Z poll 5: outcome_unknown
+20:57:10Z poll 6: outcome_unknown
+20:57:21Z poll 7: outcome_unknown
+20:57:32Z poll 8: outcome_unknown
+20:57:42Z poll 9: outcome_unknown
+20:57:52Z poll 10: outcome_unknown
+20:58:03Z poll 11: outcome_unknown
+20:58:13Z poll 12: outcome_unknown
+## T6b result: test VM task state outcome_unknown (may_have_executed=true); production log: task failed - OpenClaw gateway connect refused (AUTH_TOKEN_MISMATCH) on production. Not fixed (credential change on production is out of scope).
+{
+ "task_id": "780b5128-141a-457a-818d-5447f54408f7",
+ "state": "outcome_unknown",
+ "tokens_used": null,
+ "usage_available": false,
+ "external_sources": [],
+ "may_have_executed": true,
+ "error": "gateway connect handshake failed: {'type': 'res', 'id': 'e73... AUTH_TOKEN_MISMATCH",
+ "source": "as65099-10.255.255.1",
+ "trust": "remote-untrusted"
+}
+# PRODUCTION CHANGE 2 REVERTED: revoke grant 61
+2026-11-22T20:58:47Z
+{
+  "revoked": 61
+}
+## production grants for as65010 (expect none active)
+[]
+total grant rows: 59  ids: 2 - 60
+# T6c after revoke: same submit is refused
+2026-11-22T20:58:47Z
+{
+  "error": {
+    "code": -32001,
+    "message": "skill 'subnet-calculator' not allowlisted for as65010-10.255.250.1"
+  }
+}

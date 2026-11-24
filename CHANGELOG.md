@@ -2,6 +2,16 @@
 
 NetClaw source releases use `1.x.y`. Feature specs increment the minor version and reset the patch; fixes, documentation and maintenance increment the patch. Every release records its numbered specs. Component and mobile distribution versions are independent.
 
+## [1.26.0] - 2026-11-23
+
+Spec [200-genie-network-worlds](specs/200-genie-network-worlds/spec.md). See [release notes](docs/releases/1.26.0.md).
+
+## [1.25.0] - 2026-11-19
+
+Spec [198-percepxion-oob-skill-refresh](specs/198-percepxion-oob-skill-refresh/spec.md). See [release notes](docs/releases/1.25.0.md).
+
+- `percepxion-oob`: a short `SKILL.md` with setup, workflows and source-of-truth detail in `references/`; corrected tool parameters; W9 finds a device's console path from NetBox or Nautobot, and W10 runs the console coverage gate before a change.
+
 ## [1.24.0] - 2026-11-12
 
 Spec [195-production-integrations](specs/195-production-integrations/spec.md). See [release notes](docs/releases/1.24.0.md).

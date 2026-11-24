@@ -161,7 +161,7 @@ class InternalChannel(FederationChannel):
         except RpcError as e:
             try:
                 if req_id is not None and not self._closed:
-                    await self._send_frames(self._err(req_id, e.code, e.message))
+                    await self._send_frames(self._err(req_id, e.code, e.message, e.data))
             finally:
                 if self.strict and method in _PRE_TRUST_METHODS:
                     await self.refuse('authentication_refused')

@@ -401,3 +401,54 @@ R07 accepted2026-11-07: owner requested commit/push/PR/merge/completed-branch
 cleanup/return to main, then evaluate R08 together and provide a clear-safe
 handoff. T030closes31/31. No repeated source-integration permission request;
 R08discussion is not implementation authorization. Version/publication hold stays.
+
+### Spec200 planning direction — 2026-11-22
+
+Work exclusively in `/Users/john.capobianco/netclaw-spec200-genie`,existing200.
+Complete specification and planning even without credentials. User wants a
+well-informed reusable skill and MCP interface over Google's documented API,
+with real generated-world navigation and one fictional event as acceptance.
+Small direct proof precedes wrapper/product UI integration. Private network
+facts stay local;first hosted trial independently synthetic. Preserve198at856bbc88,
+reserve199AWS,and keep order feasible200→198→199. No paid execution or deployment
+is authorized by this planning stage. Full SDD proceeds to tasks/analyze next;
+planning completeness is not a100% integration claim.
+
+### Spec200 implementation checkpoint — 2026-11-22
+
+Owner proceeded to implementation,provided a private Google key and requested one
+cheap sample plus real CDP/LLDP/interfaces/counters in exact and creative local
+views.14/30 tasks complete;24 JS/browser and3 Python tests pass. Google model
+metadata HTTP200;no world generated yet. Exact one-attempt20s/US$15 contingency
+packet awaits owner answer. Private fact graph stays local;synthetic-only Google.
+Native collector,actual generated world and NetClaw MCP/skill remain unqualified.
+Read specs/200-genie-network-worlds/resume.md;no key value or private data here.
+
+
+### Spec200 product correction — 2026-11-22
+
+Owner explicitly rejected local-rendered network-world substitutes. Use Cisco
+pyATS Genie observations and Google Genie4 world generation through Gemini API;
+realistic and fantasy worlds must actually be generated and navigable. Salvage
+Spec200, retain useful collector/provider safety code, retire local scenery, and
+prove the service before expanding integrations. Do not call fixtures Google
+output or represent draft MCP/skill contracts as an installed integration.
+
+
+### Spec200 five-world member campaign
+
+Owner requested a saved offline snapshot, then50fresh-contextpasses,10each: futuristic technical-blueprint, living fantasy, network city, packet-scale machinery, futuristic data center. Worlds3–5depend on actual success of1/2. All use real frozen Genie facts and actual Google Genie-4 visuals through MCP/skill. Integration target is a NetClaw member in a Risk. New campaign supersedes no-new-loop hold without resetting historical32passes. Raw/private export and exact paid allowance still require concrete review; do not claim execution MCP/installedskill already exists.
+
+
+- Spec200 budget direction (2026-11-23): owner authorizes up to US$50 total,
+  US$10 per each of five worlds (USD follows prior review). Keep the50-pass
+  recommendation at10perworld. Initial synthetic qualification counts within
+  world1, not an extra budget. No automatic reallocation or spending to fill the
+  cap. Prior US$15 request is superseded; execution still needs a qualifying
+  provider charge bound and refreshed packet. See world-suite/BUDGET.md.
+
+
+Spec200 current authority (2026-11-23): owner says start5×10 loops now; full120s
+service, ~US$12.10 video, US$25 soft stop / US$50 hard stop supersede US$10/world.
+Source foundation is tested; remaining runtime work may proceed inside source
+passes without falsely marking live/member qualification. See world-suite/BUDGET.md.

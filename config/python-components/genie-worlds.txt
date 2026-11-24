@@ -1,0 +1,2 @@
+# Isolated stdio control SDK. Google generation runs in the Node backend.
+mcp==2.3.0

@@ -1,0 +1,11 @@
+2026-11-22T20:45:45Z
+## operator action on TEST VM: mark production as domain-verified (no HTTP/CLI surface exists for this)
+[('as65099-10.255.255.1', 'not_federated', 'domain-verified', 'border.example.com')]
+## TEST VM: POST /n2n/connect (local consent + dial production) while production has NOT consented
+{
+  "identity": "as65099-10.255.255.1",
+  "state": "consent_pending_remote",
+  "dialing": true
+}
+[{"identity": "as65099-10.255.255.1", "state": "consent_pending_remote", "connected": null, "trust_model": null, "verify_state": null}]
+2 20:45:45,869 [n2n.service] WARNING open_channel to as65099-10.255.255.1 failed: 0 bytes read on a total of 5 expected bytes

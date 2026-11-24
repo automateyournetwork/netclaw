@@ -332,3 +332,88 @@ value-per-effort; every item traces to a verified draft state.
 ## Addendum (spec 189, issue #343): peer limit semantics
 
 The -00 text left what counts toward BUDGET_EXHAUSTED/RATE_LIMITED, per-peer vs global scope, the over-limit action and counter recovery unspecified. Section "Peer Limits" now specifies them (refuse default, warn, teardown with a persisted restart timer, optional aggregate cap, warning threshold). No wire change. Open for -01: whether a global rate cap and a wire-visible hold-down signal are wanted; both were deliberately left out.
+
+## Seed from the 2026-11-22 two-Border evidence run (H15–H23)
+
+Source: [`evidence/2026-11-ncfed-two-border/README.md`](evidence/2026-11-ncfed-two-border/README.md), live tests of
+`-00` between two Borders at implementation `a5e7c3a3`. Section numbers below refer to that README. Its §5 items 8–11
+(broad inventory advertisement, access-class naming, endpoint announcement overriding the dialled address, and a BGP
+NOTIFICATION nuance) are documentation-only and are not repeated here.
+
+### H15. Pinned key change is flagged by a log line only — *OPEN*
+- **Reality (T3b, §5.1):** a changed pinned key is correctly refused and not re-pinned, but `notify_key_change` only
+  writes a WARNING line. Nothing goes to audit, posture or `rotation_event`, and no operator notification is sent.
+- **Plan:** write an audit/alert record and surface it in posture, or relax the draft (§6.2 "flagged to the operator",
+  §14.3 "security alert") to "logged".
+
+### H16. `-32002 APPROVAL_PENDING` is never sent for `tools/call` — *FIXED (branch fix/ncfed-32002)*
+- **Reality (T4e, §5.2):** the callee holds the call for up to 900 s; the caller times out at 125 s with `-32006`
+  while the approval is still pending. The approval can still be granted and then executes with no caller waiting.
+- **Decision:** return `-32002` immediately; the caller retries the identical request (same `request_id` and
+  arguments). Pending → `-32002` again (no new approval); approved → admitted and the approval consumed (single
+  use); denied/expired → `-32003`. Specified in the draft's "Approval on synchronous calls" (§errors-approval).
+- **Fix:** `Invoker._approval_gate` in `invocation.py`; JSON-RPC `error.data` now carried by both channel types;
+  `invoke_remote_tool`, the daemon's `/n2n/invoke` and `/n2n/tasks`, and the `n2n_invoke` MCP tool accept
+  `request_id` for the retry. The caller audits the outcome as `approval_pending`, not `denied`.
+- **Not changed:** `n2n/knowledge/query` still waits in-call for an approval (same defect, separate fix);
+  `n2n/tasks/submit` waits inside the background task, which is correct.
+
+### H17. Error-code semantics drift (`-32003`, `-32007`) — *OPEN*
+- **Reality (§5.3–5.4):** `-32003 APPROVAL_EXPIRED` is also returned for an explicit operator deny. `-32007 SEVERED` is
+  returned for "peer_unreachable: awaiting inbound (higher AS)" when nothing was severed.
+- **Plan:** add distinct codes (approval denied; peer unreachable) or widen the draft's definitions.
+
+### H18. No operator surface for domain-verified trust — *OPEN*
+- **Reality (T1, T3c, §5.5):** setting `trust_model=domain-verified` and `claw_domain` needed direct SQL on the test
+  Border, although the draft describes it as an operator choice.
+- **Plan:** add an HTTP/CLI operation, with audit, to set and clear the trust model and `claw_domain` per peer.
+
+### H19. TLS-layer refusal is not recorded in `verify_state` — *OPEN*
+- **Reality (T3c, §5.6):** a SAN/hostname mismatch fails inside the TLS handshake and bypasses `_cert_refuse`. The peer
+  still shows `verified` while every dial fails, and a redial drops the existing good channel first.
+- **Plan:** map TLS verification failures onto the same refusal path, and keep the good channel until the new one is
+  admitted.
+
+### H20. An unauthenticated handshake creates a peer row — *FIXED (branch `fix/ncfed-stranger-peer-row`)*
+- **Reality (§5.7):** `accept_channel` → `upsert_peer` runs before the consent check, so a stranger's handshake adds a
+  `federation_peer` row. Nothing is sent back, but the table grows from unauthenticated input.
+- **Fix:** `accept_channel` now checks local consent first and calls `upsert_peer` only for a consented peer. A
+  stranger is closed with nothing persisted. `local_consent()` still creates the row when the operator consents, so
+  consenting to a new peer works as before.
+- **Test:** `tests/n2n/test_en2n_auth_baseline_060.py::test_unconsented_stranger_leaves_no_peer_row`.
+- **Existing rows:** rows already created this way (e.g. production's `as65123-203.0.113.99`, `not_federated`) are not
+  removed by the fix. They hold no consent or grants; an operator can delete them.
+
+### H21. Stale gateway token shadows the config token — *FIXED (branch `fix/gateway-ws-token-reresolve`)*
+- **Reality (T6b, §10):** `OPENCLAW_GATEWAY_TOKEN` in `~/.openclaw/.env` overrode `gateway.auth.token`. The daemon's
+  cached gateway client kept presenting the rejected token for the life of the process, and the failure surfaced only
+  as one failed delegated task with a generic handshake error.
+- **Fix (§11):** `gateway_ws.py` logs the token source and a sha256 fingerprint (never the value). After an auth
+  rejection it marks the cached client stale and resolves the token again, so a corrected config needs no daemon
+  restart. Tests: `mcp-servers/protocol-mcp/tests/test_gateway_ws_token_reresolve.py`. Deployed on the production
+  Border on 2026-11-22.
+
+### H22. Skill load cap silently drops delegated skills — *RESOLVED on production (main agent and all iN2N members)*
+- **Reality (T6b, §10–§11):** OpenClaw loads at most 200 skills per source, sorted by name. With 249 workspace skills,
+  `subnet-calculator` was never loaded, so a correctly authorised delegated task returned "skill not available".
+- **Fix (§11):** the spec-188 policy (`config/skill-limits.json`) was applied to the production main agent. The
+  second re-run then passed end to end.
+- **Members (§11, change 10):** the same policy was applied to all five iN2N member configs on 2026-11-22, with
+  backups. viz no longer depends on its partial override of 300 for three scoped skills.
+- **Remaining hardening (optional):** a startup check that fails loudly when a granted or scoped skill is not loaded,
+  so a future cap breach is not silent.
+
+### H23. Border leaves a completed member task at `submitted` — *OPEN (pull-only status, not H13)*
+- **Reality (§13.2):** production delegated task `1a5ec57f-18d6-4e74-9421-de66259ab806` (skill
+  `threejs-network-viz`) to the `byrns-risk/viz` member at 2026-11-22T23:22:43Z. The member completed it at 23:23:26Z
+  and stored the result (the tool itself failed, a separate issue). The Border's `delegated_task` row stayed
+  `submitted`, with no `updated_at` change and no `result_ref`.
+- **Log check (read-only, 23:20–23:40Z):** the channel did not bounce. Neither the mesh daemon nor the viz member logged
+  a disconnect, reconnect or error, and the member runs with `--idle-exit 0`. So this is not the H13 trigger.
+- **Cause:** completion is pull-only. The executor never announces a terminal state (`tasks.py` has no completion
+  notice), and the Border writes its outbound row only in `poll_member_task`, which runs only when something calls
+  `GET /n2n/tasks/{id}` (n2n-mcp or the operator API) or the operator path in `operator.py`. Nothing polled this task,
+  so the row stays `submitted` indefinitely. That GET path is not logged, so "nothing polled" is inferred from the row.
+- **Plan:** the Border reconciles its own non-terminal outbound iN2N tasks: on member channel (re-)establish and
+  periodically for rows past a deadline, using `n2n/tasks/result`. Optionally the executor also announces terminal
+  states (H13's re-announce). The draft should state whether a submitter must poll or may expect a completion notice.

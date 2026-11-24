@@ -255,12 +255,27 @@ class TaskManager:
              "submitted", now, now, retain))
         self.manager._conn.commit()
 
-    def outbound_intent(self,peer,method,body,request=None):
+    def outbound_intent(self,peer,method,body,request=None,*,approval_retry=False):
         """Persist before transport dispatch; old peers need not support dedupe."""
         from .execution import digest
         request=request or body.get('request_id') or str(uuid.uuid4())
         self.manager._conn.execute('CREATE TABLE IF NOT EXISTS outbound_intent (request TEXT PRIMARY KEY,peer TEXT NOT NULL,method TEXT NOT NULL,body_digest TEXT NOT NULL,state TEXT NOT NULL,remote_task TEXT,created TEXT NOT NULL)')
-        self.manager._conn.execute('INSERT INTO outbound_intent VALUES (?,?,?,?,?,NULL,?)',(request,peer,method,digest(body),'dispatching',_now()))
+        values=(request,peer,method,digest(body),'dispatching',_now())
+        if approval_retry:
+            # Only an explicit APPROVAL_PENDING reply proves dispatch did not
+            # execute. Atomically reclaim that exact request; never reopen a
+            # completed, unknown, refused or concurrently dispatching operation.
+            row=self.manager._conn.execute('''INSERT INTO outbound_intent VALUES (?,?,?,?,?,NULL,?)
+                ON CONFLICT(request) DO UPDATE SET state='dispatching'
+                WHERE outbound_intent.peer=excluded.peer
+                  AND outbound_intent.method=excluded.method
+                  AND outbound_intent.body_digest=excluded.body_digest
+                  AND outbound_intent.state='approval_pending' ''', values)
+            if row.rowcount!=1:
+                self.manager._conn.rollback()
+                raise ValueError('outbound_request_not_retryable')
+        else:
+            self.manager._conn.execute('INSERT INTO outbound_intent VALUES (?,?,?,?,?,NULL,?)',values)
         self.manager._conn.commit()
         return request
 

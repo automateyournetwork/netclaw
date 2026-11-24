@@ -1,0 +1,171 @@
+## T4e test VM grants approval_info with requires_approval
+2026-11-22T20:50:14Z
+{
+  "grant_id": 3,
+  "access_class": "read"
+}
+## T4e production invoke approval_info (to be approved)
+## test VM pending approvals
+2026-11-22T20:50:18Z
+[]
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+IndexError: list index out of range
+## approve
+2026-11-22T20:50:18Z
+{
+  "error": "unknown n2n route /n2n/approvals/"
+}
+2026-11-22T20:50:14Z
+{
+  "error": {
+    "code": -32001,
+    "message": "tool 'ncfed-probe/approval_info' not allowlisted for as65099-10.255.255.1"
+  }
+}
+2026-11-22T20:50:14Z
+## T4e production invoke approval_info (to be denyd)
+## test VM pending approvals
+2026-11-22T20:50:23Z
+[]
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+IndexError: list index out of range
+## deny
+2026-11-22T20:50:23Z
+{
+  "error": "unknown n2n route /n2n/approvals/"
+}
+2026-11-22T20:50:19Z
+{
+  "error": {
+    "code": -32001,
+    "message": "tool 'ncfed-probe/approval_info' not allowlisted for as65099-10.255.255.1"
+  }
+}
+2026-11-22T20:50:19Z
+## T4e expiry: invoke and leave unresolved past caller's 30 s timeout
+2026-11-22T20:50:23Z
+{
+  "error": {
+    "code": -32001,
+    "message": "tool 'ncfed-probe/approval_info' not allowlisted for as65099-10.255.255.1"
+  }
+}
+2026-11-22T20:50:23Z
+## test VM pending after caller timeout
+2026-11-22T20:50:24Z
+{
+  "pending": []
+}
+
+{'target_name': 'ncfed-probe/approval_info', 'decision': 'access_class_denied', 'outcome': 'denied'}
+{'target_name': 'ncfed-probe/approval_info', 'decision': 'access_class_denied', 'outcome': 'denied'}
+{'target_name': 'ncfed-probe/approval_info', 'decision': 'access_class_denied', 'outcome': 'denied'}
+{'target_name': 'ncfed-probe/approval_info', 'decision': 'granted', 'outcome': 'success:read'}
+{'target_name': 'ncfed-probe/echo_info', 'decision': 'allowlisted', 'outcome': 'success'}
+{'target_name': 'ncfed-probe/approval_info', 'decision': 'not_allowlisted', 'outcome': 'denied'}
+
+# T4e rerun. First attempt (20:50:14-24Z) above: a read grant on an UNCLASSIFIED tool was refused -32001 (audit access_class_denied) - unclassified tools default to write class.
+## test VM classify approval_info=read
+2026-11-22T20:50:32Z
+{
+  "target_type": "tool",
+  "target_name": "ncfed-probe/approval_info",
+  "class": "read"
+}
+## T4e production invoke approval_info (operator will: approve)
+## test VM pending approvals
+2026-11-22T20:50:38Z
+[{"id": 1, "invocation_id": 16, "status": "pending", "requested_at": "2026-11-22T20:50:33Z", "resolved_at": null, "expires_at": "2026-11-22T21:05:33Z", "resolved_via": null, "request_binding": "ebfb84369625e5a188aa158740d1c2cb953935f926766c838311e96af9ab9620", "consumed_at": null, "peer_identity": "as65099-10.255.255.1", "target_type": "tool", "target_name": "ncfed-probe/approval_info"}]
+## operator: approve
+2026-11-22T20:50:38Z
+{
+  "resolved": 1,
+  "action": "approve"
+}
+## caller result
+2026-11-22T20:50:33Z
+{
+  "source": "as65010-10.255.250.1",
+  "trust": "remote-untrusted",
+  "request_id": "44c19505-5ceb-45b5-becf-63807e3944a6",
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"tool\": \"approval_info\", \"host\": \"netclaw-ncfed-test\", \"utc\": \"2026-11-22T20:50:39Z\", \"arguments\": {\"note\": \"t4e\"}}"
+      }
+    ],
+    "isError": false
+  }
+}
+2026-11-22T20:50:39Z
+## T4e production invoke approval_info (operator will: deny)
+## test VM pending approvals
+2026-11-22T20:50:45Z
+[{"id": 2, "invocation_id": 18, "status": "pending", "requested_at": "2026-11-22T20:50:39Z", "resolved_at": null, "expires_at": "2026-11-22T21:05:39Z", "resolved_via": null, "request_binding": "22d394746383bb9558b128a703abf39fa5a8ea82266e0fb7e80cc7fa57dd2f79", "consumed_at": null, "peer_identity": "as65099-10.255.255.1", "target_type": "tool", "target_name": "ncfed-probe/approval_info"}]
+## operator: deny
+2026-11-22T20:50:45Z
+{
+  "resolved": 2,
+  "action": "deny"
+}
+## caller result
+2026-11-22T20:50:39Z
+{
+  "error": {
+    "code": -32003,
+    "message": "approval not granted"
+  }
+}
+2026-11-22T20:50:45Z
+## T4e unresolved: production invokes, operator does nothing
+2026-11-22T20:50:55Z
+
+2026-11-22T20:51:55Z
+## test VM pending after caller gave up
+2026-11-22T20:51:56Z
+[(3, 'pending', '2026-11-22T20:50:55Z', '2026-11-22T21:05:55Z')]
+## operator approves the orphaned request after the caller timed out
+2026-11-22T20:51:56Z
+{
+  "resolved": 3,
+  "action": "approve"
+}
+{'target_name': 'ncfed-probe/approval_info', 'decision': 'allowlisted', 'outcome': 'success'}
+{'target_name': 'ncfed-probe/approval_info', 'decision': 'approval_required', 'outcome': 'pending'}
+{'target_name': 'ncfed-probe/approval_info', 'decision': 'approval_required', 'outcome': 'pending'}
+{'target_name': 'ncfed-probe/approval_info', 'decision': 'allowlisted', 'outcome': 'success'}
+Nov 22 20:50:33 netclaw-ncfed-test python[33258]: 2026-11-22 20:50:33,180 [n2n.audit] INFO AUDIT[en2n] inbound as65099-10.255.255.1 tool/ncfed-probe/approval_info → approval_required/pending req=44c19505-5 gait=0462d559f4
+Nov 22 20:50:33 netclaw-ncfed-test python[33258]: 2026-11-22 20:50:33,181 [n2n.service] INFO APPROVAL NEEDED: as65099-10.255.255.1 wants to run tool 'ncfed-probe/approval_info' (invocation 16)
+Nov 22 20:50:39 netclaw-ncfed-test python[33258]: 2026-11-22 20:50:39,251 [n2n.audit] INFO AUDIT[en2n] inbound as65099-10.255.255.1 tool/ncfed-probe/approval_info → allowlisted/success req=44c19505-5 gait=bc9edafdd5
+Nov 22 20:50:39 netclaw-ncfed-test python[33258]: 2026-11-22 20:50:39,670 [n2n.audit] INFO AUDIT[en2n] inbound as65099-10.255.255.1 tool/ncfed-probe/approval_info → approval_required/pending req=06559ae2-f gait=62657a33fa
+Nov 22 20:50:39 netclaw-ncfed-test python[33258]: 2026-11-22 20:50:39,671 [n2n.service] INFO APPROVAL NEEDED: as65099-10.255.255.1 wants to run tool 'ncfed-probe/approval_info' (invocation 18)
+Nov 22 20:50:55 netclaw-ncfed-test python[33258]: 2026-11-22 20:50:55,599 [n2n.audit] INFO AUDIT[en2n] inbound as65099-10.255.255.1 tool/ncfed-probe/approval_info → approval_required/pending req=494fae66-6 gait=ead4da1876
+Nov 22 20:50:55 netclaw-ncfed-test python[33258]: 2026-11-22 20:50:55,601 [n2n.service] INFO APPROVAL NEEDED: as65099-10.255.255.1 wants to run tool 'ncfed-probe/approval_info' (invocation 19)
+Nov 22 20:51:56 netclaw-ncfed-test python[33258]: 2026-11-22 20:51:56,740 [n2n.audit] INFO AUDIT[en2n] inbound as65099-10.255.255.1 tool/ncfed-probe/approval_info → allowlisted/success req=494fae66-6 gait=cbf611c944
+Nov 22 20:50:33 Netclaw python[504509]: 2026-11-22 20:50:33,161 [n2n.audit] INFO AUDIT[en2n] outbound as65010-10.255.250.1 tool/ncfed-probe/approval_info → requested/pending req=44c19505-5 gait=74c1a02d7a
+Nov 22 20:50:39 Netclaw python[504509]: 2026-11-22 20:50:39,278 [n2n.audit] INFO AUDIT[en2n] outbound as65010-10.255.250.1 tool/ncfed-probe/approval_info → requested/success req=44c19505-5 gait=07e13d7ecb
+Nov 22 20:50:39 Netclaw python[504509]: 2026-11-22 20:50:39,647 [n2n.audit] INFO AUDIT[en2n] outbound as65010-10.255.250.1 tool/ncfed-probe/approval_info → requested/pending req=06559ae2-f gait=ad403608f1
+Nov 22 20:50:45 Netclaw python[504509]: 2026-11-22 20:50:45,710 [n2n.audit] WARNING AUDIT[en2n] outbound as65010-10.255.250.1 tool/ncfed-probe/approval_info → requested/denied req=06559ae2-f gait=29638acf8a
+Nov 22 20:50:55 Netclaw python[504509]: 2026-11-22 20:50:55,574 [n2n.audit] INFO AUDIT[en2n] outbound as65010-10.255.250.1 tool/ncfed-probe/approval_info → requested/pending req=494fae66-6 gait=d5e86a4932
+Nov 22 20:51:56 Netclaw python[504509]: 2026-11-22 20:51:56,765 [n2n.audit] INFO AUDIT[en2n] outbound as65010-10.255.250.1 tool/ncfed-probe/approval_info → requested/success req=494fae66-6 gait=a3e28e3c65
+## note: previous run's empty body = local curl -m 60 gave up; production daemon still received success at 20:51:56Z. Caller-side timeout is N2N_TOOL_TIMEOUT_S(120)+5 = 125 s; callee approval window N2N_APPROVAL_WINDOW_S = 900 s.
+## T4e window mismatch: production invokes, nobody resolves, curl -m 200
+2026-11-22T20:52:15Z
+{
+  "error": {
+    "code": -32006,
+    "message": "n2n/tools/call timed out; operation outcome may be unknown"
+  }
+}
+2026-11-22T20:54:20Z
+## test VM pending after caller timed out
+2026-11-22T20:54:20Z
+[(4, 'pending', '2026-11-22T21:07:15Z')]
+## operator denies the orphaned request (cleanup)
+{
+  "resolved": 4,
+  "action": "deny"
+}
