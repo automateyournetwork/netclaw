@@ -1,4 +1,4 @@
-> **Current integration checkpoint — 2026-11-23:** five actual120second real-snapshot Google recordings and initial independent synthetic trial are retained. All six provider terminal receipts are confirmed; billing remains unknown with full US$85.552128 reservations. Optional terminal/VS Code catalog setup, Risk profile and HUD status card are implemented. Border-owned member fixture execution passes; Google-backed member and collector qualification remain open. The owner accepted recorded illustrations with documented visual/event limits. See [integration closeout](integration-closeout.md). Historical loop/proof notes below are evidence, not current authority.
+> **Current integration status — 2026-11-24:** 30/30 tasks complete for the owner-accepted Mac recorded-illustration scope. Actual selected-runtime collection passed 24/24 reads; the existing Border-owned member completed a real Google lifecycle through its skill and MCP. Google reported video usage for all seven runs; all US$99.810816 reservations remain held because final billing is unavailable. The five accepted recorded illustrations are unchanged. Local regression and handoff are complete; hosted CI must pass before the authorized merge. See [final-qualification.md](final-qualification.md). Older checkpoints below are historical, not current authority.
 
 # Feature Specification: Genie Network Worlds
 
@@ -6,7 +6,7 @@
 
 **Created**: 2026-11-22
 
-**Status**: Actual Google recordings delivered; setup integration implemented; 25/30 complete; Border-owned member fixture passes; recorded-illustration scope accepted
+**Status**: Recorded-illustration scope accepted; actual collector and Border/member/Google integration qualified; local qualification complete; hosted CI and authorized merge pending.
 
 **Input**: John requested an explorable network walkthrough, using Cisco pyATS
 Genie for measured facts and Google Genie for illustration, with a reusable
@@ -348,5 +348,9 @@ The local evidence model must distinguish physical discovery links, logical
 routing adjacencies, advertised/installed routes, VLAN membership, STP state and
 host reachability. Each fact retains its actual source, timestamp and uncertainty.
 Illustrated traffic and fictional events never become measured network facts.
-Qualification of the expanded product collection profile remains T016/T017;
-the existing six-read profile is not silently expanded.
+The owner's later instruction to save and reuse all output is implemented by the
+sealed routed-lab snapshot and its hash-verified offline import. Supported VLAN
+and established OSPF/iBGP cues retain source anchors; unsupported entries stay
+local and unknown. The reusable live collector remains the qualified initial or
+six-read detailed profile. A future live routed profile needs separate command,
+parser and bounds qualification; it is not required to regenerate this snapshot.

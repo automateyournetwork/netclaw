@@ -65,7 +65,7 @@ function show(message) {
     : finalFlushUnconfirmed ? `Recording final confirmation unavailable · ${message}` : message;
 }
 function renderMediaStatus() {
-  const source = mode === 'google' ? 'GOOGLE MODE' : 'OFFLINE TRANSPORT FIXTURE · No Google generation';
+  const source = mode === 'evidence' ? 'RETAINED EVIDENCE · No generation' : mode === 'google' ? 'GOOGLE MODE' : 'OFFLINE TRANSPORT FIXTURE · No Google generation';
   const state = mediaFailure ? (rendered ? 'MEDIA / CAPTURE FAILURE · Last decoded frame retained' : 'MEDIA / CAPTURE FAILURE · No frame decoded')
     : terminal ? (rendered ? 'VIEWING ENDED · Last decoded frame retained' : 'VIEWING ENDED · No frame decoded')
     : mediaDisconnected ? (rendered ? 'DISCONNECTED · Last decoded frame retained' : 'DISCONNECTED · No frame decoded')
@@ -503,8 +503,8 @@ try {
     p.textContent = `${item.label} — ${selectedProjection.classification==='private_derived'?'historically observed':'fictional'} ${item.role}`;
     $("facts").append(p);
   }
-  $("start").disabled = false;
-  $("member-review").disabled = false;
+  $("start").disabled = mode === 'evidence';
+  $("member-review").disabled = mode === 'evidence';
   const snapshots = await api('/v1/snapshots');
   $('snapshot-status').textContent = snapshots.length ? 'Choose a sealed historical snapshot.' : 'No local snapshot registered.';
   for (const snapshot of snapshots) {
@@ -537,7 +537,7 @@ try {
     $('snapshots').append(button);
   }
   show(
-    mode === "google" ? "Ready for the authorized Google recording." : "Ready to review the exact synthetic fixture. Google execution is disabled.",
+    mode === 'evidence' ? 'Retained evidence only. Preparation, generation and controls are disabled; use the original operation ID with status/evidence.' : mode === "google" ? "Ready for the authorized Google recording." : "Ready to review the exact synthetic fixture. Google execution is disabled.",
   );
 } catch (e) {
   show(

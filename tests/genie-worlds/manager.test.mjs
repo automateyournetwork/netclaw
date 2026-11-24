@@ -34,6 +34,51 @@ function request(m, path, body) {
     ...(body ? { body: JSON.stringify(body) } : {}),
   });
 }
+test('late provider receipt supersedes the public outcome without erasing timeout history', async t => {
+  const m = await setup(t), id = randomUUID();
+  const review = m.ledger.review(projection(), POLICY, 15, 'fixture');
+  m.ledger.admit(id, projection(), review.id, 'fixture');
+  m.ledger.transition(id, 'unknown', {reason:'terminal_receipt_missing'});
+  m.ledger.providerId(id, 'private-provider-identifier');
+  m.ledger.terminal(id, {event_type:'interaction.cancelled'});
+  const response = await (await request(m, `/v1/sessions/${id}`)).json();
+  assert.equal(response.terminal_confirmed, true);
+  assert.equal(response.terminal_event_type, 'interaction.cancelled');
+  assert.equal(response.reason, 'provider_terminal_receipt');
+  assert.equal(response.previous_outcome_reason, 'terminal_receipt_missing');
+  assert.equal(response.reported_usage, null);
+  assert.equal(response.usage_state, 'unsettled');
+  assert.equal(m.ledger.get(id).reason, 'terminal_receipt_missing');
+  assert(!JSON.stringify(response).includes('private-provider-identifier'));
+});
+test('retained evidence server reads original state without credentials or mutation routes', async t => {
+  const root = mkdtempSync(join(process.env.NETCLAW_TEST_TMP || realpathSync(tmpdir()), 'evidence-only-'));
+  const db = new Ledger(root), id = randomUUID(), p = projection();
+  const review = db.review(p, POLICY, 15, 'fixture');
+  db.admit(id, p, review.id, 'fixture');
+  db.terminal(id, {event_type:'interaction.cancelled'}); db.close();
+  const m = await createManager({root, readOnly:true});
+  t.after(async()=>{await m.close();rmSync(root,{recursive:true,force:true});});
+  const result = await (await request(m, `/v1/sessions/${id}/evidence`)).json();
+  assert.equal(result.session.terminal_confirmed, true);
+  for (const route of ['/v1/drafts','/v1/reviews','/v1/sessions',`/v1/sessions/${id}/stop`]) {
+    const response = await request(m, route, {});
+    assert.equal((await response.json()).error, 'evidence_read_only');
+  }
+  const upgrade = await new Promise((resolve, reject) => {
+    const req = http.request(m.origin + `/v1/view/${id}`, {headers:{
+      Connection:'Upgrade', Upgrade:'websocket', 'Sec-WebSocket-Version':'13',
+      'Sec-WebSocket-Key':Buffer.alloc(16).toString('base64'), Origin:m.origin,
+      Authorization:`Bearer ${m.owner}`,
+    }});
+    req.on('upgrade', (_, socket) => {socket.destroy();reject(new Error('read-only upgrade admitted'));});
+    req.on('response', response => {response.resume();resolve(response.statusCode);});
+    req.on('error', error => error.code === 'ECONNRESET' ? resolve('connection_refused') : reject(error)); req.end();
+  });
+  assert.equal(upgrade, 'connection_refused');
+  assert.equal(m.workers.size, 0);
+  assert.equal(m.ledger.db.prepare('SELECT count(*) AS n FROM provider_creates').get().n, 0);
+});
 test("navigation checkpoints require active session, baseline and a subsequent observed frame", { timeout: 10000 }, async (t) => {
   const m = await setup(t), id = randomUUID();
   const review = m.ledger.review(projection(), POLICY, 15, "fixture");

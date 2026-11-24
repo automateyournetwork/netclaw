@@ -1,3 +1,9 @@
+# Actual Border-owned Google qualification — 2026-11-24
+
+The original member now has actual Sonnet/skill/MCP/Google start, navigation, stop and original-ID terminal evidence. The corrected final agent read distinguishes a confirmed provider receipt from its historical timeout. The retained member points to a credential-free evidence-only backend. Testing posture remains explicit. See [final qualification](final-qualification.md).
+
+## Historical fixture qualification — 2026-11-23
+
 # Border-owned Genie member — qualification record
 
 The existing Border owns membership, enrollment, routing and task authority.

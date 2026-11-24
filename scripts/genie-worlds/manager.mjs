@@ -57,12 +57,18 @@ function safeStatus(s) {
   const { provider_id, terminal_receipt, newly_created, ...rest } = s;
   return {
     ...rest,
+    // A reconciled receipt supersedes the current outcome, without erasing the
+    // original timeout/loss reason retained in the ledger and audit history.
+    ...(terminal_receipt ? { reason: 'provider_terminal_receipt',
+      previous_outcome_reason: s.reason || null } : {}),
     terminal_confirmed: Boolean(terminal_receipt),
+    terminal_event_type: terminal_receipt?.event_type || null,
     reported_usage: terminal_receipt?.usage || null,
   };
 }
-export async function createManager({ root, port = 0, audit = null, livePacketPath = null, snapshotRegistryPath = null, campaignEnv = process.env }) {
+export async function createManager({ root, port = 0, audit = null, livePacketPath = null, snapshotRegistryPath = null, campaignEnv = process.env, readOnly = false }) {
   supportedRuntime();
+  need(typeof readOnly === 'boolean' && !(readOnly && livePacketPath), 'evidence_mode_requires_no_live_packet');
   // Operator launch configuration only; never inherit later environment changes
   // or unrelated credentials into a worker.
   const campaignPins = Object.freeze(Object.fromEntries([
@@ -86,7 +92,7 @@ export async function createManager({ root, port = 0, audit = null, livePacketPa
     need(current.schema === 2 && hash(current) === liveDigest, 'live_packet_changed');
     return current;
   }
-  const mode = live ? "google" : "fixture";
+  const mode = readOnly ? 'evidence' : live ? "google" : "fixture";
   function sessionBounds(session = null) {
     const packet = !session && live ? currentLive() : null;
     const fixture = session ? session.provider === 'fixture' : !live;
@@ -351,6 +357,7 @@ export async function createManager({ root, port = 0, audit = null, livePacketPa
         return;
       }
       const client = auth(req, req.method !== "GET");
+      need(!readOnly || req.method === 'GET', 'evidence_read_only');
       if (client.control) need(
         (req.method === 'POST' && ['/v1/drafts', '/v1/sessions'].includes(path)) ||
         (req.method === 'GET' && /^\/v1\/sessions\/[a-f0-9-]{36}(\/evidence)?$/i.test(path)) ||
@@ -627,6 +634,7 @@ export async function createManager({ root, port = 0, audit = null, livePacketPa
   });
   server.on("upgrade", (req, socket, head) => {
     try {
+      need(!readOnly, 'evidence_read_only');
       need(
         req.headers.host === new URL(origin).host &&
           req.headers.origin === origin,

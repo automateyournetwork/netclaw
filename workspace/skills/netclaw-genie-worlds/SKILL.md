@@ -61,6 +61,10 @@ separately reconciled usage. Preserve unknown outcomes and their reservations.
 A confirmed remote terminal receipt with missing usage retains its FULL maximum
 cost reservation. The coordinator may admit distinct work within the aggregate
 budget; this is not billing reconciliation and never permits replay of that ID.
+`terminal_confirmed: true` means an actual provider terminal receipt is retained.
+`terminal_event_type` names that receipt; `previous_outcome_reason` preserves an
+earlier timeout/loss. Do not describe that historical reason as a missing current
+receipt. Provider termination and usage/billing are separate evidence.
 
 ## Judge the result
 

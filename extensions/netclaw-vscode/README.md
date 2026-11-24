@@ -20,7 +20,7 @@ NetClaw remains your runtime. Opening the extension changes no runtime. Explicit
 
 ## Optional Genie Network Worlds setup
 
-With source1.26.0, choose **Genie Network Worlds** in the reviewed component catalog for a focused claw or its eligible OpenClaw Risk member. Setup installs the isolated six-tool MCP and Node backend and derives private binding paths inside the selected home. It starts no Google session and does not copy the Google key into the member or editor. Actual navigation uses the local backend viewer; native Risk-member execution and live WSL generation remain separate qualification gates. See [setup, recording and cost boundaries](../../docs/GENIE-WORLDS.md).
+With source1.26.0, choose **Genie Network Worlds** in the reviewed component catalog for a focused claw or its eligible OpenClaw Risk member. Setup installs the isolated six-tool MCP and Node backend and derives private binding paths inside the selected home. It starts no Google session and does not copy the Google key into the member or editor. Actual navigation uses the local backend viewer. Border-owned member execution is qualified on Mac in testing posture; live WSL generation and production confinement remain unqualified. See [setup, recording and cost boundaries](../../docs/GENIE-WORLDS.md).
 
 ## Connect
 

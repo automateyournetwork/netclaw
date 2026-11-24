@@ -1,7 +1,8 @@
 > Historical planning draft. The source workflow has been promoted to
 > [the executable-workflow skill](../../../../workspace/skills/netclaw-genie-worlds/SKILL.md)
 > after actual MCP discovery/control qualification. Risk installation and Google
-> acceptance remain open; this historical text is not the installed-skill authority.
+> acceptance are now qualified; see [final qualification](../../final-qualification.md).
+> This historical text is not the installed-skill authority.
 
 ---
 name: netclaw-genie-worlds

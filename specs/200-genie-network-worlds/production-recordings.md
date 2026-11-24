@@ -1,3 +1,5 @@
+> **Accounting update — 2026-11-24:** All five videos below are unchanged. Provider-reported video usage is now available for these runs and the independent synthetic trial; a separately bounded member qualification adds a seventh operation. Full campaign reservations total US$99.810816; final invoices remain unavailable. See [final qualification](final-qualification.md). The six-session accounting below describes the original production checkpoint.
+
 # Actual Google recordings — 2026-11-23
 
 Five snapshot-derived Google `genie-4` walkthroughs are recorded and exported.

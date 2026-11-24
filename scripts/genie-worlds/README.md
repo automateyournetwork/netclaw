@@ -4,7 +4,9 @@ Google Genie4 provides generated media through its official API; Cisco pyATS
 Genie provides frozen measured evidence. The package includes a private loopback
 viewer, snapshot inspector, five scene styles, durable session/campaign ledgers,
 a worker, six stdio controls and the workflow skill. Actual Mac recordings are
-retained; strict fidelity and existing-Risk execution remain separate gates.
+retained, and actual Border-owned member execution is qualified on Mac in testing
+posture. Generated geometry remains illustrative; production confinement and
+other live platforms are not qualified.
 
 Install the optional `genie-worlds` component through terminal or source-backed
 VS Code setup. See [complete setup guide](../../docs/GENIE-WORLDS.md). Node24.19.x
@@ -20,6 +22,12 @@ operator review and launch pins. Credentials remain backend-owned.
 local operation. Unknown outcomes retain reservations. Confirmed remote terminal
 with missing usage retains the full bound; it is not billed-spend reconciliation.
 A source change invalidates old paid packets. Never replay production evidence.
+
+`evidence-serve` retains authenticated reads against an original state root without
+a Google key, worker, mutations or live WebSockets. `collection_request.py` is a
+separate operator-only selected-pyATS entry point with a pinned private capability,
+durable request IDs and metadata-only responses. See the setup guide for its exact
+bounded profiles, credential files and recovery behavior.
 
 Run Node tests with `node --test --test-concurrency=1 tests/genie-worlds/*.test.mjs`,
 setting `NETCLAW_BROWSER_EXECUTABLE` and `NETCLAW_MCP_PYTHON` for actual browser/MCP

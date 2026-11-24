@@ -1,3 +1,28 @@
+# Spec Kit cross-artifact analysis — 2026-11-24
+
+The owner accepted recorded illustrations with documented visual/event limits,
+then requested completion of the three technical checks. Those checks now have
+actual evidence in [final qualification](final-qualification.md). This supersedes
+the historical open-gate analysis below without deleting its failures.
+
+| Finding | Disposition |
+| --- | --- |
+| Selected-runtime collector admission/recovery and actual SSH proof | Closed: private pinned capability, durable non-replaying request, child-owned deadlines, two24/24 actual native runs and exact command/hash/cleanup checks. |
+| Usage evidence unavailable through interactions.get | Closed for SC009: authenticated provider-reported video counters are retained and correlated by project/model/time. HTTP500, unavailable input/text/invoices and all full reservations remain visible. No settlement claimed. |
+| Fixture-only member qualification | Closed: actual Border/Sonnet/skill/MCP/Google preparation/start/navigation/stop, original-ID cancellation receipt and corrected final agent read. Testing posture remains explicit. |
+| Historical timeout presented as current status | Fixed: current receipt, event type and historical reason are separate fields; regression and actual agent read verify the distinction. |
+| Retained member could enable unintended paid work | Evidence-only backend refuses all mutations/WebSockets and has no Google key. Budget authority retains seven full reservations under the original cap. |
+| Planned routed profile contradicted frozen-data delivery | Reconciled with the owner's later snapshot-reuse instruction: supported sourced offline cues are implemented; live collector remains the bounded initial/detailed profile. No unqualified live command expansion. |
+| Final feature verdict | Existing owner acceptance and completion/merge instruction apply after final source checks. No repeated visual-scope or credential question is needed. |
+
+30 unique tasks:30 closed for the accepted Mac prototype. The owner’s recorded-illustration acceptance and explicit completion/merge instruction are retained; no new human approval is fabricated. Local regression and handoff pass; hosted CI still gates merge.
+Requirements and contracts distinguish observed usage from billed settlement,
+illustration from exact topology, and historical evidence from current authority.
+Original198 remains preserved;199 remains AWS. No new paid or device write work
+is needed. Source merge does not publish a package, website or announcement.
+
+## Historical November23 analysis
+
 # Spec Kit cross-artifact analysis — 2026-11-23
 
 Reviewed spec, plan, tasks, research, data model, control/member contracts,

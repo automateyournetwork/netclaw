@@ -1,4 +1,50 @@
-# Local collector process contract — pass03
+# Selected-runtime collection contract — 2026-11-24
+
+`collection_request.py collect --state-root PRIVATE_ROOT --request-id UUID
+--capability PRIVATE_JSON --capability-sha256 SHA256` is an operator-only entry
+point executed by the selected pyATS Python. `status` takes only the root and
+original ID. Neither is exposed as a member-supplied adapter/path/credential tool.
+
+The closed capability has schema1 and the following fields:
+
+| Field | Binding |
+| --- | --- |
+| `profile` | Exactly `initial` or `detailed`; existing fixed bounds below |
+| `runtime_executable`, `runtime_prefix` | Exact selected `sys.executable` and `sys.prefix`; preserve virtualenv identity |
+| `parser_version` | Installed `genie` distribution version |
+| `inventory_sha256` | Reviewed frozen source-inventory hash |
+| `policy_file`, `policy_sha256` | Selected upstream `pyats_mcp_server.py` and exact read-policy bytes |
+| `source_files` | Exact named `collection_request.SOURCE_FILES` closure, including the canonical dotenv reader and native connection policy |
+| `devices` | One to four exact device IDs; each has `document`, `document_sha256`, `endpoint_sha256`, `credential_file`, `credential_sha256` |
+
+Documents use the existing minimal single-device/native strict-trust contract.
+Each owner-private credential `.env` has only the three `SPEC200_PYATS_*` names
+in `native_connection.CREDENTIALS`. The canonical dotenv reader treats contents
+as literal data, never shell. Native ambient dotenv discovery is disabled.
+Secrets are loaded only in the capture child and never enter its public envelope.
+
+Before capture, an owner-private SQLite claim binds the request ID to the
+capability digest. Duplicate same-ID calls return the original response; changed
+input conflicts. A held process lock means pending, not orphaned. After owner
+loss, pending becomes unknown and new admission stops. Neither status nor restart
+replays collection. Request, private result and metadata response are retained
+under the original UUID. Child-owned process-group deadlines survive parent
+loss; local termination does not prove remote cleanup.
+
+The closed response contains schema/version, original request/snapshot ID,
+classification, state, profile, capability digest, observation interval, scheduled
+and attempted counts, coverage and an opaque artifact reference. Each observation
+contains identity/device/command/index, interval/outcome, parser version, opaque
+artifact ref, raw hash or null, failure/uncertainty flags and source hashes for
+runtime, policy, inventory and endpoint. Raw and parsed payloads and normalized
+facts remain in the private result. A complete collection is coverage, not a
+network health verdict. Observations can remain failed/raw-only/unknown.
+
+Actual24/24 native reads, source/hash checks, original-ID no-replay recovery and
+fault tests are recorded in [final qualification](../final-qualification.md).
+Earlier pass notes below describe intermediate boundaries and are historical.
+
+## Historical process contract — pass03
 
 This is a local Python API, not an MCP adapter-path tool or a read authorization.
 Run collector.py through the selected Python3.12 interpreter. Native read policy

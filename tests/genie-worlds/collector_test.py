@@ -3,6 +3,9 @@ from datetime import datetime
 import os
 from pathlib import Path
 import tempfile
+import signal
+import subprocess
+import sys
 import time
 import unittest
 
@@ -34,6 +37,38 @@ class CollectorTests(unittest.TestCase):
             'def capture_once(*a,**k): raise AssertionError("must not execute")\n')
         self.assertFalse(self.calls.exists())
         self.assertTrue(all(o['outcome'] == 'unavailable' for o in result['observations']))
+
+    def test_child_deadline_survives_parent_loss(self):
+        sentinel = self.directory/'late-effect'
+        started = self.directory/'child-started'
+        self.adapter.write_text('import time\nfrom pathlib import Path\n'
+            'qualified_read_only_capture=True\n'
+            'def capture_once(*a,**k):\n'
+            f'    Path({str(started)!r}).write_text("started")\n'
+            '    time.sleep(1.5)\n'
+            f'    Path({str(sentinel)!r}).write_text("late")\n'
+            '    return "raw"\n')
+        code = ('import importlib.util\n'
+            f's=importlib.util.spec_from_file_location("collector",{str(root/"scripts/genie-worlds/collector.py")!r})\n'
+            'm=importlib.util.module_from_spec(s);s.loader.exec_module(m)\n'
+            f'm.collect(["r1"],{str(self.adapter)!r},"fixture",evidence_root={str(self.directory)!r},read_timeout=.8)\n')
+        parent = subprocess.Popen([sys.executable, '-B', '-c', code],
+                                  stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        try:
+            deadline = time.monotonic()+3
+            while not started.exists() and time.monotonic() < deadline:
+                time.sleep(.01)
+            self.assertTrue(started.exists())
+            parent.kill()
+            parent.wait(timeout=2)
+            time.sleep(1.7)
+            self.assertFalse(sentinel.exists())
+            self.assertEqual(len(list(self.directory.glob('capture-*/capture-started'))), 1)
+            self.assertFalse(list(self.directory.glob('capture-*/result')))
+        finally:
+            if parent.poll() is None:
+                parent.kill()
+                parent.wait(timeout=2)
 
     def test_parse_failure_never_reexecutes_and_facts_stay_private(self):
         result = self.run_capture('def capture_once(device,command,timeout):\n'

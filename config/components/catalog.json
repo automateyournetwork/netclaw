@@ -29883,7 +29883,7 @@
       "title": "netclaw-genie-worlds",
       "description": "Prepare and operate Google Genie 4 network walkthroughs through NetClaw's six world controls, with local pyATS snapshot provenance, bounded sessions and retained outcomes. Use for world preparation, generation, status and evidence; this workflow does not configure network devices.",
       "path": "workspace/skills/netclaw-genie-worlds/SKILL.md",
-      "sha256": "beb07f2cf9e0ec22e0bdc6eab63a9c50bf0c8f3c3c848c205ae079f555e0c793",
+      "sha256": "c4bcceaae7565afe8a1bf795de3c18e58655363dffcfa0708cdb77fcf56fa5e1",
       "components": [
         "genie-worlds"
       ],

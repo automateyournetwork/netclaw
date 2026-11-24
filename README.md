@@ -12,7 +12,7 @@ Work from chat, the visual HUD, your phone, or a Zoom meeting. Start with one Ne
 
 **Project:** [Source version 1.26.0](VERSION) · [Release notes](docs/releases/1.26.0.md) · [Contributing — numbered specs + Spec Kit](CONTRIBUTING.md) · [Changelog](CHANGELOG.md)
 
-**New in 1.26.0 — Genie network worlds:** measured Cisco pyATS Genie evidence can drive Google Genie 4 walkthroughs through six bounded MCP controls and a dedicated skill. Optional terminal/VS Code setup and a Risk member profile keep credentials in the local backend. Five actual recorded styles were produced; generated geometry remains illustrative and native Risk-member acceptance is separate. [Setup and boundaries](docs/GENIE-WORLDS.md) · [Actual evidence](specs/200-genie-network-worlds/production-recordings.md).
+**New in 1.26.0 — Genie network worlds:** measured Cisco pyATS Genie evidence can drive Google Genie 4 walkthroughs through six bounded MCP controls and a dedicated skill. Optional terminal/VS Code setup and a Border-owned Risk member keep credentials in the local backend. Five recorded styles and actual member-to-Google execution are qualified on Mac; generated geometry remains illustrative. [Setup and boundaries](docs/GENIE-WORLDS.md) · [Actual integration evidence](specs/200-genie-network-worlds/final-qualification.md).
 
 **New in 1.18.6 — Mobile enrollment where you work:** open **Mobile → Generate QR code** in the HUD or **Mobile & edge → Generate QR code** in VS Code, then scan with NetClaw Mobile. The shared enrollment service brings the formerly CLI-only token step into both interfaces. [Enrollment guide and example](docs/MOBILE-ENROLLMENT.md) · [Verified scope](specs/175-cloud-mobile-enrollment/verification.md).
 

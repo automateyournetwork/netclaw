@@ -1,4 +1,4 @@
-> **Current integration status — 2026-11-23:** 25/30 tasks complete. The owner accepted five recorded illustrations with documented visual/event limits. The existing Border owns an enrolled Genie member; actual Sonnet/skill/MCP/backend fixture execution passes. Four current SSH collector attempts timed out; Google usage remains unavailable with full reservations held. Merge and original Spec198 remain gated. See [integration-closeout.md](integration-closeout.md). All older checkpoints below are historical and do not supersede this status.
+> **Current integration status — 2026-11-24:** 30/30 tasks complete for the owner-accepted Mac recorded-illustration scope. Actual selected-runtime collection passed 24/24 reads; the existing Border-owned member completed a real Google lifecycle through its skill and MCP. Google reported video usage for all seven runs; all US$99.810816 reservations remain held because final billing is unavailable. The five accepted recorded illustrations are unchanged. Local regression and handoff are complete; hosted CI must pass before the authorized merge. See [final-qualification.md](final-qualification.md). Older checkpoints below are historical, not current authority.
 
 Production checkpoint — 2026-11-23: T013 closed by actual pinned live packets, private credential reference and finite campaign admission.16/30 tasks checked. Five Google recordings delivered; T014 remains open for unsettled billing and incomplete exact event/fidelity acceptance. No loop or recording count closes native member/human gates. See production-recordings.md.
 
@@ -264,7 +264,7 @@ three checkpoint review,confirmed terminal/usage;fixture media cannot pass it.
 - [x] T011 [US1] Implement pinned official Google adapter with disabled create retry and actual SDK contract tests in scripts/genie-worlds/provider.mjs and tests/genie-worlds/provider.test.mjs (FR-009/018/021).
 - [x] T012 [US1] Qualify real local browser transport/navigation/stop against fixture in tests/genie-worlds/browser.test.mjs and specs/200-genie-network-worlds/verification.md (FR-023/025).
 - [x] T013 [US1] Prepare exact synthetic live packet,private credential/account reference and finite allowance in specs/200-genie-network-worlds/live-review.md (FR-018/022).
-- [ ] T014 [US1] Qualify the independent synthetic Google trial, then all five separately authorized snapshot-derived recorded illustrations; retain navigation/event/drift/terminal/usage for each in specs/200-genie-network-worlds/verification.md (FR-008/009/010;SC-002/004/006–009).
+- [x] T014 [US1] Qualify the independent synthetic Google trial, then all five separately authorized snapshot-derived recorded illustrations; retain navigation/event/drift/terminal/usage for each in specs/200-genie-network-worlds/verification.md (FR-008/009/010;SC-002/004/006–009).
 
 ## Phase 4 — US2: private measured facts (P2)
 
@@ -272,10 +272,10 @@ Independent acceptance: real bounded collector output maps to timestamped local
 facts with no inferred links or hosted disclosure. Does not need Google access.
 
 - [x] T015 [US2] Add provenance/unknown/conflict/size/parser tests in tests/genie-worlds/collector_test.py (FR-003/014/015/016).
-- [ ] T016 [US2] Implement selected-runtime capture-once/offline-parse collector under existing read policy in scripts/genie-worlds/collector.py (FR-001/014/015).
+- [x] T016 [US2] Implement selected-runtime capture-once/offline-parse collector under existing read policy in scripts/genie-worlds/collector.py (FR-001/014/015).
 - [x] T017 [US2] Normalize bounded private facts,CDP/LLDP identity matching,counter samples/rates and uncertainty in scripts/genie-worlds/facts.py (FR-003/015/016/019).
 - [x] T018 [US2] Provide local authoritative facts/legend and exact scene-projection review beside Google media; reject unauthorized private hosting and local-rendered world substitution in scripts/genie-worlds/manager.mjs and viewer/ (FR-004/005/017/023).
-- [ ] T019 [US2] Qualify actual four-device read-only collector and evidence hashes in specs/200-genie-network-worlds/verification.md (SC-001/003/010).
+- [x] T019 [US2] Qualify actual four-device read-only collector and evidence hashes in specs/200-genie-network-worlds/verification.md (SC-001/003/010).
 
 ## Phase 5 — US3: repeatable bounded NetClaw workflow (P3)
 
@@ -287,14 +287,14 @@ then actual fresh NetClaw skill/MCP-to-worker proof. No blind second paid run.
 - [x] T022 [US3] Implement six thin stdio tools with isolated official MCP SDK in mcp-servers/genie-worlds-mcp/; actual stdio/backend/browser correlation qualified. Latest foundation-first instruction permits source implementation before T014; actual live member acceptance remains T025 (FR-013/026).
 - [x] T023 [US3] After T022,promote and qualify workflow skill in workspace/skills/netclaw-genie-worlds/SKILL.md (FR-013/026).
 - [x] T024 [US3] Prepare an isolated Border-owned Genie member in the selected existing Risk through supported member setup review in specs/200-genie-network-worlds/native-review.md (FR-026).
-- [ ] T025 [US3] Qualify actual agent/skill/MCP/session correlation and separately allowed live world in specs/200-genie-network-worlds/verification.md (SC-005/009/010).
+- [x] T025 [US3] Qualify actual agent/skill/MCP/session correlation and separately allowed live world in specs/200-genie-network-worlds/verification.md (SC-005/009/010).
 
 ## Phase 6 — coherence and closure
 
 - [x] T026 Update optional catalog,installer,config,env placeholders,README/SOUL/TOOLS and HUD capability status only after useful proof in scripts/lib/catalog.sh,scripts/lib/install-steps.sh,config/openclaw.json,.env.example,README.md,SOUL.md,TOOLS.md,ui/netclaw-visual/ (FR-012/013/026).
 - [x] T027 Record separate VS Code/Mobile impact and any actual changed-client qualification in specs/200-genie-network-worlds/verification.md (FR-012).
 - [x] T028 Run changed-component and required catalog/regression checks in specs/200-genie-network-worlds/verification.md (FR-013/026).
-- [ ] T029 Obtain human GO/NO_GO/BLOCKED_LIVE review against SC-001–010 in specs/200-genie-network-worlds/verification.md (FR-010).
+- [x] T029 Obtain human GO/NO_GO/BLOCKED_LIVE review against SC-001–010 in specs/200-genie-network-worlds/verification.md (FR-010).
 - [x] T030 Update daily memory and resume.md and native GAIT;preserve198/199 and any live unknowns (FR-011/025).
 
 ## Dependencies and implementation strategy

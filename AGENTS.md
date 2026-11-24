@@ -937,3 +937,23 @@ See specs/200-genie-network-worlds/integration-closeout.md and analysis.md.
 GAIT API detail observed during this handoff: `gait_branch` creates a branch but
 does not select it. Follow it with `gait_checkout` before recording session turns;
 preserve any records written on the prior branch and cross-reference them.
+
+
+### Spec200 final technical qualification — 2026-11-24
+
+This supersedes the November23 open technical gates. The owner requested the three
+remaining checks; actual selected-runtime collection passed24/24 twice, the
+existing Border-owned member completed a real Sonnet/skill/MCP/Google lifecycle,
+and authenticated Google Monitoring reported video usage for all seven operations.
+All seven provider terminal receipts are confirmed. Final invoices/input/text are
+unavailable; US$99.810816 remains fully reserved under the original US$100 cap.
+No further standard trial fits. Do not release reservations or replay packets.
+
+The five accepted120second illustrations and frozen source snapshot are unchanged.
+The member now uses a credential-free evidence-only backend. Existing Border
+configuration/environment/identity hashes are unchanged. Testing posture is not
+production confinement. Current status separates a provider receipt from retained
+historical timeout reasons; preserve both. Source checks/handoff precede the
+already-authorized merge, then resume original198 at856bbc88;199 remains AWS.
+No renewed visual acceptance, budget or Border-selection question is necessary.
+See specs/200-genie-network-worlds/final-qualification.md for evidence and limits.

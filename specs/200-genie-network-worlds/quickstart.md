@@ -63,19 +63,19 @@ PYTHONDONTWRITEBYTECODE=1 /Users/john.capobianco/gait_mcp/venv/bin/python \
   -m unittest discover -s tests/genie-worlds -p '*_test.py' -v
 ```
 
-The selected installed Python3.12 and pinned native-policy path for offline
-`offline_native_collector.py` and `offline_native_transport.py` qualification are
-recorded with actual commands in [loops/pass-31.md](loops/pass-31.md). These harnesses
-use independent synthetic PTYs, not SSH. Capture-once subprocesses, hard deadlines,
-raw retention, detached parsing, frozen inventory/policy, combined CDP/LLDP and
-counter/state normalization have source evidence. Actual SSH/host-key binding,
-installed capability admission, public collector envelope/durable recovery and
-four-device acceptance remain open. Do not bypass them with a raw SSH helper.
+The selected-runtime operator CLI is `scripts/genie-worlds/collection_request.py`.
+Use the [installation guide](../../docs/GENIE-WORLDS.md#bounded-local-collection)
+and [collector contract](contracts/collector.md) for the private pinned capability,
+per-device dotenv references and exact invocation. It binds runtime, native read
+policy, source hashes, inventory/endpoints and saved strict SSH trust. Detailed
+collection performs six fixed reads per device, up to four devices and two workers.
 
-Read private control locally. Device operations remain coordinator-only pending
-its discovery-change/recollection workflow. This pass issues no device listing or
-collection. Historical device observations in verification.md are timestamped
-history, not current state. No device/CML lifecycle writes are authorized here.
+Two actual four-device runs passed24/24, including the final dotenv-backed source.
+Exactly one requested show command occurred per capture, with no setup/configuration
+commands; hashes, parsing and cleanup verified. The original request is durable
+and non-replaying. Raw output and normalized facts stay private. See
+[final qualification](final-qualification.md). A new collection is an explicit
+operator action; these instructions do not change devices or expand the profile.
 
 ## 3. Historical qualification packet notes (superseded by production evidence)
 
@@ -153,14 +153,18 @@ an explicit decision about ending the investigation; do not quietly redefine it.
 
 ## Admission and handoff status
 
-`live-serve /absolute/private/packet.json` exists but is **not an authorized next
-command**. The current private packet is unauthorized and source-stale. Only the
-coordinator may refresh its binding to the 26-file source closure after final
-verification and obtain the actual finite allowance. Never set an authorization
-field in a pass. Native GAIT is mandatory for live admission; read backend keys
-only from the expressly selected private credential source, never from chat.
+Actual collector, fresh isolated installation, Border enrollment and Google-backed
+member qualification are recorded in [final qualification](final-qualification.md).
+The owner accepted the recorded-illustration scope and directed completion/merge.
+Final source verification precedes merge; original198 follows afterward.
 
-T014 direct-world usefulness gates T022–T025 native integration. A fresh native
-installation review is still absent; no existing home has been upgraded. VS Code,
-Mobile and other platforms remain unqualified. T029 requires the owner's actual
-verdict, and T030 remains open until feature handoff. No release is implied.
+Do not replay the spent production packets or member trial. Their source closures
+are historical evidence and later fixes make them stale. All seven full bounds
+remain reserved under the US$100 cap; another standard trial cannot fit. The member
+currently reads its original operation through `evidence-serve`, which has no
+Google credential and refuses all mutations and live WebSockets. See the
+[installation guide](../../docs/GENIE-WORLDS.md) for this read-only command.
+
+Mac prototype qualification does not imply production member confinement or
+Windows/WSL/Mobile live qualification. No Marketplace, tag, site or announcement
+publication follows automatically from this source merge.

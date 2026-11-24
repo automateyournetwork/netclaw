@@ -1,10 +1,10 @@
-> **Current integration checkpoint — 2026-11-23:** five actual120second real-snapshot Google recordings and initial independent synthetic trial are retained. All six provider terminal receipts are confirmed; billing remains unknown with full US$85.552128 reservations. Optional terminal/VS Code catalog setup, Risk profile and HUD status card are implemented. Border-owned member fixture execution passes; Google-backed member and collector qualification remain open. The owner accepted recorded illustrations with documented visual/event limits. See [integration closeout](integration-closeout.md). Historical loop/proof notes below are evidence, not current authority.
+> **Current integration status — 2026-11-24:** 30/30 tasks complete for the owner-accepted Mac recorded-illustration scope. Actual selected-runtime collection passed 24/24 reads; the existing Border-owned member completed a real Google lifecycle through its skill and MCP. Google reported video usage for all seven runs; all US$99.810816 reservations remain held because final billing is unavailable. The five accepted recorded illustrations are unchanged. Local regression and handoff are complete; hosted CI must pass before the authorized merge. See [final-qualification.md](final-qualification.md). Older checkpoints below are historical, not current authority.
 
 # Implementation Plan: Genie-to-Genie network worlds
 
 **Branch**: `200-genie-network-worlds` | **Date**: 2026-11-22 | **Spec**: [spec.md](spec.md)
 **Input**: `/Users/john.capobianco/netclaw-spec200-genie/specs/200-genie-network-worlds/spec.md`
-**Stage**: Actual recordings complete; installer integration under verification; 25/30 complete; Border-owned member fixture passes; recorded-illustration scope accepted.
+**Stage**: Five recordings and actual collector/Border/member/Google qualification complete; local qualification complete; hosted CI and authorized merge pending.
 
 ## Summary
 
@@ -308,15 +308,15 @@ Local/Lab records, baseline/rollback artifacts and native configuration tools.
 See [actual qualification](routed-lab-qualification.md). The product collector
 remains read-only and cannot acquire write authority through this preparation.
 
-T016/T017 must add and qualify a named role-specific routed-lab profile before
-the product can use the expanded catalog. Freeze selected devices, exact commands,
-arguments, wave limits and evidence bounds before capture. Keep the existing
-initial/detailed profiles unchanged. Controller bootstrap, interface state,
-physical discovery, OSPF adjacency, iBGP peering, route selection, VLAN membership,
-STP state and active probes remain distinct evidence types. Preserve unavailable,
-raw-only, conflicting and stale outcomes. Current direct MCP artifacts qualify
-this lab change; they do not qualify capture-once, durable collection recovery,
-the public observation envelope or a new parser/schema implementation.
+The owner's later save-and-reuse instruction is implemented by the sealed routed
+snapshot and `offline-snapshot.mjs` hash/ownership validation. `world-designs.mjs`
+admits only supported sourced VLAN and established OSPF/iBGP cues. The full command
+archive remains private evidence; it is not a broader live collector profile.
+T016/T019 now qualify capture-once, durable request recovery and the closed
+observation envelope for the initial/detailed profiles. Controller bootstrap,
+interface state, physical discovery, routing, VLAN/STP and active probes remain
+distinct evidence types. A future routed live profile requires its own command,
+parser, identity and bounds qualification before execution.
 
 Later projection review can map these layers to realistic or fantasy Google
 scenes without treating visual routing behavior as a measured network event.

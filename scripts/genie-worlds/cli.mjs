@@ -10,14 +10,15 @@ try {
   const root = resolve(
     process.env.NETCLAW_GENIE_STATE_DIR || ".spec200-local/worlds",
   );
-  if (["serve", "live-serve"].includes(command)) {
+  if (["serve", "live-serve", "evidence-serve"].includes(command)) {
     const auditRoot = process.env.NETCLAW_GENIE_GAIT_ROOT;
     const audit = auditRoot ? (event) => nativeAudit(auditRoot, event) : null;
     const packetPath = command === "live-serve" ? resolve(args[0] || "") : null;
     const live = packetPath ? loadLivePacket(packetPath) : null;
-    const server = await createManager({ root: live?.state_root || root, audit, livePacketPath: packetPath, snapshotRegistryPath: process.env.NETCLAW_GENIE_SNAPSHOT_REGISTRY || null });
+    const readOnly = command === 'evidence-serve';
+    const server = await createManager({ root: live?.state_root || root, audit, livePacketPath: packetPath, readOnly, snapshotRegistryPath: process.env.NETCLAW_GENIE_SNAPSHOT_REGISTRY || null });
     console.log(
-      `${live ? "Authorized single Google trial" : "Offline fixture viewer"}: ${server.origin}/#${server.bootstrap}`,
+      `${readOnly ? "Read-only retained evidence" : live ? "Authorized single Google trial" : "Offline fixture viewer"}: ${server.origin}/#${server.bootstrap}`,
     );
     console.log(live ? `One reviewed attempt; 120-second target; US$${live.allowance_usd} reserved within the shared campaign.` : "Google generation disabled. State: " + root);
     process.on("SIGINT", () => server.close().then(() => process.exit(0)));
@@ -41,7 +42,7 @@ try {
     console.log(JSON.stringify(data, null, 2));
   } else {
     console.log(
-      "Usage: node cli.mjs serve | status <operation-id> | evidence <operation-id> | stop <operation-id>",
+      "Usage: node cli.mjs serve | live-serve <packet> | evidence-serve | status <operation-id> | evidence <operation-id> | stop <operation-id>",
     );
     process.exitCode = 1;
   }

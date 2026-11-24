@@ -10,7 +10,8 @@ four-device snapshot: technical blueprint, living fantasy, network city,
 packet-scale machinery and future data center. Generated labels, object counts
 and connections can drift. This is useful for network storytelling; it is not a
 precise digital twin or packet-forwarding simulation. See the
-[production evidence and remaining qualification](../specs/200-genie-network-worlds/production-recordings.md).
+[production evidence](../specs/200-genie-network-worlds/production-recordings.md) and
+[actual collector/member qualification](../specs/200-genie-network-worlds/final-qualification.md).
 
 ## Install and configure
 
@@ -109,11 +110,55 @@ directory per installation; keep the campaign authority shared for related paid
 work. The default setup does not enroll or upgrade an existing Risk.
 
 Actual stdio MCP/backend/Google/browser execution is proven. An existing Border
-also enrolled the new member and routed Sonnet through its skill and five actual
-MCP calls against the free fixture backend. This member-spec exercise used
+enrolled the new member and routed Sonnet through its skill and actual MCP
+prepare/start/status/stop/evidence calls against Google Genie4. A preceding free
+fixture qualified the same control path. These member exercises used
 OpenClaw2026.10.9/Node24.22.1; the older Border binary was preserved. An actual
-Google-backed member run remains separate from that fixture and the five recordings. Same-user application
+Google recording, navigation and original-provider terminal receipt are retained.
+Same-user application
 boundaries are not OS process confinement. See [Risk setup](N2N-RISK.md).
+
+After generation, retain MCP access to original status/evidence without a Google
+key or new creation authority:
+
+```bash
+NETCLAW_GENIE_STATE_DIR="/absolute/original-session-state" \
+  node scripts/genie-worlds/cli.mjs evidence-serve
+```
+
+This mode refuses mutation routes and live WebSocket upgrades. A provider terminal
+receipt and provider usage are separate: an earlier timeout reason is retained as
+`previous_outcome_reason` after `terminal_confirmed` becomes true. Unsettled costs
+keep their full reservations. Cloud Monitoring usage records may provide a
+project/model/time correlation; they are not a final invoice or permission to
+release reservations.
+
+## Bounded local collection
+
+Collection belongs to the operator's selected pyATS runtime, separately from the
+snapshot-only world member. `scripts/genie-worlds/collection_request.py` accepts
+a private, SHA256-pinned capability binding that runtime, policy source, inventory,
+strict endpoints, per-device credential `.env` references and the fixed `initial`
+or `detailed` profile. See the [collector contract](../specs/200-genie-network-worlds/contracts/collector.md)
+for its fields; paths and hashes come from reviewed operator metadata, never the
+agent. The private per-device files contain only `SPEC200_PYATS_USERNAME`,
+`SPEC200_PYATS_PASSWORD` and `SPEC200_PYATS_ENABLE_PASSWORD`.
+
+```bash
+# Execute with the selected installation's pyATS Python, not the MCP-only Python.
+"$SELECTED_PYATS_PYTHON" -B scripts/genie-worlds/collection_request.py collect \
+  --state-root /absolute/private/collection-state \
+  --request-id "$ORIGINAL_REQUEST_ID" \
+  --capability /absolute/private/collection-capability.json \
+  --capability-sha256 "$REVIEWED_CAPABILITY_SHA256"
+```
+
+Keep the original request ID. `status --state-root ... --request-id ...` returns
+the stored outcome without another device read. The same collect request is also
+idempotent; a changed capability conflicts. Unknown collection/cleanup blocks new
+admission instead of retrying. Raw and parsed output stays private; the response
+contains only source-bound observation metadata. Actual Mac qualification covers
+24 reads over R1/R2/SW1/SW2, with no configuration or connection setup commands.
 
 ## VS Code, HUD and Mobile
 

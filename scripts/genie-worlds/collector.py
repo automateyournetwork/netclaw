@@ -42,6 +42,18 @@ def _write(path, data):
 def _child(request_path):
     os.umask(0o077)
     request = json.loads(Path(request_path).read_text())
+    # The child owns a deadline too: loss of the parent must not leave a native
+    # connection/parser running indefinitely. A kill never proves remote cleanup.
+    if 'deadline_monotonic' in request:
+        if os.getpgrp() != os.getpid():
+            raise ValueError('owned_process_group_required')
+        remaining = request['deadline_monotonic'] - time.monotonic()
+        if remaining <= 0:
+            return
+        def expire(*_):
+            os.killpg(os.getpgrp(), signal.SIGKILL)
+        signal.signal(signal.SIGALRM, expire)
+        signal.setitimer(signal.ITIMER_REAL, remaining)
     directory = Path(request_path).parent
     outcome, parsed, failure_reason = 'unavailable', None, None
     try:
@@ -101,6 +113,8 @@ def _child(request_path):
         pass  # Exception strings and native stdout must never escape this process.
     _write(directory / 'result', json.dumps({'outcome': outcome, 'parsed': parsed,
                                            'failure_reason': failure_reason}).encode())
+    if 'deadline_monotonic' in request:
+        signal.setitimer(signal.ITIMER_REAL, 0)
 
 
 def _stop(process):
@@ -109,11 +123,16 @@ def _stop(process):
         os.killpg(process.pid, signal.SIGKILL)
     except ProcessLookupError:
         pass
+    except PermissionError:
+        # Darwin can report EPERM for the just-expired, now empty group after
+        # the child's own group kill. Never suppress it for a running leader.
+        process.wait(timeout=1)
     process.wait(timeout=1)
 
 
 def collect(devices, capability_path, parser_version, *, evidence_root,
-            read_timeout=30, overall_timeout=None, byte_limit=LIMIT, profile='initial'):
+            read_timeout=30, overall_timeout=None, byte_limit=LIMIT, profile='initial',
+            child_env=None):
     """At most two processes, one capture/read; timeouts retire that device.
 
     Smaller limits support fault drills. Limits cannot exceed FR-014. This API
@@ -156,18 +175,21 @@ def collect(devices, capability_path, parser_version, *, evidence_root,
                     break
                 device, command, command_index = pending.pop(index)
                 directory = Path(tempfile.mkdtemp(prefix='capture-', dir=root))
-                request = {'adapter': adapter, 'device': device, 'command': command,
-                           'timeout': read_timeout, 'budget': str(budget_path.resolve()),
-                           'profile': profile, 'command_index': command_index}
-                _write(directory / 'request', json.dumps(request).encode())
                 began = datetime.now(timezone.utc).isoformat()
                 started = time.monotonic()
+                expires = min(deadline, started + read_timeout)
+                request = {'adapter': adapter, 'device': device, 'command': command,
+                           'timeout': read_timeout, 'budget': str(budget_path.resolve()),
+                           'profile': profile, 'command_index': command_index,
+                           'deadline_monotonic': expires}
+                _write(directory / 'request', json.dumps(request).encode())
                 process = subprocess.Popen([sys.executable, '-B', str(Path(__file__).resolve()),
                                             '--child', str(directory / 'request')],
                                            stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
-                                           stderr=subprocess.DEVNULL, start_new_session=True)
+                                           stderr=subprocess.DEVNULL, start_new_session=True,
+                                           env=child_env)
                 active.append((process, directory, device, command, began,
-                               min(deadline, started + read_timeout), command_index))
+                               expires, command_index))
             for entry in active[:]:
                 process, directory, device, command, began, expires, command_index = entry
                 timed_out = time.monotonic() >= expires

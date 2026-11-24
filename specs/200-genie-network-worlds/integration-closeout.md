@@ -1,3 +1,7 @@
+> **Current integration status — 2026-11-24:** 30/30 tasks complete for the owner-accepted Mac recorded-illustration scope. Actual selected-runtime collection passed 24/24 reads; the existing Border-owned member completed a real Google lifecycle through its skill and MCP. Google reported video usage for all seven runs; all US$99.810816 reservations remain held because final billing is unavailable. The five accepted recorded illustrations are unchanged. Local regression and handoff are complete; hosted CI must pass before the authorized merge. See [final-qualification.md](final-qualification.md). Older checkpoints below are historical, not current authority.
+
+## Historical November23 checkpoint
+
 # Spec200 integration closeout — 2026-11-23
 
 **25/30 tasks complete; feature merge remains held.** Source review: [draft PR366](https://github.com/automateyournetwork/netclaw/pull/366). Five actual Google recordings

@@ -95,7 +95,9 @@ if (process.argv[2] === '--crash-fixture') {
     assert.equal(evidence.session.terminal_confirmed, survivingWorker);
     assert.equal(evidence.session.usage_state, survivingWorker ? 'reconciled' : 'reserved');
     if (survivingWorker) {
-      assert.equal(evidence.session.reason, 'manager_disconnected');
+      assert.equal(evidence.session.reason, 'provider_terminal_receipt');
+      assert.equal(evidence.session.previous_outcome_reason, 'manager_disconnected');
+      assert.equal(evidence.session.terminal_event_type, 'interaction.completed');
       assert.deepEqual(evidence.session.reported_usage, { video_output_tokens: 0 });
       assert.deepEqual(recovered.ledger.get(id).terminal_receipt, {
         event_type: 'interaction.completed', status: 'completed', usage: { video_output_tokens: 0 },

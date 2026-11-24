@@ -28,6 +28,20 @@ and optional `gate`. Codes include `invalid_input`, `private_projection`,
 `provider_contract`, `evidence_incomplete`, `unsupported_runtime`, `unavailable`.
 Never echo input secrets or provider response bodies into errors.
 
+## Retained evidence mode
+
+`cli.mjs evidence-serve` opens the same owned ledger without a live packet or
+Google credential. It permits authenticated GET status/evidence and local browser
+bootstrap, refuses every POST mutation with `evidence_read_only`, and rejects all
+WebSocket upgrades. It starts no worker. The existing MCP control file is refreshed
+for the selected backend; agent reads use the original operation ID.
+
+A confirmed terminal receipt sets the sanitized current `reason` to
+`provider_terminal_receipt` and exposes `terminal_event_type`. Any prior local
+reason is separately `previous_outcome_reason`; the raw ledger history is retained.
+An old timeout does not negate a later original-provider receipt. Terminal evidence
+does not imply settled billing: `usage_state` remains independently authoritative.
+
 ## Six stdio MCP tools
 
 Use official SDK JSON-RPC initialize/tools-list/tools-call lifecycle. No remote

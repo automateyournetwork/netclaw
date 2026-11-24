@@ -1,6 +1,6 @@
 # Data model — Spec200
 
-## Current accounting and acceptance contract — 2026-11-23
+## Current accounting and acceptance contract — 2026-11-24
 
 Implemented local model, version 1; not a Google schema. The private SQLite
 campaign authority binds its canonical root, campaign and policy to immutable
@@ -17,9 +17,12 @@ operations retain their full bounds. No changed key, world, root or restart
 releases or bypasses a reservation. Settlement requires actual terminal and
 billed-cost evidence. Original IDs never create a replacement world.
 
-All six production sessions have terminal receipts. Six US$14.258688 bounds
-remain reserved (US$85.552128 total); reported/final billed usage is unavailable.
-This is retained exposure, not a claim of actual spend. See production-recordings.md.
+All six production sessions and the additional member qualification have terminal
+receipts. Seven US$14.258688 bounds remain reserved (US$99.810816 total). Google
+Cloud Monitoring reports video tokens, correlated by project/model/time window;
+this is authentic usage evidence, not an interaction-ID receipt or final invoice.
+Input/text and billed totals remain unavailable. No reservation is settled or
+released. See [final qualification](final-qualification.md).
 
 The owner accepted five recorded illustrations with documented visual/event
 limits. Acceptance records preserve the original strict failures and the later
@@ -137,12 +140,15 @@ It is presentation intent, not measured evidence. Each style has its own exact
 projection hash, reviewed session and acceptance record. Local scene geometry is
 retired; local fact identity and provenance remain authoritative. Five implemented style projections are source- and snapshot-bound before admission.
 
-## Routed-lab evidence extension — planned, not runtime-qualified
+## Routed-lab evidence archive and bounded projection
 
-The owner expanded the local lab to OSPF, iBGP, router-on-stick and VLAN/STP
-evidence. These additional local entities need bounded schema/parser/identity
-qualification under T016/T017 before the product consumes them. Direct native
-verification artifacts do not implement this extension.
+The owner expanded the local lab to OSPF, iBGP, router-on-stick and VLAN/STP,
+then requested a saved snapshot so generation would not depend on live systems.
+The sealed archive retains the entities below. Offline import verifies every
+manifested file and the pinned snapshot identity. Projection accepts only the
+supported sourced VLAN and established OSPF/iBGP cues; other archived entities
+remain local evidence, not invented visual facts. The six-read live collector
+does not automatically acquire this broader command catalog.
 
 | Entity | Required evidence | Meaning and uncertainty |
 | --- | --- | --- |
