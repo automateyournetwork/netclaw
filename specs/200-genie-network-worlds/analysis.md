@@ -15,7 +15,7 @@ the historical open-gate analysis below without deleting its failures.
 | Planned routed profile contradicted frozen-data delivery | Reconciled with the owner's later snapshot-reuse instruction: supported sourced offline cues are implemented; live collector remains the bounded initial/detailed profile. No unqualified live command expansion. |
 | Final feature verdict | Existing owner acceptance and completion/merge instruction apply after final source checks. No repeated visual-scope or credential question is needed. |
 
-30 unique tasks:30 closed for the accepted Mac prototype. The owner’s recorded-illustration acceptance and explicit completion/merge instruction are retained; no new human approval is fabricated. Local regression and handoff pass; hosted CI still gates merge.
+30 unique tasks:30 closed for the accepted Mac prototype. The owner’s recorded-illustration acceptance and explicit completion/merge instruction are retained; no new human approval is fabricated. Local regression and47/47hosted checks pass; PR366merged at0979c445.
 Requirements and contracts distinguish observed usage from billed settlement,
 illustration from exact topology, and historical evidence from current authority.
 Original198 remains preserved;199 remains AWS. No new paid or device write work

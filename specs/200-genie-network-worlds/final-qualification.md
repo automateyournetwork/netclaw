@@ -121,7 +121,7 @@ and [reviewed Genie pricing](https://aistudio.google.com/docs/models/genie-4#pri
 The owner's acceptance of recorded illustrations with documented visual/event
 limits remains the visual verdict. The three additional technical checks now
 have actual evidence; no renewed visual approval or higher budget is required.
-All30tasks close for the owner-accepted Mac prototype using that existing verdict and the actual technical evidence. Local regression passes; hosted CI must pass for the final source before the authorized merge.
+All30tasks close for the owner-accepted Mac prototype using that existing verdict and the actual technical evidence. Local regression and47/47hosted checks passed on97fc1f1a. PR366merged at0979c445 on2026-11-24T16:10:32Z.
 Original strict fidelity failures, provider HTTP500s, initial collector timeouts,
 terminal-wait recovery and the corrected agent report remain visible.
 
@@ -131,7 +131,7 @@ confinement, Windows/WSL/Mobile live operation and settled invoices are not clai
 The latter are explicit limits, not hidden claims that another world was made.
 Source1.26.0/extension1.6.2 remain the release candidates; this request does not
 publish a Marketplace package, tag, website or announcement. Original198 remains
-preserved at856bbc88 until200's authorized merge is complete;199 remains AWS.
+preserved at856bbc88;200is now merged and199 remains AWS.
 
 
 ## Final source verification
@@ -151,5 +151,5 @@ preserved at856bbc88 until200's authorized merge is complete;199 remains AWS.
 - GAIT branch `spec200-final-qualification-20261124` records the technical handoff
   atde24c020. Private logs retain failed attempts and the complete audit.
 
-The prior PR head passed47/47hosted checks. The final source revision requires
-its own hosted results; that prior green run is not substituted for them.
+Final source97fc1f1a independently passed47/47hosted checks before PR366merged
+at0979c445. The previous green run was not substituted for this result.

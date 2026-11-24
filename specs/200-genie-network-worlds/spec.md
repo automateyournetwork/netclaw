@@ -1,4 +1,4 @@
-> **Current integration status — 2026-11-24:** 30/30 tasks complete for the owner-accepted Mac recorded-illustration scope. Actual selected-runtime collection passed 24/24 reads; the existing Border-owned member completed a real Google lifecycle through its skill and MCP. Google reported video usage for all seven runs; all US$99.810816 reservations remain held because final billing is unavailable. The five accepted recorded illustrations are unchanged. Local regression and handoff are complete; hosted CI must pass before the authorized merge. See [final-qualification.md](final-qualification.md). Older checkpoints below are historical, not current authority.
+> **Current integration status — 2026-11-24:** 30/30 tasks complete for the owner-accepted Mac recorded-illustration scope. Actual selected-runtime collection passed 24/24 reads; the existing Border-owned member completed a real Google lifecycle through its skill and MCP. Google reported video usage for all seven runs; all US$99.810816 reservations remain held because final billing is unavailable. The five accepted recorded illustrations are unchanged. Local checks and all47hosted checks passed. [PR366](https://github.com/automateyournetwork/netclaw/pull/366) merged at0979c445 on2026-11-24. See [final-qualification.md](final-qualification.md). Older checkpoints below are historical, not current authority.
 
 # Feature Specification: Genie Network Worlds
 
@@ -6,7 +6,7 @@
 
 **Created**: 2026-11-22
 
-**Status**: Recorded-illustration scope accepted; actual collector and Border/member/Google integration qualified; local qualification complete; hosted CI and authorized merge pending.
+**Status**: Recorded-illustration scope accepted; actual collector and Border/member/Google integration qualified; qualified and merged through PR366 after47/47hosted checks.
 
 **Input**: John requested an explorable network walkthrough, using Cisco pyATS
 Genie for measured facts and Google Genie for illustration, with a reusable
