@@ -70,7 +70,7 @@
 
 - [x] T034 Posted Azure CAD6.8605695141 and GCP CAD3.06 gross/CAD0 net reconciled with indicative FX and delayed billing. Final conservative held ledger USD19.589, zero open entries/burn; all historical and new reserves retained below USD25. Final invoice posting remains explicitly pending.
 - [x] T035 (drafted at specs/198-azure-multicloud-ha/wordpress-draft.md; NOT published, owner review only) Draft WordPress milestone post for owner review only (constitution XVII), never publish
-- [x] T036 Both cloud inventories verify zero Spec198 resources; export hashes verified and finite watchdogs unloaded. Owner explicitly authorized PR/merge after actual acceptance and cleanup; integration receipt follows in closure.
+- [x] T036 Both cloud inventories verify zero Spec198 resources; export hashes verified and finite watchdogs unloaded. Owner explicitly authorized PR/merge after actual acceptance and cleanup; PR #368 merged at88438918 after all six CI checks passed; primary checkout returned to main.
 
 ## Resumed acceptance explicitly tracked (2026-11-24)
 

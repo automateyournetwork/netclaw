@@ -2,7 +2,9 @@
 
 ## Verified Spec198 completion — 2026-11-24
 
-Spec198 actual acceptance and owned cleanup are complete. Read
+Spec198 actual acceptance and owned cleanup are complete. PR #368 merged
+at88438918 after all six CI checks passed; the primary checkout is back on main.
+The completed198 feature branch is retired. Read
 `specs/198-azure-multicloud-ha/closure-20261124.md` for fourteen independently
 verified signed result/ACK pairs, the twelve-cell six-Border matrix, physical GCP
 NetBox read, actual GCP leader-change completion, native HUD/Code recovery and

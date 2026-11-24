@@ -2,7 +2,7 @@
 
 **Feature Branch**: `198-azure-multicloud-ha`
 **Created**: 2026-11-14
-**Status**: Verified live acceptance and owned cleanup complete, 2026-11-24; source integration authorized. See [closure](closure-20261124.md) for original signed receipts, final cleanup, USD19.589 conservative ledger, retained limits and integration record.
+**Status**: Verified live acceptance and owned cleanup complete, 2026-11-24; merged in [PR #368](https://github.com/automateyournetwork/netclaw/pull/368), merge commit `88438918`. See [closure](closure-20261124.md) for original signed receipts, final cleanup, USD19.589 conservative ledger, retained limits and integration record.
 **Input**: User description: "R10 Azure: NetClaw multi-cloud on Microsoft Azure, mirroring the proven GCP R09/R09A roadmap. A Border claw hosted in Azure with an on-prem member and a cloud-hosted member; 3-region HA Borders in Azure; then a cross-cloud mesh proving GCP-hosted Borders federate with Azure-hosted Borders; then update all docs and release-gate notes. Hard constraints: $25 total spend ceiling (stop and ask at $15), tear down right after validation, nothing created until the owner says go."
 
 Latest instruction: resume implementation and bounded live qualification from
