@@ -233,8 +233,10 @@ def validate_ha_profile(cfg, profile, home, root):
         for key, item in config['etcd'].items():
             if key.endswith('_file'): private_bytes(path(item))
     else:
-        need(cfg['origin'] is None and isinstance(value['nodes'], list) and 2 <= len(value['nodes']) <= 3,
-             'ha_outbound_topology_required')  # spec 185: the sandboxed cluster has 2 Borders plus an etcd witness
+        # spec 185: the sandboxed cluster has 2 Borders plus an etcd witness; spec 198 adds the one-Border lab phase.
+        # The signed manifest schema already allows 1..3 nodes; 0 and >3 stay refused.
+        need(cfg['origin'] is None and isinstance(value['nodes'], list) and 1 <= len(value['nodes']) <= 3,
+             'ha_outbound_topology_required')
     return config
 
 

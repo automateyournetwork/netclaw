@@ -928,7 +928,7 @@ webhooks:
 
 A Border VM can run the Border role, the HUD ingress and the DefenseClaw sidecar **inside one OpenShell sandbox**
 (`netclaw-node`), with the Anthropic key held by OpenShell and never visible to the agent. Verified live on two GCP
-Borders (evidence: `specs/185-openshell-defenseclaw-gcp/verification.md`). What this layer is and is not:
+Borders (evidence: `specs/185-openshell-defenseclaw-gcp/verification.md`) and again on Azure Borders (spec 198, see [NetClaw in Azure](NETCLAW-IN-AZURE.md); the guard needs a provider profile with `auth_style: header` and `header_name: x-api-key`). What this layer is and is not:
 
 - **Credential**: an endpointless OpenShell provider profile (`auth_style: header`, `header_name: x-api-key`) plus a
   `credential_binding: {provider: <name>}` on the Anthropic endpoint in the node policy. The sandbox environment carries only

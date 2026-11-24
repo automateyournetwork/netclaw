@@ -1,6 +1,7 @@
 """NCFED/iN2N member-initiated multiattachment with separate enrolled roles."""
 import asyncio
 import secrets
+import time
 
 from .. import exporter_tls
 from ..certs import time_valid
@@ -130,6 +131,17 @@ async def accept_member(node, reader, writer, *, handlers, on_authenticated):
         raise
 
 
+def nearest_channels(channels):
+    """Authenticated attachments ordered nearest first (measured attestation round trip), node id as the tiebreak.
+
+    Every Border is manifest-verified and forwards to the leader, so which one a member talks to changes latency only,
+    never authorization. A channel without a measurement sorts last, which keeps the previous lowest-id order for it
+    (live finding r10h/r10j: the lowest id was the far Border and starved the 4.5 s admission window)."""
+    ready = [(node_id, ch) for node_id, ch in channels.items() if ch.trusted and not ch._closed]
+    ready.sort(key=lambda item: (getattr(item[1], 'rtt_ms', float('inf')), item[0]))
+    return [ch for _, ch in ready]
+
+
 class MemberAttachments:
     def __init__(self, manifest, member, private_key, *, ca_file, handlers, current):
         check(manifest.anchor_key_id is not None, 'unverified_cluster_manifest', 403)
@@ -162,7 +174,9 @@ class MemberAttachments:
             await channel.start()
             member_nonce = secrets.token_bytes(32)
             params = {'binding_profile': 'in2n-tls-exporter-v1', 'member_nonce': member_nonce.hex()}
+            started = time.monotonic()
             attested = await channel.call('in2n/attest', params, timeout=10)
+            channel.rtt_ms = (time.monotonic() - started) * 1000     # one measured round trip, used only to prefer the nearest Border
             exact(attested, 'cluster_attestation')
             proof = verify(attested['cluster_attestation'], node['certificate'], 'attachment-border')
             expected = transcript(self.manifest, node_id, channel, member_nonce)
@@ -210,6 +224,11 @@ class MemberAttachments:
     async def send_admission(self, request):
         # Pick one authenticated connection. A failure is an unknown request;
         # reconnection or another available Border never triggers a second send.
-        available = [ch for _, ch in sorted(self.channels.items()) if ch.trusted and not ch._closed]
+        available = nearest_channels(self.channels)
         check(available, 'border_transport_unavailable', 503)
-        return await available[0].call('execution/admission', request, timeout=5)
+        # A signed WAN admission window may exceed the historical five-second
+        # transport timeout. Waiting is not authority: MemberAdmission still
+        # measures from before journal I/O and rejects an expired receipt at
+        # consume and at the effect boundary. Never retry on another attachment.
+        timeout = max(5.0, self.manifest.limits['admission_ms'] / 1000)
+        return await available[0].call('execution/admission', request, timeout=timeout)

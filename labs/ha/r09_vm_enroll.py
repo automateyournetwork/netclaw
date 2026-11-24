@@ -10,6 +10,7 @@ previous lease expired (> leader_lease_s). The provisioning lease is not renewed
 No execution is dispatched. Single attempt: a failure is inspected, never retried as a new change.
 """
 import json
+import os
 import sys
 import time
 from pathlib import Path
@@ -21,7 +22,7 @@ from bgp.federation.ha.config import verify_manifest  # noqa: E402
 from bgp.federation.ha.operations import OperationLedger  # noqa: E402
 from bgp.federation.ha.store import EtcdStore  # noqa: E402
 
-S = Path('/var/lib/nc182')
+S = Path(os.environ.get('NC_STATE', '/var/lib/nc182'))  # sandbox nodes set NC_STATE=/sandbox/nc182
 member = json.loads(Path(sys.argv[1]).read_text())
 owned = json.loads((S / 'etcd-owned.json').read_text())
 anchor = (S / 'identity/root.crt').read_text()

@@ -157,6 +157,12 @@ class Manifest:
     def audience(self):
         return {'cluster_id': self.cluster_id, 'generation': self.generation}
 
+    @property
+    def public_enrollment(self):
+        """Verified public anchor and envelope; never enrollment private material."""
+        check(self.anchor_key_id is not None, 'unverified_cluster_manifest', 403)
+        return copy.deepcopy(self._public_enrollment)
+
     def node(self, node_id):
         rows = [n for n in self.nodes if n['node_id'] == node_id]
         check(len(rows) == 1, 'node_not_enrolled', 403)
@@ -201,6 +207,8 @@ def verify_manifest(envelope, anchor_certificate, *, expected_key_id, minimum_re
         result = Manifest(envelope['manifest'])
         check(result.revision >= minimum_revision, 'stale_manifest', 409)
         result.anchor_key_id = expected_key_id
+        result._public_enrollment = {'manifest': copy.deepcopy(envelope),
+                                     'anchor_certificate': anchor_certificate}
         return result
     except HAError:
         raise

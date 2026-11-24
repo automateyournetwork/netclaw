@@ -10,7 +10,9 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from ..protected_contract import encode, exact, key_id
 from .config import HAError, check
 
-KINDS = {'hello', 'admission', 'member-result', 'forward', 'attachment-border', 'attachment-member', 'dispatch'}
+KINDS = {'hello', 'admission', 'member-result', 'forward', 'attachment-border', 'attachment-member', 'dispatch',
+         # spec 198 cross-group federation (ha/federation.py); each is a distinct signing domain
+         'peer-hello', 'peer-relay', 'peer-catalog', 'peer-relay-response', 'peer-catalog-response', 'peer-client'}
 MAX_PROOF = 65536
 
 

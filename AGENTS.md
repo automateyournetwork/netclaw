@@ -1,6 +1,61 @@
 # NetClaw Operating Instructions
 
-## Spec200 planning workspace — 2026-11-22
+## Verified Spec198 completion — 2026-11-24
+
+Spec198 actual acceptance and owned cleanup are complete. Read
+`specs/198-azure-multicloud-ha/closure-20261124.md` for fourteen independently
+verified signed result/ACK pairs, the twelve-cell six-Border matrix, physical GCP
+NetBox read, actual GCP leader-change completion, native HUD/Code recovery and
+stopped-guard fail-closed evidence. Three distinct regions per cloud and all
+authority/unknown fences were retained. The measured admission repair uses a fresh
+signed9000ms window and manifest-derived wait; stable Wi-Fi alone was insufficient.
+
+All seven VMs, disks/IPs and four generations of DNS are removed and verified;
+empty buckets/repository, residual R01cloud secret (privately exported), automatic
+NetworkWatchers, default GCP VPC/subnets/firewalls and empty Azure groups are removed;
+state/etcd/member exports are private. Both finite watchdogs are unloaded. The
+closed conservative ledger is USD19.589, zero open entries/burn, with all reserves
+retained under USD25. Billing lag and preserved unknowns remain explicit. The owner
+authorized source commit/push/merge and return to main after this acceptance.
+The closure record carries the integration receipt. No client publication or
+version release is authorized.199 remains reserved/prepared for AWS, not activated;
+it receives no Azure/GCP or Genie budget.
+
+Preserve the detached Spec200 checkout97fc1f1a, recordings and existing owner
+services. Never replay spent preparations/operations or restart expired watchdogs.
+Historical resumption/planning records below are superseded by this closure.
+
+## Historical Spec198 resumption workspace — 2026-11-24
+
+The primary checkout is `/Users/john.capobianco/netclaw` on
+`198-azure-multicloud-ha`. The owner requested completing Git housekeeping and
+returning to 198 after Spec200 and all Byrn PRs were merged. Main is synchronized
+through `75bb2e77`; Spec200 is 30/30 for its accepted recorded-illustration scope.
+The original unfinished 198 checkpoint `856bbc88` remains a parent of this
+resumption. Its incomplete Azure/GCP acceptance and separate cloud budget remain
+open. This Git integration does not activate cloud resources or publish 198.
+
+The Spec200 checkout at `/Users/john.capobianco/netclaw-spec200-genie` is retained
+at detached `97fc1f1a` for private recordings, evidence and the running gallery/
+evidence-only member. Do not remove it or recreate its completed branch. Six
+completed temporary worktrees and merged helper branches were retired. 199 remains
+reserved for AWS. See `specs/198-azure-multicloud-ha/git-resumption-20261124.md`.
+Historical sequencing and planning statements below are superseded by this record.
+
+## Historical sequencing — 2026-11-22
+
+John requested local CML/pyATS/subnet verification and a feasibility-gated
+Genie-to-Genie visualization experiment.199is reserved forAWS;200isGenie.
+If feasible, complete200before returning to unfinished198Azure/GCP, then199.
+The owner subsequently authorized a commit/push checkpoint of the unfinished198
+source on2026-11-22, without merge, release or reactivation. See its checkpoint
+document for the preserved gaps.200has an isolated worktree at
+`/Users/john.capobianco/netclaw-spec200-genie` on200-genie-network-worlds.
+Official Genie4API documentation was located, but no live generated-world proof
+or paid request has run. Read the200verification/resume before claiming readiness.
+This sequencing does not close198acceptance or authorize publication.
+
+## Historical Spec200 planning workspace — 2026-11-22
 
 The active planning checkout is `/Users/john.capobianco/netclaw-spec200-genie` on
 `200-genie-network-worlds`. The owner requested a thoughtful

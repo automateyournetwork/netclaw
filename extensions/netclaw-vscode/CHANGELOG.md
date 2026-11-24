@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased (not published; no version bump, release gate applies)
+
+- **Manage connections from the side bar.** Each saved connection row under **Connections** now shows inline **Rename** (pencil) and **Remove** (trash) icons and the same two actions on right-click. **Remove connection** asks for confirmation first, and states that it only forgets the saved connection and its local workspace binding in this editor; it never stops or changes the NetClaw, the Border or the cloud resources behind it. The palette commands accept the clicked row and still ask which connection when run from the palette. The cloud-Border connection list also gains a Remove entry.
+- Documents Azure (spec 198) and the multi-cloud mesh next to GCP: one connection per Border, compare the cluster anchor fingerprint before trusting it.
+
 ## 1.6.1 — Mobile QR enrollment
 
 - Open **Mobile & edge → Generate QR code** for the selected compatible installation, then scan in NetClaw Mobile. The editor uses the shared enrollment service without opening a terminal.

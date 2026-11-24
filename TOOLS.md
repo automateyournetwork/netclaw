@@ -1659,6 +1659,53 @@ Admin: `scripts/cisco-iq-enable.sh enable|update|rotate|disable|status|diagnose|
 `config/cisco-iq-policy.json`. Tool names are discovered at runtime, not assumed. Contract taken from issue #346; the official
 guide could not be fetched by automation. See `docs/CISCO-IQ.md`.
 
+## Azure R10 VM creation findings (2026-11-14)
+
+Spec198 Azure is Enabled/PayAsYouGo with Compute/Network/Storage registered.
+Original B2s/Bv2 choices have SKU restrictions and/or zero family quota; Microsoft's
+sys.blockwesteurope policy denies West Europe to this new subscription. Query
+Resource SKUs including restrictions plus regional AND exact family quotas.
+Do not use list-sizes as deployability evidence. R10 preflight defects were fixed.
+
+Actual Canada Central VM creation succeeded for D2als_v7/Debian12, then for
+D2as_v7/Ubuntu24.04 (2vCPU/8GiB). Full Ubuntu24.04/40GiB StandardSSD validation
+passed in Canada Central, East US2 and Sweden Central; observed compute USD/h
+0.101,0.0908,0.097 respectively. Kernel7.0.0-1017-azure/Landlock ABI8 and host
+OpenShell bootstrap passed. Full HUD/VSCode/guarded calls/HA remain unqualified.
+Use Ubuntu/Docker>=28 for OpenShell; do not reuse the Debian bootstrap as full-stack.
+
+Owner requested stop, teardown and other-agent handoff on2026-11-14. No resume or
+new cloud creation until instructed. See specs/198-azure-multicloud-ha/handoff.md
+for exact evidence, source gaps, cleanup and the six-Border target (3Azure+3GCP).
+
+## Local readiness observation — 2026-11-22
+
+CML192.168.2.125 authenticated with existing credentials and saved certificate:
+2.10.0+build.13,ready=true. Main lab R1/R2/SW2 BOOTED;SW1 STOPPED. Actual native
+pyATS/Genie show-version reads passed on all three booted network nodes,
+IOS17.18.2;R1/R2 management interfaces were up/up. This is bounded readiness,
+not a routing/topology/traffic certification. No configuration or node lifecycle
+changes. Current CML configuration places SW1/SW2 at .203/.204; repository
+testbed still lists .211/.212 and its defaults.arguments layout fails validation.
+
+Default pyATS HTTP runtime missing and Docker stopped. Successful isolated
+checks explicitly selected the existing
+`~/.local/share/netclaw/roadmap-r02-r05-20261102/pyats-runtime`, private testbeds
+and preexisting strict SSH pins. Unicon also issued a read-only operating-mode
+show query despite empty initialization lists; do not call these exact-command
+protected-operation proofs. Bounded subnet MCP passed192.0.2.0/24→256/254using
+existing R10 artifact and n2n interpreter. Old unpatched subnet source is not
+compatible with MCP2's removed FastMCP import. Connector/internal error and
+MemPalace/module missing remain visible. No owner installation repaired/rebound.
+Private evidence:`~/.local/share/netclaw/genie-feasibility-20261122/`.
+
+Follow-up on2026-11-22: John started Docker and SW1. Fresh checks confirmed
+Docker29.9.2, the existing loopback pyats/netbox/equinix/gateway containers up,
+all four CML network nodes BOOTED, and actual SW1 pyATS show-version parsed as
+IOS17.18.2 with the existing strict SSH pin. This supersedes the stopped-state
+observations only. Default native runtime/testbed repair and persistent member
+readiness are still separate from these successful scoped tool checks.
+
 ### Spec200 planning access — 2026-11-22
 
 CML certificate-verified system_information and selected native pyats_list_devices
@@ -1722,3 +1769,26 @@ Five actual120-second real-snapshot Genie4 recordings and local static playback 
 
 ### Genie Network Worlds integration — Spec200
 Optional `genie-worlds` catalog component, six stdio controls and `netclaw-genie-worlds` skill. Cisco pyATS evidence stays authoritative; Google Genie4 media is illustrative. Terminal and VS Code setup bind a selected local backend; the Risk member receives only its private control capability. Setup does not create worlds, approve export or transfer Google credentials. Five actual recordings are retained; exact fidelity, billing reconciliation and native Risk-member execution remain separately reported. See docs/GENIE-WORLDS.md.
+
+
+### Spec198 stable-network admission diagnosis — 2026-11-24
+
+The r10l frozen source ALREADY includes nearest-authenticated-Border selection;
+its signed admission window was4500ms. Controlled real-TLS reproduction with the
+recorded320ms quorum-call cost measures15calls/4.88s through a follower,9calls/2.94s
+through a leader. A transport-only timeout increase does not fix signed expiry.
+The proposed fresh9s manifest plus manifest-derived RPC wait passes controlled
+6.08s admission and rejects a9s timeout without effects; live qualification is
+still pending. Preserve all original unknowns/fences. See Spec198 resume-20261124.
+
+Ledger remains USD13.9276 including the full USD5 reserve; Azure actual cost is
+CAD6.8606, GCP actual reconciliation remains open. A fresh6h seven-host envelope
+is USD23.0076 cumulative and requires renewed approval at the USD15 pause. The
+old global approval bit must not be mistaken for that approval. No cloud assets
+were created during diagnosis. Never use broad protected-role pkill: retained
+Spec200/other owner services are outside the run. Run labels, correct firewall
+names, non-replayable watchdog setup and serialized ledger writes were repaired.
+
+### Spec198 Linux member relay qualification — 2026-11-24
+
+Fresh Linux OpenClaw member preparations must validate the executor's lazy MCP imports and immutable dependency closure. The inherited Mac Docker Desktop TCP host alias is unavailable on the qualified GCP Linux host; a fresh identity using the same immutable relay image over a Unix socket and a short private state path completed the real NetBox read. Never mutate a spent member contract or replay its unknown/refused operation. Three-region admission was qualified with a freshly signed9000ms window and manifest-derived RPC wait; nearest authenticated attachment selection does not remove quorum latency. See `specs/198-azure-multicloud-ha/closure-20261124.md`.

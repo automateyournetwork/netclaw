@@ -58,12 +58,18 @@ operations retain exact native review and approval, signed results, durable
 acknowledgements and same-reference recovery. Unknown outcomes stay retained and
 are never automatically replayed.
 
-Use an existing operator-approved lab endpoint. This client release is not a cloud
+Use an existing operator-approved lab endpoint (for example an Azure or GCP Border built with
+[NetClaw in Azure](../../docs/NETCLAW-IN-AZURE.md) or [NetClaw in GCP](../../docs/NETCLAW-IN-GCP.md); add one connection per Border and compare the
+displayed cluster anchor fingerprint with the operator's record before trusting it). This client release is not a cloud
 deployment guide and does not implement users, SSO or RBAC. Local workspace files,
 service lifecycle, environment/MCP configuration, security controls and assistant
 registration remain local-only. Browser VS Code, native Windows runtime hosting
 and virtual workspaces remain unsupported. Opening a workspace makes no automatic
 connection or runtime change.
+
+**Managing connections.** In the NetClaw side bar under **Connections**, hover a saved connection and click the pencil (**Rename**) or trash
+(**Remove**) icon, or right-click it. **Remove** asks for confirmation and forgets only the saved connection in this editor; it never stops or
+changes the NetClaw or the cloud resources behind it. **NetClaw: Rename Connection** and **NetClaw: Remove Connection** in the Command Palette do the same.
 
 ## Workspace files and claw controls
 

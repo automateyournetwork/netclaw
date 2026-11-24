@@ -117,7 +117,7 @@ export class OwnerWorkflow implements vscode.Disposable {
     await this.document(fullReview, "Complete immutable cloud operation review", b.current);
     const reference = b.operations.references().find(r => r.operation_id === operation.operation_id);
     if (!b.client.canDecide(operation) || operation.state !== "review_pending" || reference?.decision_sent || !operation.allowed_actions?.includes("approve") ||
-      b.client.openLab && !b.client.reviewPrincipalMatches(operation.review?.principal)) { await this.showResult(b, operation); return operation; }
+      b.client.openLab && !b.client.operationPrincipalMatches(operation)) { await this.showResult(b, operation); return operation; }
     const ready = await vscode.window.showInformationMessage("The complete immutable review is open in Cloud-Border.json. Read it before reviewing a decision.", "Review decision");
     b.current();
     if (ready !== "Review decision") return operation;

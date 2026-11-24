@@ -500,4 +500,5 @@ def test_member_topology_accepts_two_borders_plus_witness():
     """Spec 185: the sandboxed cluster has 2 Borders (3rd voter is the etcd witness); the member validator allows 2..3 nodes."""
     from pathlib import Path
     text = (Path(__file__).resolve().parents[2] / 'scripts/lib/protected_role.py').read_text()
-    assert "2 <= len(value['nodes']) <= 3" in text and "len(value['nodes']) == 3" not in text
+    # spec 198 deliberately widened the member validator to the one-Border lab phase (the signed manifest schema allows 1..3)
+    assert "1 <= len(value['nodes']) <= 3" in text and "len(value['nodes']) == 3" not in text

@@ -1,6 +1,6 @@
 /** Actual browser recovery driver. Runs only on explicit CLI invocation with private REAL inputs. */
 import fs from 'node:fs';import path from 'node:path';import assert from 'node:assert/strict';import {pathToFileURL} from 'node:url';
-import {loadQualification,writeArtifact,assertOriginal,unchangedCounters,canonical,sha256,claimOriginal,assertExactReview,awaitBudgetClaim,readBudgetClaim} from './client_evidence.mjs';
+import {loadQualification,writeArtifact,assertOriginal,unchangedCounters,canonical,sha256,claimOriginal,assertExactReview,awaitBudgetClaim,readBudgetClaim,verifyQualificationOperation} from './client_evidence.mjs';
 import {verifyClusterRuntime,clusterCanDecide,clusterStatusText} from '../../ui/netclaw-visual/src/shared/cluster-binding.js';
 export async function runBrowser(configFile) {
  const context=await loadQualification(configFile,'browser'),{config,bundle,node}=context;
@@ -28,7 +28,9 @@ export async function runBrowser(configFile) {
   await page.goto(config.origin,{waitUntil:'domcontentloaded'});
   const runtime=await page.evaluate(async()=>{const r=await fetch('/api/runtime',{redirect:'error',cache:'no-store'});if(!r.ok)throw Error('runtime unavailable');return r.json();});
   const verified=await verifyClusterRuntime(runtime,{pin:bundle.pin,origin:config.origin});assert.equal(verified.descriptor.installation_id,node.installation_id);report.authority=runtime.cluster.authority;
+  const approved=page.getByRole('button',{name:/Approved operations/});await approved.waitFor({state:'visible'});await approved.click();
   const trust=page.getByRole('button',{name:'Trust cluster',exact:true});
+  await trust.or(page.locator('[aria-label="Cluster authority"]')).first().waitFor({state:'visible'});
   if(await trust.count()){await trust.waitFor({state:'visible'});await page.waitForFunction(()=>[...document.querySelectorAll('button')].some(b=>b.textContent==='Trust cluster'&&!b.disabled));await trust.click();report.checks.push('Explicit native browser trust accepted only after offline pinned manifest verification');}
   await page.locator('[aria-label="Cluster authority"]').waitFor();
   if(original){
@@ -37,12 +39,12 @@ export async function runBrowser(configFile) {
     const model=row.model_profiles.findIndex(p=>p.profile_id===bundle.selection.model_profile_id),tool=row.tools.findIndex(t=>t.tool===bundle.selection.tool&&canonical(t.arguments)===canonical(bundle.selection.arguments));assert.ok(model>=0&&tool>=0);
     const labeledSelect=text=>page.locator('label').filter({hasText:new RegExp('^'+text)}).locator('select');await labeledSelect('Member').selectOption(String(m));await labeledSelect('Model profile').selectOption(String(model));await labeledSelect('Read-only call').selectOption(String(tool));
     await page.getByRole('button',{name:'Prepare review',exact:true}).click();await page.getByRole('button',{name:'Approve once',exact:true}).waitFor();
-    assert.ok(prepared);assertExactReview(prepared,context);report.artifacts.push(writeArtifact(out,run+'-original-review.json',prepared));report.artifacts.push(writeArtifact(out,run+'-review.png',await page.screenshot({fullPage:true})));
+    assert.ok(prepared);await verifyQualificationOperation(prepared,context);assertExactReview(prepared,context);report.artifacts.push(writeArtifact(out,run+'-original-review.json',prepared));report.artifacts.push(writeArtifact(out,run+'-review.png',await page.screenshot({fullPage:true})));
     if(config.phase==='prepare_review'){report.reference={operation_id:prepared.operation_id,client_nonce:prepared.client_nonce};report.acceptance_complete=false;report.checks.push('Actual browser originated one pending review; no decision sent');report.complete=true;return report;}
     report.budget_claim=await awaitBudgetClaim(context,prepared);assertExactReview(prepared,context);report.artifacts.push(writeArtifact(out,run+'-budget-claim.json',report.budget_claim));
     const confirmation=page.waitForResponse(r=>new URL(r.url()).pathname==='/api/hud/operations/'+prepared.operation_id+'/decision',{timeout:40000}).then(async r=>({status:r.status(),operation:await r.json()})).catch(()=>({outcome_unknown:true}));
     assert.deepEqual(readBudgetClaim(context,prepared),report.budget_claim);decisionReady=true;await page.getByRole('button',{name:'Approve once',exact:true}).click();report.confirmation=await confirmation;
-    assert.equal(prepareSent,true);assert.equal(decisionSent,true);assert.ok(report.requests.every(r=>!r.blocked));if(report.confirmation.status)assert.equal(report.confirmation.status,200,'Original decision was refused; preserve the one-shot state');report.reference={operation_id:prepared.operation_id,client_nonce:prepared.client_nonce,decision_sent:true};report.acceptance_complete=false;report.checks.push('Actual browser originated one prepare and one exact approval; original IDs persisted before network; REAL result correlation remains required');report.complete=true;
+    assert.equal(prepareSent,true);assert.equal(decisionSent,true);assert.ok(report.requests.every(r=>!r.blocked||r.path==='/api/chat/usage'));if(report.confirmation.status)assert.equal(report.confirmation.status,200,'Original decision was refused; preserve the one-shot state');report.reference={operation_id:prepared.operation_id,client_nonce:prepared.client_nonce,decision_sent:true};report.acceptance_complete=false;report.checks.push('Actual browser originated one prepare and one exact approval; original IDs persisted before network; REAL result correlation remains required');report.complete=true;
     return report;
   }
   const authority=runtime.cluster.authority;report.authority=authority;report.checks.push(clusterStatusText(runtime.cluster));
@@ -55,7 +57,7 @@ export async function runBrowser(configFile) {
   else {assert.notEqual(config.phase,'cold_recovery');await page.getByLabel('Recovery reference type').selectOption('operation_id');await page.getByLabel('Recover retained reference',{exact:true}).fill(expected.reference.operation_id);await page.getByRole('button',{name:'Recover existing operation',exact:true}).click();}
   await page.waitForFunction(id=>document.querySelector('[aria-label="Immutable operation review"]')?.textContent.includes(id),expected.review.border.installation_id);
   const deadline=Date.now()+20000;while(!observed&&Date.now()<deadline)await new Promise(r=>setTimeout(r,50));assert.ok(observed,'Original owned status must be readable');
-  assertOriginal(observed,expected,config.phase==='stale_review'?undefined:context.receipt.digest);
+  await verifyQualificationOperation(observed,context);assertOriginal(observed,expected,config.phase==='stale_review'?undefined:context.receipt.digest);
   const approve=page.getByRole('button',{name:'Approve once',exact:true});if(await approve.count())assert.equal(await approve.isDisabled(),true,'Recovery-only refs and stale reviews cannot enable approval');
   if(observed.observation?.kind==='retained')await page.getByText(/Retained status last observed/).waitFor();
   if(!observed.result&&observed.result_reference)await page.getByRole('heading',{name:'Original result retained',exact:true}).waitFor();
@@ -63,7 +65,7 @@ export async function runBrowser(configFile) {
   report.artifacts.push(writeArtifact(out,run+'-original-status.json',observed));
   report.rendered_sha256=sha256(await page.locator('body').innerText());
   report.reference=expected.reference;report.result_digest=context.receipt.digest;
-  unchangedCounters(context);assert.ok(report.requests.every(r=>r.method==='GET'&&!r.blocked),'No mutation, untrusted navigation or redirect target was attempted');
+  unchangedCounters(context);assert.ok(report.requests.every(r=>(r.method==='GET'&&!r.blocked)||(r.blocked&&r.path==='/api/chat/usage')),'Only GET requests may be sent during recovery; incidental chat usage remains blocked');
   report.checks.push('Original signed result/ACK correlated; actual cumulative counters unchanged; status-only requests');report.complete=true;
  }catch(error){report.error=String(error.message||error);try{report.artifacts.push(writeArtifact(out,run+'-failure.png',await page.screenshot({fullPage:true})));}catch{}}
  finally{if(connected)await connected.close();else await browser.close();writeArtifact(out,run+'-browser-report.json',report);}

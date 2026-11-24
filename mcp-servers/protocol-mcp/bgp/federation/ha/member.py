@@ -6,7 +6,7 @@ from ..certs import time_valid
 from ..protected_docker import DockerExecutor
 from ..protected_service import ProtectedOperations
 from .config import check
-from .internal import border_binding
+from .internal import border_binding, nearest_channels
 from .signatures import verify
 
 
@@ -44,8 +44,7 @@ class ClusterMemberOperations(ProtectedOperations):
         self._trust(binding)
 
     def _execution_channel(self, channel):
-        available = [ch for _, ch in sorted(self.attachments.channels.items())
-                     if ch.trusted and not ch._closed]
+        available = nearest_channels(self.attachments.channels)
         check(available, 'border_transport_unavailable', 503)
         return available[0]
 

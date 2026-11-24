@@ -49,6 +49,7 @@ test('region label is display-only and unknown names stay usable', () => {
  assert.equal(regionLabel('ase1-9c2e55.automateyournetwork.com'),'Singapore');
  for (const bad of ['https://evil.example/nne1-3fa9c2.automateyournetwork.com','nne1-3fa9c.automateyournetwork.com','nne1-3fa9c2.automateyournetwork.com.evil.io','',undefined]) assert.equal(regionLabel(bad),'Unknown region');
  assert.equal(clusterNodeRegion(undefined,'x'),'Unknown region');
+  assert.equal(clusterNodeRegion({manifest:{manifest:{nodes:[{node_id:'az',endpoints:{https:'https://ew1-b71d04.automateyournetwork.com',cluster:{host:'azus.r10-20261124.azure.internal'}}}]}}},'az'),'Azure · region in node posture');
  assert.equal(clusterFailoverNotice({node_id:'a',authority:{state:'no_quorum'}}).includes('No quorum'),true);
  assert.equal(clusterFailoverNotice({node_id:'a',authority:{state:'leader',leader_node_id:'a'}}),'');
 });

@@ -156,12 +156,14 @@
       {
         "command": "netclaw.renameConnection",
         "title": "Rename Connection",
-        "category": "NetClaw"
+        "category": "NetClaw",
+        "icon": "$(edit)"
       },
       {
         "command": "netclaw.removeConnection",
         "title": "Remove Connection",
-        "category": "NetClaw"
+        "category": "NetClaw",
+        "icon": "$(trash)"
       },
       {
         "command": "netclaw.openOverview",
@@ -475,6 +477,28 @@
           "command": "netclaw.addSelectedContext",
           "when": "editorHasSelection && isWorkspaceTrusted",
           "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "netclaw.renameConnection",
+          "when": "view == netclaw.connections && viewItem == netclaw.connection",
+          "group": "inline@1"
+        },
+        {
+          "command": "netclaw.removeConnection",
+          "when": "view == netclaw.connections && viewItem == netclaw.connection",
+          "group": "inline@2"
+        },
+        {
+          "command": "netclaw.renameConnection",
+          "when": "view == netclaw.connections && viewItem == netclaw.connection",
+          "group": "navigation@1"
+        },
+        {
+          "command": "netclaw.removeConnection",
+          "when": "view == netclaw.connections && viewItem == netclaw.connection",
+          "group": "navigation@2"
         }
       ]
     },

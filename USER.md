@@ -8,6 +8,14 @@
 
 ## Preferences
 
+- 2026-11-22 direction: verify local CML/pyATS/subnet, then investigate pyATS
+  Genie to Google Project Genie worlds. Reserve199forAWS and200forGenie. If
+  feasible, do200before resuming198Azure/GCP, then199AWS. Preserve unfinished198
+  work; an announced API is not a completed generated-world proof.
+  Follow-up: save and push an unfinished198 Git checkpoint, prepare a thoughtful
+  `/clear` kickoff for200 specification and planning, then work in the isolated
+  200 worktree. John started Docker and SW1; both were rechecked read-only.
+
 - R08 execution direction (2026-11-07): drive R08 to100% through full SDD, after
   the joint R08/R09 strategy review. Owner explicitly reaffirmed that HA remains
   grounded in NCFED. R08 source and isolated local qualification are authorized;

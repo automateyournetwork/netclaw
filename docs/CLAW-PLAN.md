@@ -52,3 +52,5 @@ GCP deployments are **NOT behind any authentication**: keep every URL private; u
 roadmap phase (R15-R17).
 
 A plan describes the Risk shape; cloud placement is a separate reviewed step: choose a topology id (`gcp-border`, `gcp-member`, `gcp-border-onprem-members`, `onprem-border-gcp-members`, `ha-risk`, `distributed-risk`) and run `scripts/netclaw-gcp.py plan`, then enroll the nodes with the Member/Border flow.
+
+> **Azure (R10, spec 198):** Azure is an operator path, not an interactive deployer. `./scripts/install.sh` offers a read-only Azure preflight and prints the commands; billable steps need your explicit go. See [NetClaw in Azure](NETCLAW-IN-AZURE.md) and the [multi-cloud mesh](NETCLAW-MULTICLOUD-MESH.md). Azure deployments are **NOT behind any authentication**: keep every URL private; users, SSO and RBAC are a much later roadmap phase (R15-R17).

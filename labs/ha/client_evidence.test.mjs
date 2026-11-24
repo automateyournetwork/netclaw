@@ -1,6 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import os from 'node:os';import path from 'node:path';
 import {execFileSync} from 'node:child_process';
-import {canonical,privateFile,privateDirectory,writeArtifact,claimOriginal,assertExactReview,assertOriginal,unchangedCounters,sha256,loadQualification,verifyEnvelope,readBudgetClaim,awaitBudgetClaim} from './client_evidence.mjs';
+import {canonical,privateFile,privateDirectory,writeArtifact,claimOriginal,assertExactReview,assertOriginal,unchangedCounters,sha256,loadQualification,verifyEnvelope,readBudgetClaim,awaitBudgetClaim,verifyQualificationOperation} from './client_evidence.mjs';
 import {runBrowser} from './client_qualification.mjs';
 const golden=JSON.parse(fs.readFileSync(new URL('../../tests/fixtures/ha-179/cluster-golden.json',import.meta.url)));
 const setup=t=>{const directory=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'r08-harness-source-')));fs.chmodSync(directory,0o700);t.after(()=>fs.rmSync(directory,{recursive:true,force:true}));return directory;};
@@ -69,4 +69,15 @@ test('missing or malformed reservation leaves approval unsent and creates no res
  const {dir,context,operation}=budgetFixture(t);context.config.budget_wait_ms=10;
  await assert.rejects(awaitBudgetClaim(context,operation),/approval remains unsent/);assert.deepEqual(fs.readdirSync(dir),[]);
  writeArtifact(dir,'claim.json',{});await assert.rejects(awaitBudgetClaim(context,operation));assert.deepEqual(fs.readdirSync(dir),['claim.json']);
+});
+
+test('controlled cross-cloud qualification verifies the endorsed receiving identity before exact review',async t=>{
+ const fixture=JSON.parse(fs.readFileSync(new URL('../../tests/fixtures/ha-198/federated-client.json',import.meta.url)));
+ t.mock.timers.enable({apis:['Date'],now:fixture.now_ms});
+ const op=structuredClone(fixture.operation),b=op.remote.client_binding,m=b.manifest.manifest;
+ const peer={cluster_id:m.cluster_id,generation:m.generation};
+ const context={bundle:{descriptor:fixture.descriptor,principal:fixture.principal,peer_descriptor:peer,peer_pin:{anchor_key_id:b.endorsement.payload.peer_anchor_key_id},expected_review:op.review}};
+ await verifyQualificationOperation(op,context);assertExactReview(op,context);
+ const changed=structuredClone(op);changed.client_nonce='replacement';await assert.rejects(verifyQualificationOperation(changed,context));
+ await assert.rejects(verifyQualificationOperation(structuredClone(op),{bundle:{...context.bundle,peer_descriptor:{...peer,generation:'wrong'}}}));
 });

@@ -71,6 +71,28 @@ def _private_ip(value):
 
 
 GCE_INTERNAL = re.compile(r'^[a-z]([a-z0-9-]{0,61}[a-z0-9])?\.[a-z][a-z0-9-]*\.c\.[a-z][a-z0-9-]*\.internal$')
+# Spec198: private DNS zone owned by the bounded Azure validation run.
+AZURE_INTERNAL = re.compile(r'^az(?:ca|us|se)\.r10-[0-9]{8}\.azure\.internal$')
+
+
+# Spec198 cross-group federation: a Border may dial the PEER group's Borders by their public DNS names on one fixed port.
+# Exact name shape, exact public /32, one port, only the qualified python: no wildcard, no IP literal, no other host.
+FEDERATION_PEER = re.compile(r'^(?:nne1|nne2|ew1|ase1)-[0-9a-f]{6}\.automateyournetwork\.com$')
+FEDERATION_PORT = 7445
+
+
+def _public_ip(value):
+    try:
+        address = ipaddress.ip_address(value)
+    except ValueError:
+        raise PolicyRefused('resolve_invalid') from None
+    need(address.version == 4 and address.is_global and not (address.is_loopback or address.is_link_local
+         or address.is_multicast or address.is_unspecified or address.is_private), 'federation_resolve_must_be_public')
+    return str(address)
+
+
+def cluster_host(host):
+    return GCE_INTERNAL.fullmatch(host) is not None or AZURE_INTERNAL.fullmatch(host) is not None
 
 
 def _endpoint(value, port, label):
@@ -80,13 +102,17 @@ def _endpoint(value, port, label):
     connections bypass policy DNS. The metadata server and any non-GCE-internal name are never accepted here."""
     need(isinstance(value, str) and value.count(':') == 1, 'invalid_' + label)
     host, _, text = value.partition(':')
+    if label == 'federation_endpoint':
+        need(FEDERATION_PEER.fullmatch(host) is not None and text.isdigit() and int(text) == FEDERATION_PORT, 'invalid_' + label)
+        return host, FEDERATION_PORT
     try:
         ipaddress.ip_address(host)
     except ValueError:
         pass
     else:
         raise PolicyRefused('tcp_endpoint_must_be_a_dns_name')
-    need(GCE_INTERNAL.match(host) is not None and host not in FORBIDDEN_HOST_NAMES, 'invalid_' + label)
+    need((cluster_host(host) or (host == 'host.openshell.internal' and label == 'etcd_endpoint'))
+         and host not in FORBIDDEN_HOST_NAMES, 'invalid_' + label)
     need(text.isdigit() and int(text) == port, 'invalid_' + label)
     return host, port
 
@@ -98,13 +124,20 @@ def _binary(path):
 
 
 def check_node_spec(spec):
-    need(isinstance(spec, dict) and set(spec) <= {'node', 'etcd', 'peers', 'anthropic', 'binaries', 'resolve'}
+    need(isinstance(spec, dict) and set(spec) <= {'node', 'etcd', 'peers', 'anthropic', 'binaries', 'resolve', 'federation_peers'}
          and {'node', 'etcd', 'peers', 'anthropic'} <= set(spec), 'invalid_node_spec')
     need(isinstance(spec['node'], str) and NODE_CODE.match(spec['node']), 'invalid_node')
     # a sandboxed node lists only its REMOTE voters (OpenShell refuses the node's own host address): 2 of a 3-voter cluster
-    need(isinstance(spec['etcd'], list) and 2 <= len(spec['etcd']) <= 3 and len(set(spec['etcd'])) == len(spec['etcd']), 'etcd_two_or_three_voters_required')
+    single = spec['etcd'] == ['host.openshell.internal:12379'] and not spec['peers']
+    # the loopback exception exists only for the one-Border lab: never alongside a remote voter or a peer
+    need(single or not any(isinstance(e, str) and e.startswith('host.openshell.internal') for e in spec['etcd']),
+         'single_host_etcd_must_stand_alone')
+    need(isinstance(spec['etcd'], list) and (single or 2 <= len(spec['etcd']) <= 3)
+         and len(set(spec['etcd'])) == len(spec['etcd']), 'etcd_two_or_three_voters_required')
     need(isinstance(spec['peers'], list) and len(spec['peers']) <= 2 and len(set(spec['peers'])) == len(spec['peers']), 'invalid_peers')
     need(type(spec['anthropic']) is bool, 'invalid_anthropic_flag')
+    need(isinstance(spec.get('federation_peers', []), list) and len(spec.get('federation_peers', [])) <= 6
+         and len(set(spec.get('federation_peers', []))) == len(spec.get('federation_peers', [])), 'invalid_federation_peers')
     binaries = dict(DEFAULT_BINARIES)
     if 'binaries' in spec:
         need(isinstance(spec['binaries'], dict) and set(spec['binaries']) <= set(DEFAULT_BINARIES), 'invalid_binaries')
@@ -117,10 +150,17 @@ def build_policy(spec):
     binaries = check_node_spec(spec)
     etcd = [_endpoint(item, ETCD_CLIENT_PORT, 'etcd_endpoint') for item in spec['etcd']]
     peers = [_endpoint(item, 7443, 'peer_endpoint') for item in spec['peers']]
+    federation = [_endpoint(item, FEDERATION_PORT, 'federation_endpoint') for item in spec.get('federation_peers', [])]
     resolve = spec.get('resolve') or {}
+    for host, _ in federation:
+        need(host in resolve, 'resolve_missing')
+        _public_ip(resolve[host])
     for host, _ in etcd + peers:
         need(host in resolve, 'resolve_missing')
-        _private_ip(resolve[host])
+        if host == 'host.openshell.internal':
+            need(resolve[host] == '127.0.0.1', 'single_host_loopback_required')
+        else:
+            _private_ip(resolve[host])
 
     def tcp(host, port):
         # allowed_ips replaces OpenShell's SSRF internal-address check with an exact allowlist (live finding).
@@ -132,6 +172,10 @@ def build_policy(spec):
     if peers:
         policies['border-peers'] = {'name': 'border-peers', 'endpoints': [
             tcp(h, p) for h, p in peers],
+            'binaries': [_binary(binaries['python'])]}
+    if federation:
+        policies['federation-peers'] = {'name': 'federation-peers', 'endpoints': [
+            tcp(h, p) for h, p in federation],
             'binaries': [_binary(binaries['python'])]}
     if spec['anthropic']:
         # Default TLS termination (no `tls` field): required for OpenShell to inject the provider credential.
@@ -204,7 +248,7 @@ def validate_policy(text):
             host, port, protocol = endpoint.get('host'), endpoint.get('port'), endpoint.get('protocol')
             need(isinstance(host, str) and host and '*' not in host and host.lower() not in FORBIDDEN_HOST_NAMES, 'endpoint_host_forbidden')
             need(not host.startswith('169.254.') and not host.endswith('.local')
-                 and (not host.endswith('.internal') or host == 'host.openshell.internal' or GCE_INTERNAL.match(host) is not None),
+                 and (not host.endswith('.internal') or host == 'host.openshell.internal' or cluster_host(host)),
                  'metadata_or_internal_host_forbidden')
             need(type(port) is int and 1 <= port <= 65535, 'endpoint_port_invalid')
             if protocol == 'tcp':
@@ -213,7 +257,13 @@ def validate_policy(text):
                 need(set(endpoint) == {'host', 'port', 'protocol', 'tls', 'allowed_ips'}, 'endpoint_fields_invalid')
                 ips = endpoint['allowed_ips']
                 need(isinstance(ips, list) and len(ips) == 1 and isinstance(ips[0], str) and ips[0].endswith('/32'), 'allowed_ips_must_be_one_exact_address')
-                _private_ip(ips[0][:-3])
+                if host == 'host.openshell.internal':
+                    need(port == 12379 and ips == ['127.0.0.1/32'], 'single_host_etcd_only')
+                elif FEDERATION_PEER.fullmatch(host):
+                    need(port == FEDERATION_PORT, 'federation_port_refused')
+                    _public_ip(ips[0][:-3])
+                else:
+                    _private_ip(ips[0][:-3])
                 need(endpoint['tls'] == 'skip', 'tcp_endpoint_requires_tls_skip')
                 try:
                     ipaddress.ip_address(host)
@@ -221,7 +271,8 @@ def validate_policy(text):
                     pass
                 else:
                     raise PolicyRefused('tcp_endpoint_must_be_a_dns_name')
-                need(GCE_INTERNAL.match(host) is not None or host == 'host.openshell.internal', 'tcp_endpoint_must_be_gce_internal_name')
+                need(cluster_host(host) or host == 'host.openshell.internal' or FEDERATION_PEER.fullmatch(host) is not None,
+                     'tcp_endpoint_must_be_cluster_name')
             elif protocol == 'rest':
                 need(host == ANTHROPIC_HOST and port == 443, 'https_host_not_approved')
                 need('tls' not in endpoint, 'https_endpoint_must_keep_tls_termination')

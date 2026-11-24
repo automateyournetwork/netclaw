@@ -78,7 +78,7 @@ test('fetchNodePosture fails clearly and never implies confinement', async () =>
 
 test('formatPosture lists inside and outside components with dispositions and never claims enforcement', () => {
   const text = formatPosture(GOOD, 'https://nne1-3d69b5.automateyournetwork.com');
-  assert.match(text, /Node posture — nne1 · Montreal \(northamerica-northeast1\)/);
+  assert.match(text, /Node posture — nne1 · northamerica-northeast1/);
   assert.match(text, /Observed: 2026-.*an observation reported by the node, not authority/);
   assert.match(text, /Sandbox: netclaw-node · phase Ready · policy v3 · sha256 a{64} · Landlock hard_requirement/);
   assert.match(text, /Inside the sandbox \(2\):\n {2}- border-role \(running\)\n {2}- hud-ingress \(running\)/);
@@ -87,8 +87,12 @@ test('formatPosture lists inside and outside components with dispositions and ne
   assert.match(text, /not proof that any control is enforced/);
   assert.ok(!/enforced by/i.test(text));
   const blocked = formatPosture({ ...GOOD, guard: { ...GOOD.guard, last_block_ms: 1794300001000 } }, 'https://ew1-f37491.automateyournetwork.com');
-  assert.match(blocked, /Belgium/);
+  assert.match(blocked, /northamerica-northeast1/);
+  assert.doesNotMatch(blocked, /Belgium/);
   assert.match(blocked, /last block 2026-/);
+  const azure = formatPosture({ ...GOOD, node: 'ew1', region: 'eastus2' }, 'https://ew1-f37491.automateyournetwork.com');
+  assert.match(azure, /ew1 · eastus2/);
+  assert.doesNotMatch(azure, /Belgium/);
 });
 
 test('the command is declared, registered directly (read-only) and not added to the cloud command allow-list', () => {

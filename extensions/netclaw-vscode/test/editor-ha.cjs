@@ -36,7 +36,7 @@ exports.run=async()=>{
    h.claimOriginal(context);assert.equal(profile,undefined,'Original phase starts a fresh dedicated connection');
    const adding=vscode.commands.executeCommand('netclaw.addConnection');
    await page.locator('.quick-input-list .monaco-list-row').filter({hasText:'Cloud Border'}).first().click();
-   await quick().waitFor({state:'visible'});await quick().fill('R08 actual HA qualification');await quick().press('Enter');
+   await quick().waitFor({state:'visible'});await quick().fill('R10 actual HA qualification');await quick().press('Enter');
    await quick().waitFor({state:'visible'});await quick().fill(config.origin);await quick().press('Enter');
    const trust=page.getByRole('button',{name:'Trust cluster',exact:true});await trust.waitFor({state:'visible'});
    assert.ok((await page.locator('.monaco-dialog-box').innerText()).includes(bundle.pin.anchor_key_id));
@@ -63,10 +63,10 @@ exports.run=async()=>{
    let document;for(let i=0;i<100&&!document;i++){document=vscode.workspace.textDocuments.find(d=>d.uri.scheme==='netclaw-owner'&&d.getText().includes('review_digest'));if(!document)await new Promise(r=>setTimeout(r,100));}assert.ok(document);const display=JSON.parse(document.getText());
    // Fetch original status once to bind state/counters in addition to the displayed immutable review.
    prepared=await api.connection.owner.status({operation_id:display.operation_id,client_nonce:prepareNonce});
-   assert.equal(prepared.review_digest,display.review_digest);assert.deepEqual(prepared.review,display.review);h.assertExactReview(prepared,context);
+   assert.equal(prepared.review_digest,display.review_digest);assert.deepEqual(prepared.review,display.review);await h.verifyQualificationOperation(prepared,context);h.assertExactReview(prepared,context);
    report.artifacts.push(h.writeArtifact(out,run+'-original-review.json',prepared));
    if(config.phase==='prepare_review'){report.reference={operation_id:prepared.operation_id,client_nonce:prepared.client_nonce};report.acceptance_complete=false;report.checks.push('Actual Code originated pending exact review; no decision sent');report.complete=true;return;}
-   report.budget_claim=await h.awaitBudgetClaim(context,prepared);h.assertExactReview(prepared,context);report.artifacts.push(h.writeArtifact(out,run+'-budget-claim.json',report.budget_claim));
+   report.budget_claim=await h.awaitBudgetClaim(context,prepared);await h.verifyQualificationOperation(prepared,context);h.assertExactReview(prepared,context);report.artifacts.push(h.writeArtifact(out,run+'-budget-claim.json',report.budget_claim));
    await review.click();
    const approve=page.getByRole('button',{name:'Approve once',exact:true});await approve.waitFor({state:'visible'});const text=await page.locator('.monaco-dialog-box').innerText();assert.ok(text.includes(prepared.operation_id)&&text.includes(prepared.review_digest));report.artifacts.push(h.writeArtifact(out,run+'-exact-native-review.png',await page.screenshot()));
    assert.deepEqual(h.readBudgetClaim(context,prepared),report.budget_claim);decisionReady=true;await approve.click();try{report.operation=await pending;}catch(error){report.decision_error=String(error.message||error);report.outcome_unknown=!error.status;if(error.status)throw error;}
@@ -77,7 +77,7 @@ exports.run=async()=>{
    if(config.phase==='stale_review')assert.equal(api.connection.owner.canDecide({review:expected.review}),false);
    const pending=api.ownerWorkflow.recover();await select(expected.reference.operation_id);
    // Never accept a Review decision or Reconcile prompt in this recovery-only phase.
-   const operation=await Promise.race([pending,new Promise((_,reject)=>setTimeout(()=>reject(Error('Native recovery requested a decision/reconcile or did not complete')),25000))]);h.assertOriginal(operation,expected,config.phase==='stale_review'?undefined:context.receipt.digest);
+   const operation=await Promise.race([pending,new Promise((_,reject)=>setTimeout(()=>reject(Error('Native recovery requested a decision/reconcile or did not complete')),25000))]);await h.verifyQualificationOperation(operation,context);h.assertOriginal(operation,expected,config.phase==='stale_review'?undefined:context.receipt.digest);
    report.operation=operation;report.reference=expected.reference;h.unchangedCounters(context);assert.ok(report.requests.every(r=>r.method==='GET'));
    report.checks.push('Native retained original reference recovered; signed result/ACK correlated; cumulative actual runtime counters unchanged');
   }

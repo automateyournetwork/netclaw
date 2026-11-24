@@ -34,3 +34,10 @@ Date: 2026-11-12. Honest scope: **fake-runner tested, plus real GCP deploy and t
 - `bootstrap` prepares the host over IAP SSH (Node, uv, checkout); `install.sh` stays interactive; Risk enrollment is the existing Member/Border flow; HA bootstrap (etcd/authority) and the OpenShell/DefenseClaw stack from R09A are not generalized into `bootstrap`. HA and distributed topologies therefore provision the infrastructure correctly but are not claimed to produce a running HA Risk without the manual enrollment/HA steps.
 - Cloud provisioning is outside the Spec153 effect engine (research D1); it uses its own plan hash and cost/list gates.
 - No authentication exists; this spec only warns.
+
+## Azure counterpart (spec 198, added later)
+
+R10 delivered the Azure side as an operator path, not an interactive deployer: see [NetClaw in Azure](../../docs/NETCLAW-IN-AZURE.md), the read-only Azure
+step in `scripts/install.sh` (`scripts/lib/azure-menu.sh`), and `tests/azure/test_docs_parity.py` (the Azure analogue of this spec's parity test).
+The GCP sandboxed-Border and three-region HA behavior that this spec left unexercised ("Not exercised" above) was later qualified by R09A (spec 185) and
+repeated on GCP in spec 198's six-Border run; see `../198-azure-multicloud-ha/verification.md`. This file's own claims are unchanged.

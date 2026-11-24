@@ -149,7 +149,7 @@ def write_posture(node):
     if guard['state'] == 'running':
         comps.append({'name': 'defenseclaw-sidecar', 'inside_sandbox': True, 'state': 'running'})
     policy_sha = (STATE / 'policy.sha256').read_text().strip() if (STATE / 'policy.sha256').exists() else '0' * 64
-    posture = {'schema_version': 1, 'node': node['code'], 'region': 'northamerica-northeast1',
+    posture = {'schema_version': 1, 'node': node['code'], 'region': node.get('region', 'unknown'),
                'sandbox': {'name': 'netclaw-node', 'phase': 'Ready', 'policy_version': 1, 'policy_sha256': policy_sha, 'landlock': 'hard_requirement'},
                'components': comps, 'guard': guard, 'observed_at_ms': int(time.time() * 1000)}
     tmp = STATE / 'posture.json.tmp'

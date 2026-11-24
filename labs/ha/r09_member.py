@@ -66,7 +66,10 @@ SOURCE_EXTRA = ('scripts/federation-control.py', 'scripts/protected-role.py', 's
 SKIP_DIRS = {'tests', '__pycache__', '.pytest_cache'}
 SKIP_SUFFIX = ('.md', '.pyc')
 MEMBER_REQUIREMENTS = ['cryptography==50.0.2', 'pyOpenSSL==26.4.0', 'service-identity==26.1.0', 'httpx>=0.27',
-                       'websockets>=12.0,<17', 'PyYAML>=6.0', 'h2>=4.1', 'qrcode>=7.4']
+                       'websockets>=12.0,<17', 'PyYAML>=6.0', 'h2>=4.1', 'qrcode>=7.4',
+                       # The executor imports these lazily, after claiming an operation.
+                       # Pin the qualified runtime here as well as in reused Mac homes.
+                       'mcp==2.3.0', 'fastmcp==4.0.11', 'uvicorn==0.54.0', 'starlette==1.10.0']
 TOOL_LIMITS = {'inference_timeout_ms': 60000, 'tool_timeout_ms': 30000, 'max_inference_calls': 2,
                'max_tool_calls': 1, 'max_output_bytes': 262144}
 GUARD_ENV_VARIABLE = 'DEFENSECLAW_GATEWAY_TOKEN'
@@ -349,11 +352,14 @@ def verify_env(python, env, manifest_file, manifest_sha, python_sha):
     return cfg
 
 
-def build_env(root, requirements=None, label='python'):
-    """Network step (uv/pip). Immutable macOS arm64 3.12 env recipe used by R04A: a read-only copy of the
+def build_env(root, requirements=None, label='python', base_python=None):
+    """Network step (uv/pip). Immutable 3.12 env recipe used by R04A: a read-only copy of the
     interpreter, a venv whose bin/python links to it, every file hashed, nothing writable."""
-    base = Path('/opt/homebrew/opt/python@3.12/bin/python3.12').resolve()
+    base = Path(base_python or '/opt/homebrew/opt/python@3.12/bin/python3.12').resolve()
     need(base.exists(), 'python312_missing:brew install python@3.12')
+    probe = subprocess.run([str(base), '-I', '-c', 'import sys; print("%d.%d" % sys.version_info[:2])'],
+                           capture_output=True, text=True, check=True)
+    need(probe.stdout.strip() == '3.12', 'python312_required')
     work = private_dir(Path(root) / label)
     native = private_dir(work / 'native')
     target = native / 'python3.12'
@@ -384,7 +390,7 @@ def cmd_python_env(args):
     need(not (root / 'python-env.json').exists(), 'python_env_already_recorded')
     if args.build:
         need(args.yes_network, 'build_needs_--yes-network')
-        venv, manifest = build_env(root)
+        venv, manifest = build_env(root, base_python=args.base_python)
         raw = canonical(manifest)
         source_env, source_manifest = venv, None
         manifest_sha = write_private(root / 'python-env-manifest.json', raw)
@@ -412,7 +418,7 @@ def cmd_netbox_env(args):
     need(not (root / 'netbox-env.json').exists(), 'netbox_env_already_recorded')
     if args.build:
         need(args.yes_network, 'build_needs_--yes-network')
-        venv, _ = build_env(root, NETBOX_MCP_REQUIREMENTS, 'netbox-python')
+        venv, _ = build_env(root, NETBOX_MCP_REQUIREMENTS, 'netbox-python', base_python=args.base_python)
     else:
         need(args.env, 'netbox_env_or_build_required')
         venv = Path(args.env).resolve()
@@ -945,10 +951,12 @@ def cmd_validate(args):
                    if state.get('flavor') == 'pyats' else
                    'bgp.federation.ha.factory, bgp.federation.ha.member, bgp.federation.protected_docker, '
                    'bgp.federation.protected_ollama, bgp.federation.protected_mcp')
-        code = ("import sys; sys.path.insert(0, %r); import %s; print('closure-ok')"
+        code = ("import sys; sys.path.insert(0, %r); import %s; "
+                "from mcp.server.mcpserver import MCPServer; "
+                "from starlette.responses import JSONResponse, Response; import uvicorn; print('closure-ok')"
                 % (str(root / 'source/mcp-servers/protocol-mcp'), modules))
         done = subprocess.run([cfg['python'], '-I', '-B', '-c', code], capture_output=True, text=True, timeout=120)
-        result['closure_import'] = 'ok' if done.stdout.strip() == 'closure-ok' else 'failed:' + done.stderr.strip()[-400:]
+        result['closure_import'] = 'ok' if done.returncode == 0 and done.stdout.strip() == 'closure-ok' else 'failed:' + done.stderr.strip()[-400:]
     return result
 
 
@@ -1005,11 +1013,13 @@ def main(argv=None):
             p.add_argument('--flavor', choices=FLAVORS, default='ollama')
         if name == 'netbox-env':
             p.add_argument('--env'); p.add_argument('--build', action='store_true'); p.add_argument('--yes-network', action='store_true')
+            p.add_argument('--base-python', help='explicit host Python3.12 for a fresh immutable environment')
         if name == 'pyats-env':
             p.add_argument('--env', help='immutable pyATS venv (default: the R02 runtime on this Mac)')
             p.add_argument('--device', default=PYATS_DEVICE)
         if name == 'python-env':
             p.add_argument('--env'); p.add_argument('--env-manifest')
+            p.add_argument('--base-python', help='explicit host Python3.12 for a fresh immutable environment')
             p.add_argument('--build', action='store_true'); p.add_argument('--yes-network', action='store_true')
         if name == 'artifacts':
             p.add_argument('--template')
@@ -1023,7 +1033,11 @@ def main(argv=None):
     args = parser.parse_args(argv)
     command = {'plan': cmd_plan, 'identity': cmd_identity, 'freeze': cmd_freeze, 'python-env': cmd_python_env,
                'netbox-env': cmd_netbox_env, 'pyats-env': cmd_pyats_env, 'artifacts': cmd_artifacts, 'materialize': cmd_materialize, 'validate': cmd_validate}[args.action]
-    print(json.dumps(command(args), indent=2, sort_keys=True))
+    result = command(args)
+    print(json.dumps(result, indent=2, sort_keys=True))
+    if args.action == 'validate' and (result['role_validate'] != 'valid' or
+            not args.skip_import_check and result['closure_import'] != 'ok'):
+        raise SystemExit(1)
 
 
 if __name__ == '__main__':

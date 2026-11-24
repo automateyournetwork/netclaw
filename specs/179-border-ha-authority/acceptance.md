@@ -78,6 +78,12 @@ What must be true before R09 is called released (verify each; none is done by R0
 5. Owner approval for every outward-facing release step; nothing is published, pushed live or
    announced by an agent without it.
 
+**Status of this gate under spec 198 (R10 Azure, multi-cloud mesh):** still **closed**. Spec 198 ran three-Border HA groups on Azure and GCP against
+repo checkouts and a locally built extension only. The VS Code extension has an unpublished local change (connection Rename/Remove menus, version not
+bumped); the Mobile app and the HUD/Border source were not published. No client build was published, pushed, version-bumped or announced; multi-region
+and multi-cloud Borders must not be documented to end users as available until you approve each release step. See
+`../198-azure-multicloud-ha/verification.md`.
+
 Known R08 facts to carry into R09: no extension or app product code changed in R08 except the HUD
 enrollment fix; the shipped client versions were not verified against source during R08; R08 used a
 single-host loopback topology (no WAN, no regions, no public DNS/TLS).
