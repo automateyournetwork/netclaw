@@ -28871,7 +28871,7 @@
       "title": "threejs-network-viz",
       "description": "Generate browser-based interactive 3D network topology visualizations from inventory or a topology description. Use when a portable HTML scene is wanted without a desktop 3D engine.",
       "path": "workspace/skills/threejs-network-viz/SKILL.md",
-      "sha256": "9ad3994b6b0e6eebe655cb9ca1e696246b644f7a2172df5fa0554fee317613ad",
+      "sha256": "6f591a70ffc07415a5413eb5a9bf184cf1604a25bdaba231542f2965049e1151",
       "components": [
         "threejs-viz"
       ],
