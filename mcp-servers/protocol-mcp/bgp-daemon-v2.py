@@ -396,7 +396,8 @@ async def handle_n2n(method, path, body):
             ident = body["peer"]; ttype = body.get("target_type", "tool")
             try:
                 if ttype == "tool":
-                    res = await fed.invoker.invoke_remote_tool(ident, body["target_name"], body.get("arguments") or {})
+                    res = await fed.invoker.invoke_remote_tool(ident, body["target_name"], body.get("arguments") or {},
+                                                               request_id=body.get("request_id"))
                 else:
                     # skills go async (submit → task_id); invoke_remote_skill was
                     # renamed to submit_remote_skill in 053. A long skill must
@@ -406,7 +407,10 @@ async def handle_n2n(method, path, body):
                 return 200, res
             except Exception as e:
                 code = getattr(e, "code", None); msg = getattr(e, "message", str(e))
-                return 200, {"error": {"code": code, "message": msg}}
+                err = {"code": code, "message": msg}
+                if getattr(e, "data", None) is not None:
+                    err["data"] = e.data  # H16: -32002 carries the request_id to retry
+                return 200, {"error": err}
 
         if path == "/n2n/knowledge/route" and method == "POST":
             # Feature 064: choose which advertised collection (local or peer)
@@ -427,7 +431,10 @@ async def handle_n2n(method, path, body):
                     k=int(body.get("k", 8)))
             except Exception as e:
                 code = getattr(e, "code", None); msg = getattr(e, "message", str(e))
-                return 200, {"error": {"code": code, "message": msg}}
+                err = {"code": code, "message": msg}
+                if getattr(e, "data", None) is not None:
+                    err["data"] = e.data  # H16: -32002 carries the request_id to retry
+                return 200, {"error": err}
 
         if path == "/n2n/approvals" and method == "GET":
             return 200, {"pending": fed.authz.pending_approvals()}
@@ -511,11 +518,14 @@ async def handle_n2n(method, path, body):
                 else:
                     # tools are fast/stdio — keep the synchronous 052 path
                     res = await fed.invoker.invoke_remote_tool(
-                        body["peer"], body["target_name"], body.get("arguments") or {})
+                        body["peer"], body["target_name"], body.get("arguments") or {},
+                        request_id=body.get("request_id"))
                 return 200, res
             except Exception as e:
-                return 200, {"error": {"code": getattr(e, "code", None),
-                                       "message": getattr(e, "message", str(e))}}
+                err = {"code": getattr(e, "code", None), "message": getattr(e, "message", str(e))}
+                if getattr(e, "data", None) is not None:
+                    err["data"] = e.data
+                return 200, {"error": err}
 
         if path == "/n2n/tasks" and method == "GET":
             return 200, {"tasks": fed.tasks.list_recent()}

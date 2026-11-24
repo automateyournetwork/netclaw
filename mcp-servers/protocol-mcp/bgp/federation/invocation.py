@@ -114,6 +114,45 @@ class Invoker:
         decision.approval_id=approval['approval_id']
         return approval
 
+    def _approval_gate(self, peer, target_type, target, request_id, decision, body):
+        """H16: approval for a synchronous call, without holding the call open.
+
+        The first request creates an approval bound to (peer, target, request_id,
+        grant, body) and is answered APPROVAL_PENDING (-32002) at once. The caller
+        retries with the same request_id and body: while the approval is pending
+        it gets -32002 again; once approved the retry is admitted (and _admit
+        consumes the approval, single use); once denied or expired it gets
+        APPROVAL_EXPIRED (-32003). A retry that differs in any bound field is a
+        new request and needs its own approval.
+        """
+        from .execution import digest
+        binding = digest([peer, target_type, target, request_id, decision.grant['id'], body])
+        row = self.manager._conn.execute(
+            "SELECT id, expires_at FROM approval_request WHERE request_binding=? "
+            "AND consumed_at IS NULL ORDER BY id DESC LIMIT 1", (binding,)).fetchone()
+        if row:
+            status = self.authz.approval_status(row["id"])
+            if status == "approved":
+                decision.request_binding = binding
+                decision.approval_id = row["id"]
+                return
+            if status != "pending":
+                self.audit.record(direction="inbound", peer_identity=peer, target_type=target_type,
+                                  target_name=target, request_id=request_id,
+                                  decision="approval_expired", outcome="denied")
+                raise RpcError(ERR_APPROVAL_EXPIRED, "approval not granted")
+            expires_at = row["expires_at"]
+        else:
+            inv_id = self.audit.record(direction="inbound", peer_identity=peer, target_type=target_type,
+                                       target_name=target, request_id=request_id,
+                                       decision="approval_required", outcome="pending")
+            expires_at = self._approval(inv_id, decision, peer, target_type, target,
+                                        request_id, body)["expires_at"]
+            self.service.notify_approval(inv_id, peer, target_type, target)
+        raise RpcError(ERR_APPROVAL_PENDING,
+                       "approval pending; retry with the same request_id and arguments",
+                       {"request_id": request_id, "expires_at": expires_at})
+
     def _admit(self, peer, target_type, target, request_id, original, *, already_trusted=False,request_body=None):
         if original.code=='approval_required':
             from .execution import digest
@@ -168,13 +207,9 @@ class Invoker:
             raise RpcError(_CODE_MAP.get(decision.code, -32000), decision.reason)
 
         if decision.code == "approval_required":
-            inv_id = self.audit.record(direction="inbound", peer_identity=peer, target_type="tool",
-                                       target_name=tool, request_id=req_id, decision="approval_required",
-                                       outcome="pending")
-            appr = self._approval(inv_id,decision,peer,'tool',tool,req_id,arguments)
-            self.service.notify_approval(inv_id, peer, "tool", tool)
-            if not await self._await_approval(appr["approval_id"]):
-                raise RpcError(ERR_APPROVAL_EXPIRED, "approval not granted")
+            # H16: answer -32002 now instead of holding the call open for the
+            # approval window; the caller retries the identical request.
+            self._approval_gate(peer, "tool", tool, req_id, decision, arguments)
 
         if not await _defenseclaw_inspect(tool, arguments):
             self.audit.record(direction="inbound", peer_identity=peer, target_type="tool",
@@ -804,10 +839,23 @@ class Invoker:
                               target_type=target_type, target_name=target_name,
                               request_id=req_id, decision="requested", outcome=outcome)
 
-        self.service.tasks.outbound_intent(ident,method,params,request=req_id)
+        try:
+            self.service.tasks.outbound_intent(ident,method,params,request=req_id,
+                                               approval_retry=method=='n2n/tools/call')
+        except ValueError:
+            # A refused reuse is an attempted-call outcome, not permission to
+            # overwrite the original durable intent or leave this audit pending.
+            _terminal('denied')
+            raise
         try:
             result = await ch.call(method, params, timeout=timeout)
         except RpcError as e:
+            if e.code == ERR_APPROVAL_PENDING:
+                # H16: not a refusal and not an unknown outcome — nothing ran;
+                # the same request_id may be retried once the peer approves.
+                self.service.tasks.settle_intent(req_id, 'approval_pending')
+                _terminal("approval_pending")
+                raise
             self.service.tasks.settle_intent(req_id,'outcome_unknown' if e.code==ERR_EXECUTION_TIMEOUT else 'refused')
             # A refusal returned by the peer is auditable evidence, not a transient
             # response to discard (FR-036). Its own timeout code maps to `timeout`
@@ -828,10 +876,12 @@ class Invoker:
         self.service.tasks.settle_intent(req_id,'completed')
         return result
 
-    async def invoke_remote_tool(self, ident, tool, arguments):
+    async def invoke_remote_tool(self, ident, tool, arguments, request_id=None):
+        """`request_id` is for retrying a call the peer answered with
+        APPROVAL_PENDING (-32002): reuse its request_id and the same arguments."""
         ch = await self._channel(ident)
         import uuid
-        req_id = str(uuid.uuid4())
+        req_id = request_id or str(uuid.uuid4())
         self.audit.record(direction="outbound", peer_identity=ident, target_type="tool",
                           target_name=tool, request_id=req_id, decision="requested", outcome="pending")
         result = await self._outbound_call(

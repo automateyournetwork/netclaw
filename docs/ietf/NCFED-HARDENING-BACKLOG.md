@@ -346,11 +346,17 @@ NOTIFICATION nuance) are documentation-only and are not repeated here.
 - **Plan:** write an audit/alert record and surface it in posture, or relax the draft (§6.2 "flagged to the operator",
   §14.3 "security alert") to "logged".
 
-### H16. `-32002 APPROVAL_PENDING` is never sent for `tools/call` — *OPEN*
+### H16. `-32002 APPROVAL_PENDING` is never sent for `tools/call` — *FIXED (branch fix/ncfed-32002)*
 - **Reality (T4e, §5.2):** the callee holds the call for up to 900 s; the caller times out at 125 s with `-32006`
   while the approval is still pending. The approval can still be granted and then executes with no caller waiting.
-- **Plan:** return `-32002` immediately with a poll/retry path, or bound the approval window by the caller deadline.
-  The draft must state which.
+- **Decision:** return `-32002` immediately; the caller retries the identical request (same `request_id` and
+  arguments). Pending → `-32002` again (no new approval); approved → admitted and the approval consumed (single
+  use); denied/expired → `-32003`. Specified in the draft's "Approval on synchronous calls" (§errors-approval).
+- **Fix:** `Invoker._approval_gate` in `invocation.py`; JSON-RPC `error.data` now carried by both channel types;
+  `invoke_remote_tool`, the daemon's `/n2n/invoke` and `/n2n/tasks`, and the `n2n_invoke` MCP tool accept
+  `request_id` for the retry. The caller audits the outcome as `approval_pending`, not `denied`.
+- **Not changed:** `n2n/knowledge/query` still waits in-call for an approval (same defect, separate fix);
+  `n2n/tasks/submit` waits inside the background task, which is correct.
 
 ### H17. Error-code semantics drift (`-32003`, `-32007`) — *OPEN*
 - **Reality (§5.3–5.4):** `-32003 APPROVAL_EXPIRED` is also returned for an explicit operator deny. `-32007 SEVERED` is
