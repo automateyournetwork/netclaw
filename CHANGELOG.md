@@ -2,6 +2,10 @@
 
 NetClaw source releases use `1.x.y`. Feature specs increment the minor version and reset the patch; fixes, documentation and maintenance increment the patch. Every release records its numbered specs. Component and mobile distribution versions are independent.
 
+## [1.26.0] - 2026-11-23
+
+Spec [200-genie-network-worlds](specs/200-genie-network-worlds/spec.md). See [release notes](docs/releases/1.26.0.md).
+
 ## [1.25.0] - 2026-11-19
 
 Spec [198-percepxion-oob-skill-refresh](specs/198-percepxion-oob-skill-refresh/spec.md). See [release notes](docs/releases/1.25.0.md).

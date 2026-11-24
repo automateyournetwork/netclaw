@@ -1,0 +1,31 @@
+SYNTHETIC-MUSEUM-V1 — INDEPENDENT FICTION, NO LIVE NETWORK SOURCE
+
+World prompt (only this paragraph is the initial scene text):
+First-person view from a raised central overlook in a bright futuristic network
+museum. Four distinct buildings form a rectangle: two tall blue routing halls
+on the west side, one north and one south, and two shorter amber switching
+rooms on the east side, one north and one south. Exactly three wide luminous
+corridors connect the buildings: the northern blue hall to the northern amber
+room, the southern blue hall to the southern amber room, and the two blue halls
+to each other. There is no corridor between the amber rooms. Green status lamps
+mark the corridor entrances. Clear sight lines and a simple open layout make
+all four buildings and their corridors visible from the overlook. Walkable
+space leads toward the northern amber room. Keep buildings and corridors stable
+while the viewpoint moves. No signs, text, addresses, logos or device identifiers.
+This is an imaginary educational museum, not any real network.
+
+Local navigation instructions (not extra provider events):
+Move toward the northern amber room, turn, and look back toward the blue halls
+for at least ten seconds. Keep the northern cross-corridor visible for the event.
+
+One pre-reviewed event, north-corridor-dim-v1 (send once):
+The corridor between the northern blue hall and northern amber room dims, and
+its entrance lamp changes from green to amber. The other two corridors stay
+bright with green lamps. All four buildings and all three corridors remain in
+place. This is a fictional visual change, not a change to a real network.
+
+Local review (never inferred from a send acknowledgement):
+Compare baseline, post-navigation and post-event views. Record four recognizable
+roles, exactly three intended connections where visible, actual movement,
+visible event latency and any added/missing/changing structures or corridors.
+Unseen areas are unassessed. No generated detail becomes a measured fact.

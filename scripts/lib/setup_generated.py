@@ -64,6 +64,9 @@ def generated(claw,validator,python):
     if 'netconverter' in claw['capabilities']['components']:
         values['NETCONVERTER_DATA_DIR']=str(home/'netconverter')
         values['NETCONVERTER_INSTALLATION_ID']=claw['id']
+    if 'genie-worlds' in claw['capabilities']['components']:
+        values['NETCLAW_GENIE_STATE_DIR']=str(home/'genie-worlds')
+        values['NETCLAW_GENIE_CONTROL_FILE']=str(home/'genie-worlds/mcp-control.json')
     if claw.get('role') in ('border','member'):
         # Registration precedes Risk materialization and freezes native MCP
         # aliases. Bind to the reviewed local endpoint now, not the component's

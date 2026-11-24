@@ -1,0 +1,86 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": [
+        "progress",
+        "review",
+        "blocked"
+      ]
+    },
+    "summary": {
+      "type": "string"
+    },
+    "tasks_completed": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "T001",
+          "T002",
+          "T003",
+          "T004",
+          "T005",
+          "T006",
+          "T007",
+          "T008",
+          "T009",
+          "T010",
+          "T011",
+          "T012",
+          "T013",
+          "T014",
+          "T015",
+          "T016",
+          "T017",
+          "T018",
+          "T019",
+          "T020",
+          "T021",
+          "T022",
+          "T023",
+          "T024",
+          "T025",
+          "T026",
+          "T027",
+          "T028",
+          "T029",
+          "T030"
+        ]
+      },
+      "description": "Only whole task IDs newly checked complete in tasks.md. Partial implementation units belong in summary/tasks_worked, never here."
+    },
+    "tasks_worked": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "tests": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "blockers": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "next_step": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "status",
+    "summary",
+    "tasks_completed",
+    "tasks_worked",
+    "tests",
+    "blockers",
+    "next_step"
+  ]
+}
