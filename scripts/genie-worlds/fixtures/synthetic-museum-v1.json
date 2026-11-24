@@ -1,0 +1,43 @@
+{
+  "fixture_id": "synthetic-museum-v1",
+  "classification": "synthetic",
+  "text": "First-person view from a raised central overlook in a bright futuristic network\nmuseum. Four distinct buildings form a rectangle: two tall blue routing halls\non the west side, one north and one south, and two shorter amber switching\nrooms on the east side, one north and one south. Exactly three wide luminous\ncorridors connect the buildings: the northern blue hall to the northern amber\nroom, the southern blue hall to the southern amber room, and the two blue halls\nto each other. There is no corridor between the amber rooms. Green status lamps\nmark the corridor entrances. Clear sight lines and a simple open layout make\nall four buildings and their corridors visible from the overlook. Walkable\nspace leads toward the northern amber room. Keep buildings and corridors stable\nwhile the viewpoint moves. No signs, text, addresses, logos or device identifiers.\nThis is an imaginary educational museum, not any real network.",
+  "event_id": "north-corridor-dim-v1",
+  "event_text": "The corridor between the northern blue hall and northern amber room dims, and\nits entrance lamp changes from green to amber. The other two corridors stay\nbright with green lamps. All four buildings and all three corridors remain in\nplace. This is a fictional visual change, not a change to a real network.",
+  "structures": [
+    {
+      "id": "north_hall",
+      "role": "router",
+      "label": "Northern blue routing hall"
+    },
+    {
+      "id": "south_hall",
+      "role": "router",
+      "label": "Southern blue routing hall"
+    },
+    {
+      "id": "north_room",
+      "role": "switch",
+      "label": "Northern amber switching room"
+    },
+    {
+      "id": "south_room",
+      "role": "switch",
+      "label": "Southern amber switching room"
+    }
+  ],
+  "links": [
+    [
+      "north_hall",
+      "north_room"
+    ],
+    [
+      "south_hall",
+      "south_room"
+    ],
+    [
+      "north_hall",
+      "south_hall"
+    ]
+  ]
+}

@@ -1,0 +1,828 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:netclaw:spec200:contracts:v1",
+  "title": "Spec200 proposed local contracts",
+  "description": "Use individual $defs as entry points. These are NetClaw contracts, not provider API schemas. Ownership, classifications, ledger transitions and allowance authority additionally require semantic validation.",
+  "$defs": {
+    "prepare": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "request_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "synthetic_fixture_id": {
+          "type": "string",
+          "enum": [
+            "synthetic-museum-v1"
+          ]
+        },
+        "private_snapshot_ref": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]{1,96}$"
+        }
+      },
+      "required": [
+        "request_id"
+      ],
+      "oneOf": [
+        {
+          "required": [
+            "synthetic_fixture_id"
+          ],
+          "not": {
+            "required": [
+              "private_snapshot_ref"
+            ]
+          }
+        },
+        {
+          "required": [
+            "private_snapshot_ref"
+          ],
+          "not": {
+            "required": [
+              "synthetic_fixture_id"
+            ]
+          }
+        }
+      ]
+    },
+    "start": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "request_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "projection_ref": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]{1,96}$"
+        },
+        "review_ref": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]{1,96}$"
+        }
+      },
+      "required": [
+        "request_id",
+        "projection_ref",
+        "review_ref"
+      ]
+    },
+    "status": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "operation_id": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "required": [
+        "operation_id"
+      ]
+    },
+    "event": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "request_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "operation_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "event_id": {
+          "type": "string",
+          "enum": [
+            "north-corridor-dim-v1"
+          ]
+        }
+      },
+      "required": [
+        "request_id",
+        "operation_id",
+        "event_id"
+      ]
+    },
+    "stop": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "request_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "operation_id": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "required": [
+        "request_id",
+        "operation_id"
+      ]
+    },
+    "evidence": {
+      "$ref": "#/$defs/status"
+    },
+    "error": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "type": "string",
+          "enum": [
+            "invalid_input",
+            "private_projection",
+            "review_required",
+            "review_stale",
+            "credential_missing",
+            "entitlement_unverified",
+            "allowance_insufficient",
+            "active_or_unsettled",
+            "unknown_outcome",
+            "provider_contract",
+            "evidence_incomplete",
+            "unsupported_runtime",
+            "unavailable"
+          ]
+        },
+        "message": {
+          "type": "string",
+          "maxLength": 512
+        },
+        "retryable": {
+          "const": false
+        },
+        "gate": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]{1,96}$"
+        }
+      },
+      "required": [
+        "code",
+        "message",
+        "retryable"
+      ]
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "prepared",
+        "approved",
+        "create_pending",
+        "active",
+        "stop_requested",
+        "terminal",
+        "unknown",
+        "failed_pre_send"
+      ]
+    },
+    "response": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "request_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "operation_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "ok",
+            "pending",
+            "refused",
+            "conflict",
+            "unknown",
+            "error"
+          ]
+        },
+        "state": {
+          "$ref": "#/$defs/state"
+        },
+        "outcome": {
+          "type": "string",
+          "maxLength": 512
+        },
+        "usage_state": {
+          "type": "string",
+          "enum": [
+            "reserved",
+            "unsettled",
+            "reconciled"
+          ]
+        },
+        "artifact_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9_-]{1,96}$"
+          },
+          "maxItems": 32,
+          "minItems": 0
+        },
+        "draft_ref": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]{1,96}$"
+        },
+        "projection_ref": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]{1,96}$"
+        },
+        "classification": {
+          "type": "string",
+          "enum": [
+            "synthetic",
+            "private"
+          ]
+        },
+        "error": {
+          "$ref": "#/$defs/error"
+        },
+        "deadline_at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "estimated_usd": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "reported_usage": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/reported_usage"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "billed_usd": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "manifest": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/manifest_item"
+          },
+          "maxItems": 32
+        },
+        "acceptance": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/acceptance"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "gate": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]{1,96}$"
+        }
+      },
+      "required": [
+        "schema_version",
+        "request_id",
+        "status"
+      ]
+    },
+    "observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "snapshot_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "device_ref": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]{1,96}$"
+        },
+        "source": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "command": {
+          "type": "string",
+          "enum": [
+            "show version",
+            "show ip interface brief",
+            "show lldp neighbors detail",
+            "show cdp neighbors detail"
+          ]
+        },
+        "started_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "finished_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "observed",
+            "empty",
+            "raw_only",
+            "parse_failed",
+            "timeout",
+            "unavailable"
+          ]
+        },
+        "parser_version": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 128
+        },
+        "artifact_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 96
+        },
+        "sha256": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "snapshot_id",
+        "device_ref",
+        "source",
+        "command",
+        "started_at",
+        "finished_at",
+        "outcome",
+        "parser_version",
+        "artifact_ref",
+        "sha256"
+      ]
+    },
+    "projection": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "classification": {
+          "const": "synthetic"
+        },
+        "fixture_id": {
+          "const": "synthetic-museum-v1"
+        },
+        "fixture_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "image_ref": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]{1,96}$"
+        },
+        "event_id": {
+          "const": "north-corridor-dim-v1"
+        },
+        "event_text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "event_send_count": {
+          "const": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "id",
+        "classification",
+        "fixture_id",
+        "fixture_sha256",
+        "text",
+        "event_id",
+        "event_text",
+        "event_send_count",
+        "sha256"
+      ]
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "model": {
+          "const": "genie-4"
+        },
+        "api_version": {
+          "const": "v1beta"
+        },
+        "target_seconds": {
+          "const": 20
+        },
+        "deadline_seconds_from_send": {
+          "const": 30
+        },
+        "first_frame_timeout_seconds": {
+          "const": 10
+        },
+        "terminal_wait_seconds": {
+          "const": 5
+        },
+        "viewer_lost_seconds": {
+          "const": 3
+        },
+        "service_max_seconds": {
+          "const": 120
+        },
+        "currency": {
+          "const": "USD"
+        },
+        "reservation_usd": {
+          "type": "number",
+          "minimum": 15
+        },
+        "price_ref": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]{1,96}$"
+        },
+        "policy_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "model",
+        "api_version",
+        "target_seconds",
+        "deadline_seconds_from_send",
+        "first_frame_timeout_seconds",
+        "terminal_wait_seconds",
+        "viewer_lost_seconds",
+        "service_max_seconds",
+        "currency",
+        "reservation_usd",
+        "price_ref",
+        "policy_sha256"
+      ]
+    },
+    "session": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "operation_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "request_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "installation_id": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]{1,96}$"
+        },
+        "account_scope": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]{1,96}$"
+        },
+        "projection_ref": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]{1,96}$"
+        },
+        "grant_ref": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]{1,96}$"
+        },
+        "state": {
+          "$ref": "#/$defs/state"
+        },
+        "send_marked_at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "provider_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 256
+        },
+        "worker_identity": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "pid": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "start_ref": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9_-]{1,96}$"
+            }
+          },
+          "required": [
+            "pid",
+            "start_ref"
+          ]
+        },
+        "policy_ref": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]{1,96}$"
+        },
+        "reservation_id": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "required": [
+        "operation_id",
+        "request_digest",
+        "installation_id",
+        "account_scope",
+        "projection_ref",
+        "grant_ref",
+        "state",
+        "send_marked_at",
+        "provider_id",
+        "worker_identity",
+        "policy_ref",
+        "reservation_id"
+      ]
+    },
+    "acceptance": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "operation_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "reviewer_ref": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9_-]{1,96}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "checkpoint_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9_-]{1,96}$"
+          },
+          "maxItems": 3,
+          "minItems": 0
+        },
+        "navigation_seconds": {
+          "type": "number",
+          "minimum": 0
+        },
+        "event_latency_s": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "drift_findings": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 512
+          },
+          "maxItems": 32,
+          "minItems": 0
+        },
+        "terminal_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 96
+        },
+        "usage_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 96
+        },
+        "verdict": {
+          "type": "string",
+          "enum": [
+            "GO",
+            "NO_GO",
+            "BLOCKED_LIVE"
+          ]
+        }
+      },
+      "required": [
+        "operation_id",
+        "reviewer_ref",
+        "checkpoint_refs",
+        "navigation_seconds",
+        "event_latency_s",
+        "drift_findings",
+        "terminal_ref",
+        "usage_ref",
+        "verdict"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "verdict": {
+                "const": "GO"
+              }
+            },
+            "required": [
+              "verdict"
+            ]
+          },
+          "then": {
+            "properties": {
+              "checkpoint_refs": {
+                "minItems": 3
+              },
+              "reviewer_ref": {
+                "type": "string",
+                "pattern": "^[a-zA-Z0-9_-]{1,96}$"
+              },
+              "terminal_ref": {
+                "type": "string",
+                "pattern": "^[a-zA-Z0-9_-]{1,96}$"
+              },
+              "usage_ref": {
+                "type": "string",
+                "pattern": "^[a-zA-Z0-9_-]{1,96}$"
+              },
+              "navigation_seconds": {
+                "minimum": 10
+              },
+              "event_latency_s": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 5
+              },
+              "drift_findings": {
+                "maxItems": 0
+              }
+            }
+          }
+        }
+      ]
+    },
+    "viewer_key": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "key"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "key": {
+          "type": "string",
+          "enum": [
+            "w",
+            "a",
+            "s",
+            "d",
+            "arrow_left",
+            "arrow_right",
+            "arrow_up",
+            "arrow_down"
+          ]
+        },
+        "down": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "type",
+        "seq",
+        "key",
+        "down"
+      ]
+    },
+    "reported_usage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "input_tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "video_output_tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "text_output_tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "provider_usage_ref": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]{1,96}$"
+        }
+      },
+      "required": [
+        "provider_usage_ref"
+      ]
+    },
+    "manifest_item": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "artifact_ref": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]{1,96}$"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "mime": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 67108864
+        }
+      },
+      "required": [
+        "artifact_ref",
+        "sha256",
+        "mime",
+        "size_bytes"
+      ]
+    }
+  }
+}

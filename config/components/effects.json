@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "sourceSha256": "f6c010c6db3d28a463c4387c3f839619e2df6fbafd92baa7a8bc554aa0681379",
+  "sourceSha256": "389c94b8e3e530133f4f9630ee174b61f55345b7d2247764f47ea43545c0dd31",
   "components": [
     {
       "id": "hermes-hud",
@@ -1058,6 +1058,15 @@
       "reason": "Owned source copy, isolated OS home, prefix/cache and component Python; no credentials during dependency installation.",
       "postcondition": "selected-registration-artifacts-and-discovery",
       "source": "scripts/lib/install-steps.sh#component_install_threatintel"
+    },
+    {
+      "id": "genie-worlds",
+      "function": "component_install_genie_worlds",
+      "sha256": "04fa64d8e9be792a65d68671719a04d5755ff583d15a51296016ca06e5de66dd",
+      "adapter": "isolated-shell",
+      "reason": "Owned source, isolated SDK and locked Node packages; no Google generation or credential transfer.",
+      "postcondition": "selected-registration-artifacts-and-discovery",
+      "source": "scripts/lib/install-steps.sh#component_install_genie_worlds"
     }
   ]
 }

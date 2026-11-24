@@ -176,6 +176,17 @@
         3,
         12
       ]
+    },
+    "genie-worlds": {
+      "python_min": [
+        3,
+        12
+      ],
+      "python_max_exclusive": [
+        3,
+        13
+      ],
+      "reason": "Isolated MCP2.3.0 control SDK; Node backend has its separate supported-runtime check."
     }
   },
   "command_remedies": {
