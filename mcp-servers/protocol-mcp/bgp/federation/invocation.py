@@ -839,7 +839,14 @@ class Invoker:
                               target_type=target_type, target_name=target_name,
                               request_id=req_id, decision="requested", outcome=outcome)
 
-        self.service.tasks.outbound_intent(ident,method,params,request=req_id)
+        try:
+            self.service.tasks.outbound_intent(ident,method,params,request=req_id,
+                                               approval_retry=method=='n2n/tools/call')
+        except ValueError:
+            # A refused reuse is an attempted-call outcome, not permission to
+            # overwrite the original durable intent or leave this audit pending.
+            _terminal('denied')
+            raise
         try:
             result = await ch.call(method, params, timeout=timeout)
         except RpcError as e:

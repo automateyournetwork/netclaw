@@ -723,6 +723,12 @@ refused or has expired, the callee responds APPROVAL_EXPIRED (-32003). A request
 that differs in any bound element is a new request and requires its own approval.
 A caller SHOULD space its retries and SHOULD stop at `expires_at`.
 
+The NetClaw caller durably binds the request ID to its peer, method and exact
+body. Only an explicit APPROVAL_PENDING response permits another dispatch of
+that binding. Concurrent dispatch, timeout/unknown, completed and refused states
+remain closed; a changed binding requires a new request ID and its own approval.
+This retry mechanism does not replay a call whose execution outcome is unknown.
+
 Delegated tasks (`n2n/tasks/submit`) already return before execution; a callee
 MAY wait for approval inside the task and report it through the task state.
 

@@ -112,3 +112,98 @@ def test_caller_records_approval_pending_not_denied(svc):
     state = svc.manager._conn.execute(
         "SELECT state FROM outbound_intent WHERE request='req-9'").fetchone()[0]
     assert state == 'approval_pending'
+
+
+def test_actual_caller_can_retry_pending_request_then_execute_once(svc, tmp_path):
+    caller = FederationService(local_as=65008, router_id='8.8.8.8', display_name='caller',
+                               manager=FederationManager(base_dir=str(tmp_path / 'caller')))
+    sends = []
+
+    async def transport(method, params, timeout):
+        sends.append(dict(params))
+        return await svc.invoker.handle_tools_call(CHANNEL, params)
+
+    async def channel(_):
+        return SimpleNamespace(call=transport)
+
+    caller.invoker._channel = channel
+
+    def invoke(**kwargs):
+        return asyncio.run(caller.invoker.invoke_remote_tool(
+            'callee', TOOL, {'x': 1}, request_id='original-request', **kwargs))
+
+    try:
+        for _ in range(2):
+            with pytest.raises(RpcError) as pending:
+                invoke()
+            assert pending.value.code == -32002
+        assert len(approvals(svc)) == len(svc.notified) == 1
+        svc.authz.resolve_approval(approvals(svc)[0]['id'], 'approve')
+        assert invoke()['result'] == {'ok': True}
+        assert len(svc.executed) == 1
+        with pytest.raises(ValueError, match='outbound_request_not_retryable'):
+            invoke()
+        assert len(sends) == 3 and len(svc.executed) == 1
+    finally:
+        caller.manager.close()
+
+
+@pytest.mark.parametrize('fault', ['peer', 'arguments', 'target', 'outcome_unknown', 'dispatching', 'refused'])
+def test_caller_retry_cannot_change_binding_or_reopen_nonpending_outcome(svc, fault):
+    sends = []
+
+    async def transport(method, params, timeout):
+        sends.append(params)
+        raise RpcError(-32002, 'pending', {'request_id':params['request_id']})
+
+    async def channel(_):
+        return SimpleNamespace(call=transport)
+
+    svc.invoker._channel = channel
+    def invoke(peer='callee', tool=TOOL, arguments=None):
+        return asyncio.run(svc.invoker.invoke_remote_tool(
+            peer, tool, arguments or {'x':1}, request_id='fixed-request'))
+
+    with pytest.raises(RpcError):
+        invoke()
+    changed = {}
+    if fault == 'peer': changed['peer'] = 'different-peer'
+    elif fault == 'arguments': changed['arguments'] = {'x':2}
+    elif fault == 'target': changed['tool'] = 'fixture/other'
+    else: svc.tasks.settle_intent('fixed-request', fault)
+    with pytest.raises(ValueError, match='outbound_request_not_retryable'):
+        invoke(**changed)
+    assert len(sends) == 1
+    state = svc.manager._conn.execute(
+        "SELECT state FROM outbound_intent WHERE request='fixed-request'").fetchone()[0]
+    assert state == ('approval_pending' if changed else fault)
+    assert svc.manager._conn.execute(
+        "SELECT outcome FROM remote_invocation_record WHERE request_id='fixed-request' ORDER BY id DESC LIMIT 1"
+    ).fetchone()[0] == 'denied'
+
+
+def test_concurrent_pending_retries_dispatch_only_one(svc):
+    async def run():
+        entered, release = asyncio.Event(), asyncio.Event()
+        sends = []
+        async def transport(method, params, timeout):
+            sends.append(params)
+            if len(sends) > 1:
+                entered.set()
+                await release.wait()
+            raise RpcError(-32002, 'pending')
+        async def channel(_): return SimpleNamespace(call=transport)
+        svc.invoker._channel = channel
+        async def invoke():
+            return await svc.invoker.invoke_remote_tool('callee', TOOL, {}, request_id='concurrent')
+        with pytest.raises(RpcError): await invoke()
+        first = asyncio.create_task(invoke())
+        await asyncio.wait_for(entered.wait(), 1)
+        try:
+            with pytest.raises(ValueError, match='outbound_request_not_retryable'):
+                await invoke()
+            assert len(sends) == 2
+        finally:
+            release.set()
+            with pytest.raises(RpcError): await first
+    asyncio.run(run())
