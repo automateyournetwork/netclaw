@@ -349,11 +349,14 @@ def verify_env(python, env, manifest_file, manifest_sha, python_sha):
     return cfg
 
 
-def build_env(root, requirements=None, label='python'):
-    """Network step (uv/pip). Immutable macOS arm64 3.12 env recipe used by R04A: a read-only copy of the
+def build_env(root, requirements=None, label='python', base_python=None):
+    """Network step (uv/pip). Immutable 3.12 env recipe used by R04A: a read-only copy of the
     interpreter, a venv whose bin/python links to it, every file hashed, nothing writable."""
-    base = Path('/opt/homebrew/opt/python@3.12/bin/python3.12').resolve()
+    base = Path(base_python or '/opt/homebrew/opt/python@3.12/bin/python3.12').resolve()
     need(base.exists(), 'python312_missing:brew install python@3.12')
+    probe = subprocess.run([str(base), '-I', '-c', 'import sys; print("%d.%d" % sys.version_info[:2])'],
+                           capture_output=True, text=True, check=True)
+    need(probe.stdout.strip() == '3.12', 'python312_required')
     work = private_dir(Path(root) / label)
     native = private_dir(work / 'native')
     target = native / 'python3.12'
@@ -384,7 +387,7 @@ def cmd_python_env(args):
     need(not (root / 'python-env.json').exists(), 'python_env_already_recorded')
     if args.build:
         need(args.yes_network, 'build_needs_--yes-network')
-        venv, manifest = build_env(root)
+        venv, manifest = build_env(root, base_python=args.base_python)
         raw = canonical(manifest)
         source_env, source_manifest = venv, None
         manifest_sha = write_private(root / 'python-env-manifest.json', raw)
@@ -412,7 +415,7 @@ def cmd_netbox_env(args):
     need(not (root / 'netbox-env.json').exists(), 'netbox_env_already_recorded')
     if args.build:
         need(args.yes_network, 'build_needs_--yes-network')
-        venv, _ = build_env(root, NETBOX_MCP_REQUIREMENTS, 'netbox-python')
+        venv, _ = build_env(root, NETBOX_MCP_REQUIREMENTS, 'netbox-python', base_python=args.base_python)
     else:
         need(args.env, 'netbox_env_or_build_required')
         venv = Path(args.env).resolve()
@@ -1005,11 +1008,13 @@ def main(argv=None):
             p.add_argument('--flavor', choices=FLAVORS, default='ollama')
         if name == 'netbox-env':
             p.add_argument('--env'); p.add_argument('--build', action='store_true'); p.add_argument('--yes-network', action='store_true')
+            p.add_argument('--base-python', help='explicit host Python3.12 for a fresh immutable environment')
         if name == 'pyats-env':
             p.add_argument('--env', help='immutable pyATS venv (default: the R02 runtime on this Mac)')
             p.add_argument('--device', default=PYATS_DEVICE)
         if name == 'python-env':
             p.add_argument('--env'); p.add_argument('--env-manifest')
+            p.add_argument('--base-python', help='explicit host Python3.12 for a fresh immutable environment')
             p.add_argument('--build', action='store_true'); p.add_argument('--yes-network', action='store_true')
         if name == 'artifacts':
             p.add_argument('--template')
