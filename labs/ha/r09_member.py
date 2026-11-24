@@ -66,7 +66,10 @@ SOURCE_EXTRA = ('scripts/federation-control.py', 'scripts/protected-role.py', 's
 SKIP_DIRS = {'tests', '__pycache__', '.pytest_cache'}
 SKIP_SUFFIX = ('.md', '.pyc')
 MEMBER_REQUIREMENTS = ['cryptography==50.0.2', 'pyOpenSSL==26.4.0', 'service-identity==26.1.0', 'httpx>=0.27',
-                       'websockets>=12.0,<17', 'PyYAML>=6.0', 'h2>=4.1', 'qrcode>=7.4']
+                       'websockets>=12.0,<17', 'PyYAML>=6.0', 'h2>=4.1', 'qrcode>=7.4',
+                       # The executor imports these lazily, after claiming an operation.
+                       # Pin the qualified runtime here as well as in reused Mac homes.
+                       'mcp==2.3.0', 'fastmcp==4.0.11', 'uvicorn==0.54.0', 'starlette==1.10.0']
 TOOL_LIMITS = {'inference_timeout_ms': 60000, 'tool_timeout_ms': 30000, 'max_inference_calls': 2,
                'max_tool_calls': 1, 'max_output_bytes': 262144}
 GUARD_ENV_VARIABLE = 'DEFENSECLAW_GATEWAY_TOKEN'
@@ -948,10 +951,12 @@ def cmd_validate(args):
                    if state.get('flavor') == 'pyats' else
                    'bgp.federation.ha.factory, bgp.federation.ha.member, bgp.federation.protected_docker, '
                    'bgp.federation.protected_ollama, bgp.federation.protected_mcp')
-        code = ("import sys; sys.path.insert(0, %r); import %s; print('closure-ok')"
+        code = ("import sys; sys.path.insert(0, %r); import %s; "
+                "from mcp.server.mcpserver import MCPServer; "
+                "from starlette.responses import JSONResponse, Response; import uvicorn; print('closure-ok')"
                 % (str(root / 'source/mcp-servers/protocol-mcp'), modules))
         done = subprocess.run([cfg['python'], '-I', '-B', '-c', code], capture_output=True, text=True, timeout=120)
-        result['closure_import'] = 'ok' if done.stdout.strip() == 'closure-ok' else 'failed:' + done.stderr.strip()[-400:]
+        result['closure_import'] = 'ok' if done.returncode == 0 and done.stdout.strip() == 'closure-ok' else 'failed:' + done.stderr.strip()[-400:]
     return result
 
 
@@ -1028,7 +1033,11 @@ def main(argv=None):
     args = parser.parse_args(argv)
     command = {'plan': cmd_plan, 'identity': cmd_identity, 'freeze': cmd_freeze, 'python-env': cmd_python_env,
                'netbox-env': cmd_netbox_env, 'pyats-env': cmd_pyats_env, 'artifacts': cmd_artifacts, 'materialize': cmd_materialize, 'validate': cmd_validate}[args.action]
-    print(json.dumps(command(args), indent=2, sort_keys=True))
+    result = command(args)
+    print(json.dumps(result, indent=2, sort_keys=True))
+    if args.action == 'validate' and (result['role_validate'] != 'valid' or
+            not args.skip_import_check and result['closure_import'] != 'ok'):
+        raise SystemExit(1)
 
 
 if __name__ == '__main__':

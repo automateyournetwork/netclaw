@@ -259,3 +259,50 @@ through the current API/export/browser surfaces. The full historical USD13.9276
 hold remains; no reserve was reduced and no Genie allowance was transferred.
 Checked tasks carrying stale PARTIAL/OPEN notes were reconciled; cloud NetBox
 placement, native HUD/VS Code and fail-closed guard proof remain explicit tasks.
+
+## November24 fresh live r10m/r10n — intermediate evidence
+
+The owner renewed completion/merge authorization subject to actual acceptance and
+USD25 cumulative. The reviewed six-hour reservation is USD23.0075943167 including
+all historical reserves, seven hosts and a fresh USD3.50 provider/transfer/cleanup
+reserve. Watchdogs were armed once; their deadlines have not been extended.
+Private evidence: `~/.local/share/netclaw/r10-live-20261124/`.
+
+All six Borders started over trusted HTTPS with three distinct regions per cloud.
+Both fresh manifests explicitly sign9000ms admission. GCP etcd health measured
+104–373ms. All six union catalogs expose the five enrolled members. Azure HUD
+rendering was observed in actual Chromium. These are intermediate checks, not
+completion of the matrix.
+
+GCP-native operation `ceb65c4d-1626-4ea7-b38c-6eb2738632cf` completed on the Mac
+subnet member with a verified receipt and delivered durable ACK at epoch12:
+two hosted Sonnet calls, one subnet effect. Its three admission challenges
+(model1/tool1/model2) are finished. The operation took109.481s including collection
+of the original result; the first reconcile had returned before the result was
+ready. A later confirmed reconcile collected that same receipt without execution.
+
+Azure-to-physical-GCP operation `83b1d9bc-9dd3-4029-86e3-f8569f0510c6` did NOT
+complete. The physical member retained `outcome_unknown/effect_outcome_unknown`,
+zero claimed/finished native effects and no executor result. Its freshly built
+Linux environment lacked MCP: the executor's lazy import failed before creating
+its operation runtime directory. The old builder requirements omitted MCP,
+FastMCP, Uvicorn and Starlette while the reused qualified Mac environment already
+contained them. The original unknown identity and fence remain untouched. No
+replacement approval is authorized by a checkbox or by the absence of a result.
+
+The builder now pins the qualified versions (MCP2.3.0/FastMCP4.0.11/
+Uvicorn0.54.0/Starlette1.10.0), probes the executor's lazy imports and returns a
+nonzero validation status on failure.21 existing member-builder tests pass.
+The old actual Linux closure now fails that validation with `No module named mcp`;
+a separate fresh immutable environment passes the lazy-import probe. Any further
+member execution requires fresh identity/source/runtime preparation, with the
+original failure retained and never replayed.
+
+An actual Azure HUD cross-member prepare (no approval) exposed another acceptance
+gap: the remote receiving-cluster review is rejected as “another cluster, issuer
+or operator.” The API relay alone does not qualify HUD or VS Code. Client trust
+must bind the peer review to the trusted ingress and original operator; removing
+cluster/principal checks is not an acceptable repair. The current DTO also
+returns the original client nonce only for prepare, so status recovery needs
+consistent nonce provenance. Both gaps remain open pending a verified repair and
+fresh signed deployment.
