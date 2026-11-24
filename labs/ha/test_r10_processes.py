@@ -21,5 +21,16 @@ class OwnedProcesses(unittest.TestCase):
             self.assertFalse(owned_command(command(member).replace('source/scripts/protected-role.py', 'other.py'), root))
             self.assertFalse(owned_command(command(member) + ' --extra', root))
 
+    def test_executed_daemon_matches_only_exact_owned_source(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve() / 'r10-run-fresh'
+            def command(base):
+                return shlex.join(['/usr/bin/python3', '-I', '-B', str(base / 'source/mcp-servers/protocol-mcp/bgp-daemon-v2.py')])
+            self.assertTrue(owned_command(command(root / 'member-one'), root))
+            for other in [root.parent / 'r10-run-old/member-one', root.parent / 'genie/member-one', root / 'member-one/nested', root / 'not-a-member']:
+                self.assertFalse(owned_command(command(other), root))
+            self.assertFalse(owned_command(command(root / 'member-one') + ' --extra', root))
+            self.assertFalse(owned_command('/bin/sh -c ' + shlex.quote(command(root / 'member-one')), root))
+
 
 if __name__ == '__main__': unittest.main()

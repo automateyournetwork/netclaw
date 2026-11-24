@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 import { createHash, X509Certificate, verify } from 'node:crypto';
-import { clusterCanonical, verifyClusterDescriptor, clusterReviewMatches } from '../../ui/netclaw-visual/src/shared/cluster-binding.js';
+import { clusterCanonical, verifyClusterDescriptor, clusterReviewMatches, verifyFederatedOperation, clusterLabPrincipal } from '../../ui/netclaw-visual/src/shared/cluster-binding.js';
 export const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 export const canonical = clusterCanonical;
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -37,7 +37,7 @@ export function verifyEnvelope(envelope, certificate, schema) {
 }
 export function validateReference(row, descriptor, principal) {
   assert.ok(row && /^[A-Za-z0-9_.:-]{1,200}$/.test(row.reference?.operation_id) && /^[A-Za-z0-9_.:-]{1,200}$/.test(row.reference?.client_nonce));
-  assert.equal(row.review_digest,sha256(canonical(row.review)));assert.ok(clusterReviewMatches(descriptor,row.review,principal));
+  assert.equal(row.review_digest,sha256(canonical(row.review)));assert.ok(clusterReviewMatches(descriptor,row.operation?.review||row.review,principal));
   assert.ok(Number.isSafeInteger(row.attempt_count) && row.attempt_count >= 0 && row.attempt_count <= 1);
 }
 export async function loadQualification(configFile, surface) {
@@ -51,10 +51,14 @@ export async function loadQualification(configFile, surface) {
   const bundle=JSON.parse(bytes);assert.equal(bundle.classification,'REAL');assert.equal(bundle.schema_version,1);assert.equal(bundle.source_commit,config.source_commit);
   const verified=await verifyClusterDescriptor(bundle.descriptor,{pin:bundle.pin});
   const node=verified.descriptor.manifest.manifest.nodes.find(n=>n.endpoints.https.replace(/\/$/,'')===config.origin);assert.ok(node,'Selected HTTPS origin must be enrolled');
+  if(bundle.peer_descriptor){
+    await verifyClusterDescriptor(bundle.peer_descriptor,{pin:bundle.peer_pin});
+    assert.notEqual(bundle.peer_descriptor.cluster_id,bundle.descriptor.cluster_id);
+  }
   if(['original_once','prepare_review'].includes(config.phase)){
     assert.ok(bundle.selection && bundle.expected_review);
     for(const k of ['principal','member','model_profile','tool_call'])assert.ok(bundle.expected_review[k]);
-    assert.deepEqual(bundle.expected_review.principal,bundle.principal);
+    assert.deepEqual(bundle.expected_review.principal,bundle.peer_descriptor?await clusterLabPrincipal(bundle.peer_descriptor.cluster_id):bundle.principal);
     assert.ok(path.isAbsolute(config.once_file));privateDirectory(path.dirname(config.once_file));
     if(config.phase==='original_once'){
       assert.match(config.budget_run_id,UUID);assert.ok(path.isAbsolute(config.budget_claim_file));privateDirectory(path.dirname(config.budget_claim_file));
@@ -63,9 +67,13 @@ export async function loadQualification(configFile, surface) {
     }
     return {config,bundle,node,counters_sha256:sha256(privateFile(config.counter_file)),budget_started_at_ms:Date.now()};
   }
+  if(bundle.completed.operation){
+    await verifyQualificationOperation(bundle.completed.operation,{bundle});
+    assertOriginal(bundle.completed.operation,bundle.completed);
+  }
   validateReference(bundle.completed,bundle.descriptor,bundle.principal);
   const completed=bundle.completed,receipt=verifyEnvelope(completed.result_envelope,completed.member_certificate,'netclaw.execution.result.v2');
-  const acceptance=completed.ack_envelope.payload.acceptance,nodeAck=bundle.descriptor.manifest.manifest.nodes.find(n=>n.node_id===acceptance?.node_id);assert.ok(nodeAck);
+  const acceptance=completed.ack_envelope.payload.acceptance,nodeAck=(bundle.completed.operation?.remote?bundle.peer_descriptor:bundle.descriptor).manifest.manifest.nodes.find(n=>n.node_id===acceptance?.node_id);assert.ok(nodeAck);
   const ack=verifyEnvelope(completed.ack_envelope,nodeAck.certificate,'netclaw.execution.ack.v2');
   assert.equal(receipt.payload.operation_id,completed.reference.operation_id);assert.equal(ack.payload.operation_id,completed.reference.operation_id);assert.equal(ack.payload.receipt_sha256,receipt.digest);assert.equal(ack.payload.attempt_id,receipt.payload.attempt_id);
   for(const k of ['principal','border','member','model_profile','cluster'])assert.deepEqual(receipt.payload[k],completed.review[k]);
@@ -87,6 +95,16 @@ export function unchangedCounters(context) {assert.equal(sha256(privateFile(cont
 export function claimOriginal(context) {
  const {config}=context;assert.ok(['original_once','prepare_review'].includes(config.phase));
  const fd=fs.openSync(config.once_file,'wx',0o600);try{fs.writeFileSync(fd,JSON.stringify({schema_version:1,source_commit:config.source_commit,record_sha256:config.record_sha256,claimed_at_ms:Date.now(),state:'original_once_claimed'}));fs.fsyncSync(fd);}finally{fs.closeSync(fd);}
+}
+export async function verifyQualificationOperation(operation, context) {
+ const {bundle}=context;
+ await verifyFederatedOperation(bundle.descriptor,operation,bundle.principal);
+ if(bundle.peer_descriptor){
+  assert.ok(operation.remote,'Expected a receiving-cluster operation');
+  for(const k of ['cluster_id','generation'])assert.equal(operation.remote.cluster[k],bundle.peer_descriptor[k]);
+  assert.equal(operation.remote.client_binding.endorsement.payload.peer_anchor_key_id,bundle.peer_pin.anchor_key_id);
+ } else assert.equal(Boolean(operation.remote),false,'Unexpected peer operation');
+ return operation;
 }
 export function assertExactReview(operation, context) {
  const expected=context.bundle.expected_review;
