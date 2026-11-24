@@ -957,3 +957,20 @@ historical timeout reasons; preserve both. Source checks/handoff precede the
 already-authorized merge, then resume original198 at856bbc88;199 remains AWS.
 No renewed visual acceptance, budget or Border-selection question is necessary.
 See specs/200-genie-network-worlds/final-qualification.md for evidence and limits.
+
+
+### Spec200 merge — 2026-11-24
+
+All30tasks are complete for the owner-accepted Mac recorded-illustration scope.
+Final97fc1f1a passed47/47hosted checks; PR366merged at0979c445. This supersedes the
+merge-pending statements above. Existing visual, testing-posture, platform and
+unsettled-invoice limits remain. The owner then requested safe reconciliation and
+merge of all open Byrne PRs before returning to original198. Preserve the five
+videos, evidence-only member, existing Border and original198at856bbc88. No new
+paid generation, runtime upgrade or cloud activation follows from source merges.
+
+Byrn PRs361–365are also merged: documentation conflicts preserved H20/H22/H23;
+362checks consent before writing a peer;364has its CLI/catalog and42/42checks;
+363has durable exact approval-pending retry admission, unchanged unknown/completed
+holds, reviewed protected source pin and40/40checks. The duplicate-ledger retry
+failure was reproduced before repair. See Spec200 release-reconciliation.md.
