@@ -1,0 +1,214 @@
+{
+  "schema": 1,
+  "transport": "stdio",
+  "sdk": "mcp 2.3.0",
+  "qualification": "actual initialize/tools-list; deterministic calls separately tested",
+  "tools": [
+    {
+      "name": "genie_world_prepare",
+      "description": "Prepare a registered local source; private snapshots cannot be hosted. No generation.",
+      "inputSchema": {
+        "properties": {
+          "request_id": {
+            "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[1-5][a-fA-F0-9]{3}-[89abAB][a-fA-F0-9]{3}-[a-fA-F0-9]{12}$",
+            "title": "Request Id",
+            "type": "string"
+          },
+          "synthetic_fixture_id": {
+            "anyOf": [
+              {
+                "pattern": "^[a-z0-9][a-z0-9-]{0,95}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Synthetic Fixture Id"
+          },
+          "private_snapshot_ref": {
+            "anyOf": [
+              {
+                "pattern": "^[a-z0-9][a-z0-9-]{0,95}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Private Snapshot Ref"
+          }
+        },
+        "required": [
+          "request_id"
+        ],
+        "type": "object",
+        "additionalProperties": false,
+        "title": "genie_world_prepareArguments"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "genie_world_start",
+      "description": "Start once with an existing exact review grant. Save request_id before this spend-capable call.",
+      "inputSchema": {
+        "properties": {
+          "request_id": {
+            "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[1-5][a-fA-F0-9]{3}-[89abAB][a-fA-F0-9]{3}-[a-fA-F0-9]{12}$",
+            "title": "Request Id",
+            "type": "string"
+          },
+          "projection_ref": {
+            "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[1-5][a-fA-F0-9]{3}-[89abAB][a-fA-F0-9]{3}-[a-fA-F0-9]{12}$",
+            "title": "Projection Ref",
+            "type": "string"
+          },
+          "review_ref": {
+            "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[1-5][a-fA-F0-9]{3}-[89abAB][a-fA-F0-9]{3}-[a-fA-F0-9]{12}$",
+            "title": "Review Ref",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_id",
+          "projection_ref",
+          "review_ref"
+        ],
+        "type": "object",
+        "additionalProperties": false,
+        "title": "genie_world_startArguments"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "genie_world_status",
+      "description": "Read the original session and retained control outcomes. Never creates or resumes a world.",
+      "inputSchema": {
+        "properties": {
+          "operation_id": {
+            "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[1-5][a-fA-F0-9]{3}-[89abAB][a-fA-F0-9]{3}-[a-fA-F0-9]{12}$",
+            "title": "Operation Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "operation_id"
+        ],
+        "type": "object",
+        "additionalProperties": false,
+        "title": "genie_world_statusArguments"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "genie_world_event",
+      "description": "Request the fixed fictional event once, only after human target-visible intent in the viewer.",
+      "inputSchema": {
+        "properties": {
+          "request_id": {
+            "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[1-5][a-fA-F0-9]{3}-[89abAB][a-fA-F0-9]{3}-[a-fA-F0-9]{12}$",
+            "title": "Request Id",
+            "type": "string"
+          },
+          "operation_id": {
+            "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[1-5][a-fA-F0-9]{3}-[89abAB][a-fA-F0-9]{3}-[a-fA-F0-9]{12}$",
+            "title": "Operation Id",
+            "type": "string"
+          },
+          "event_id": {
+            "pattern": "^[a-z0-9][a-z0-9-]{0,95}$",
+            "title": "Event Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_id",
+          "operation_id",
+          "event_id"
+        ],
+        "type": "object",
+        "additionalProperties": false,
+        "title": "genie_world_eventArguments"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "genie_world_stop",
+      "description": "Request backend termination. Accepted is not a terminal receipt or reconciled usage.",
+      "inputSchema": {
+        "properties": {
+          "request_id": {
+            "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[1-5][a-fA-F0-9]{3}-[89abAB][a-fA-F0-9]{3}-[a-fA-F0-9]{12}$",
+            "title": "Request Id",
+            "type": "string"
+          },
+          "operation_id": {
+            "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[1-5][a-fA-F0-9]{3}-[89abAB][a-fA-F0-9]{3}-[a-fA-F0-9]{12}$",
+            "title": "Operation Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_id",
+          "operation_id"
+        ],
+        "type": "object",
+        "additionalProperties": false,
+        "title": "genie_world_stopArguments"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "genie_world_evidence",
+      "description": "Read bounded artifact hashes and session evidence; no media, raw network facts or acceptance inference.",
+      "inputSchema": {
+        "properties": {
+          "operation_id": {
+            "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[1-5][a-fA-F0-9]{3}-[89abAB][a-fA-F0-9]{3}-[a-fA-F0-9]{12}$",
+            "title": "Operation Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "operation_id"
+        ],
+        "type": "object",
+        "additionalProperties": false,
+        "title": "genie_world_evidenceArguments"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    }
+  ]
+}

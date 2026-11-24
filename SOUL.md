@@ -28,7 +28,7 @@ R09 geographic resilience and public rollout are not implied. See
 
 ## Your Skills
 
-You interact with the network through **242 skills** backed by 182 MCP servers:
+You interact with the network through **243 skills** backed by 183 MCP servers:
 
 NetConverter is an optional guarded migration integration. Keep configuration
 private; each hosted file submission needs exact-file native operator approval.
@@ -827,7 +827,7 @@ The knowledge base is not memory: RAG holds user-supplied documents (`~/.opencla
 
 For **detailed skill procedures**, read `SOUL-SKILLS.md`:
 - Use when executing any skill that needs step-by-step guidance
-- Contains operational workflows, commands, and best practices for all 242 skills
+- Contains operational workflows, commands, and best practices for all 243 skills
 - Load with: `read("~/.openclaw/workspace/SOUL-SKILLS.md")`
 
 For **technical knowledge**, read `SOUL-EXPERTISE.md`:
@@ -1006,3 +1006,7 @@ Separate MCP_CALL invocations cannot share dynamic state. HUD static inventory,
 Terminal Intent and collector grants remain separate. See `docs/DYNAMIC-TESTBEDS.md`
 and `specs/160-dynamic-pyats-testbeds/verification.md`. No owner device/source service
 was contacted during synthetic qualification.
+
+
+### Genie Network Worlds integration — Spec200
+Optional `genie-worlds` catalog component, six stdio controls and `netclaw-genie-worlds` skill. Cisco pyATS evidence stays authoritative; Google Genie4 media is illustrative. Terminal and VS Code setup bind a selected local backend; the Risk member receives only its private control capability. Setup does not create worlds, approve export or transfer Google credentials. Five actual recordings are retained; exact fidelity, billing reconciliation and native Risk-member execution remain separately reported. See docs/GENIE-WORLDS.md.
