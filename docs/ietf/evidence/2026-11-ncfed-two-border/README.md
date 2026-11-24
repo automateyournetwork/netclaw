@@ -441,7 +441,8 @@ task, which reads `openclaw.json` at start. All five services stayed active on t
 
 ```bash
 # rollback for one member
-cp -p ~/.openclaw-byrns-risk-<name>/openclaw.json.bak-skilllimits-20261122T225459Z \n      ~/.openclaw-byrns-risk-<name>/openclaw.json
+cp -p ~/.openclaw-byrns-risk-<name>/openclaw.json.bak-skilllimits-20261122T225459Z \
+      ~/.openclaw-byrns-risk-<name>/openclaw.json
 ```
 
 ## 12. Evidence file index
