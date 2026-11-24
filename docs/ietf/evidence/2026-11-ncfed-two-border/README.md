@@ -271,6 +271,7 @@ on production (0600, SQLite backup API, `integrity_check` ok, sha256 `f0554c15�
 | 8 | 22:01:00 | `~/.openclaw/openclaw.json` `skills.limits` raised to the spec-188 policy; backup `openclaw.json.bak-skilllimits-20261122T220100Z` (§11) | **Active** (hot-reloaded; gateway PID 833981 unchanged) |
 | 9 | 22:03:35 | Grant 63: skill `subnet-calculator` to `as65010-…`, `requires_approval` (second 6b re-run) | **Revoked** 22:04:21 |
 | — | 22:03:44 | Approved production approval id 3 (second re-run task) | consumed; task `completed` |
+| 10 | 22:54:59 | `skills.limits` raised to the spec-188 policy in all five iN2N member configs (`~/.openclaw-byrns-risk-{cml,guardian-claw,pyats,secops,viz}/openclaw.json`); backups `openclaw.json.bak-skilllimits-20261122T225459Z` beside each (§11) | **Active** (no restart; read by each new per-task agent process) |
 | — | 20:44 / 20:49 | `/tmp/ncfed_wire_probe.py`, `/tmp/ncfed_api.sh` copied to production | `/tmp/ncfed_api.sh` removed from both hosts 22:05 (§11); the probe script is removed at teardown |
 
 Automatic side effects on production: audit/GAIT entries for every probe and invoke; `federation_peer`/
@@ -304,8 +305,8 @@ ssh ubuntu@198.51.100.10 'rm -f /tmp/ncfed_wire_probe.py /tmp/ncfed_api.sh'
 ssh root@198.51.100.2 'qm stop 127 && qm destroy 127'
 ```
 
-The §10 gateway token fix (changes 3–4) is a deliberate repair and is not part of this teardown; its own rollback is
-in §10. Steps 1–4 leave production's federation state functionally identical to before the run. Its `federation.db` keeps a severed
+The §10 gateway token fix (changes 3–4) and the §11 changes (6, 8 and 10) are deliberate repairs and are not part of
+this teardown; their rollbacks are in §10 and §11. Steps 1–4 leave production's federation state functionally identical to before the run. Its `federation.db` keeps a severed
 `as65010` peer row plus audit history, in the same way the retired peers remain. For a byte-for-byte revert, restore the backup.
 That needs the daemon stopped, and it discards the audit rows from this run:
 
@@ -421,7 +422,7 @@ Done later the same day (21:58–22:05Z), at the operator's request. Raw output:
 - **PRODUCTION CHANGE 9 reverted** (22:04:21Z): grant 63 revoked. The same submit then got `-32001`, and no
   approvals were left pending. Helper `/tmp/ncfed_api.sh` was removed from both hosts.
 
-**iN2N members (checked read-only, not changed).** None of the five active member configs
+**iN2N members (checked read-only first; limits applied afterwards as change 10).** None of the five active member configs
 (`~/.openclaw-byrns-risk-<name>/openclaw.json`, generated 2026-11-14) has the spec-188 limits, except viz, which sets
 only `maxSkillsLoadedPerSource` 300. No member loses a scoped skill today:
 - cml, pyats and secops: all scoped skills sort within the first 200.
@@ -429,6 +430,20 @@ only `maxSkillsLoadedPerSource` 300. No member loses a scoped skill today:
   because of the 300 override.
 - guardian-claw: uses its own 7-skill workspace.
 - No member logged a "cannot load scoped skill" warning in the previous 3 days.
+
+**PRODUCTION CHANGE 10** (22:54:59Z): the same raise-only `raise_limits()` and `config/skill-limits.json` were applied to
+all five member configs, so viz no longer depends on its partial override. Before: no `skills.limits` (viz: only
+`maxSkillsLoadedPerSource` 300). After: 400 / 400 / 400 / 122000. Each file was backed up first
+(`openclaw.json.bak-skilllimits-20261122T225459Z`, mode 0600) and replaced atomically, staying `ubuntu:ubuntu` 0600.
+A re-serialisation of each original reproduced it byte for byte, so the only diff is the `skills.limits` block. No
+member service was restarted: a member runs no gateway and starts a fresh `openclaw agent --local` per delegated
+task, which reads `openclaw.json` at start. All five services stayed active on their original PIDs.
+
+```bash
+# rollback for one member
+cp -p ~/.openclaw-byrns-risk-<name>/openclaw.json.bak-skilllimits-20261122T225459Z \
+      ~/.openclaw-byrns-risk-<name>/openclaw.json
+```
 
 ## 12. Evidence file index
 
