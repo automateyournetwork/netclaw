@@ -7,6 +7,7 @@ r10_node_run.py imports r09a_node_run (its base), so both must sit in nc182/bin/
 """
 import argparse
 import io
+import json
 import secrets
 from pathlib import Path
 import tarfile
@@ -17,13 +18,19 @@ sys.path.insert(0, str(REPO))
 from labs.ha import r09a_payload  # noqa: E402
 
 
-def build(root, code, dns, policy_dir=None, guard_config=None, workspace_config=None, peer_dir=None):
+def build(root, code, dns, policy_dir=None, guard_config=None, workspace_config=None, peer_dir=None, region=None):
     out = Path(r09a_payload.build(root, code, dns, policy_dir))
     with tarfile.open(out, 'a') as tar:
         def add(name, raw, mode=0o600):
             info = tarfile.TarInfo('nc182/' + name)
             info.size, info.mode = len(raw), mode
             tar.addfile(info, io.BytesIO(raw))
+        if region:
+            # Observed cloud placement is display metadata, never execution authority.
+            with tarfile.open(out, 'r') as original:
+                node = json.load(original.extractfile('nc182/node.json'))
+            node['region'] = region
+            add('node.json', json.dumps(node).encode())
         add('bin/r10_node_run.py', (REPO / 'labs/ha/r10_node_run.py').read_bytes(), 0o700)
         add('bin/r09a_guard_up.sh', (REPO / 'labs/ha/r09a_guard_up.sh').read_bytes(), 0o700)
         add('gateway-token', secrets.token_hex(24).encode())
@@ -45,5 +52,6 @@ if __name__ == '__main__':
     p.add_argument('--root', required=True); p.add_argument('--code', required=True)
     p.add_argument('--dns', required=True); p.add_argument('--policy-dir')
     p.add_argument('--guard-config'); p.add_argument('--workspace-config'); p.add_argument('--peer-dir')
+    p.add_argument('--region', help='observed cloud region for posture display only')
     a = p.parse_args()
-    print(build(a.root, a.code, a.dns, a.policy_dir, a.guard_config, a.workspace_config, a.peer_dir))
+    print(build(a.root, a.code, a.dns, a.policy_dir, a.guard_config, a.workspace_config, a.peer_dir, a.region))

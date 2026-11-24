@@ -108,6 +108,8 @@ export function regionLabel(endpointOrHost) {
 }
 export function clusterNodeRegion(cluster, nodeId) {
  const node=cluster?.manifest?.manifest?.nodes?.find(n=>n.node_id===nodeId);
+ // Logical DNS codes are shared by Azure and GCP; they do not identify an Azure region.
+ if(/\.azure\.internal$/.test(node?.endpoints?.cluster?.host??''))return 'Azure · region in node posture';
  return node?regionLabel(node.endpoints?.https):'Unknown region';
 }
 export function clusterFailoverNotice(cluster) {

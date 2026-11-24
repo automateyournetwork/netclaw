@@ -82,9 +82,9 @@ export async function fetchNodePosture(origin: string, fetchImpl: typeof fetch =
 export function formatPosture(p: NodePosture, origin: string): string {
   const inside = p.components.filter(c => c.inside_sandbox), outside = p.components.filter(c => !c.inside_sandbox);
   const line = (c: PostureComponent) => `  - ${c.name} (${c.state})${c.disposition ? " — " + c.disposition : ""}`;
-  const region = regionLabel(origin);
+  const region = p.region;
   return [
-    `Node posture — ${p.node}${region && region !== "Unknown region" ? " · " + region : ""} (${p.region})`,
+    `Node posture — ${p.node} · ${region}`,
     `Origin: ${origin}`,
     `Observed: ${new Date(p.observed_at_ms).toISOString()} (an observation reported by the node, not authority)`,
     "",

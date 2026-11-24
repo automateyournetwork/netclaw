@@ -27,6 +27,7 @@ export function regionLabel(endpointOrHost: unknown): string {
 }
 export function clusterNodeRegion(c: Json | undefined, nodeId: string): string {
   const node = c?.manifest?.manifest?.nodes?.find((n: Json) => n.node_id === nodeId);
+  if (/\.azure\.internal$/.test(node?.endpoints?.cluster?.host ?? "")) return "Azure · region in node posture";
   return node ? regionLabel(node.endpoints?.https) : "Unknown region";
 }
 export function clusterFailoverNotice(c?: Json): string | undefined {

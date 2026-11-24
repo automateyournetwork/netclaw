@@ -151,10 +151,15 @@ step_policy_payload() {
   run mkdir -p "$G/guard" "$G/policy"; run cp "$guard"/*.yaml "$G/guard/"
   for c in "${CODES[@]}"; do
     if [ "$DRY" = 1 ]; then say "+ $(grp node-spec --code "$c" "${PEERARGS[@]}") > $EV/spec-$c.json"; else grp node-spec --code "$c" "${PEERARGS[@]}" > "$EV/spec-$c.json"; fi
+    local region=unknown
+    if [ "$DRY" != 1 ]; then
+      if [ "$PROVIDER" = azure ]; then region="$(az vm show -g "rg-nc198-$PHASE" -n "nc198-$PHASE-$c" --query location -o tsv)"
+      else region="$("$PY" -c "import r10_group as g;print(g.GCP_ZONES['$c'].rsplit('-',1)[0])")"; fi
+    fi
     run "$PY" "$here/labs/ha/r09a_policy.py" render --node-spec "$EV/spec-$c.json" --out "$G/policy/out-$c"
     run "$PY" "$here/labs/ha/r09_workspace.py" render --installation-id "$(iid_of "$c")" --conversation-home /sandbox/.openclaw --out-dir "$G/workspace-$c"
     run "$PY" "$here/labs/ha/r10_payload.py" --root "$G" --code "$c" --dns "$(dns_of "$c")" --policy-dir "$G/policy/out-$c" \
-      --guard-config "$G/guard/node-guard-config.yaml" --workspace-config "$G/workspace-$c/workspace.backend.json" "${PAYARGS[@]}"
+      --guard-config "$G/guard/node-guard-config.yaml" --workspace-config "$G/workspace-$c/workspace.backend.json" --region "$region" "${PAYARGS[@]}"
   done
 }
 
