@@ -165,6 +165,10 @@ All stories remain required. Each pending environment-dependent acceptance item 
 - [x] T083 Run owner-authorized synthetic usability scenarios and minimal-profile timing/performance checks on Mac; defer the owner walkthrough to the final Mac return before recording (SC-002 sequencing amendment, 2026-10-18); record automated versus owner observations, rendering/progress latency and download-separated time in specs/153-ide-installer/verification.md. Track organic community feedback after release separately; do not claim recruited participants.
 - [x] T084 Create local specs/153-ide-installer/milestone-draft.md and final coverage/status; update memory/2026-10-17.md and GAIT trail without publishing or touching real installations.
 
+Follow-up after release (2026-11-25), outside the original 84-task denominator:
+
+- [x] T085 [US6] Give the Tier 3 HUD probe a management-route timeout longer than the HUD server's 15 s `openclaw agents list` limit (other routes keep 5 s), report timeouts as `probe_timeout` instead of `probe_failed`, and retry `probe_timeout` while waiting for readiness, in scripts/lib/setup_verify.py and scripts/lib/setup_report.py; tests in tests/test_setup_verification.py. Evidence in specs/153-ide-installer/verification.md.
+
 ## Dependencies and execution strategy
 
 M0 → M1 → M2a → M2b; M3a may use completed M0/M1 metadata, then M3b; M2 + M3 → M4 → M5 → M6; M4/M5 → M7a → M7b → M8; M2/M6 → M9a; every slice → M9b. Never call a component before its effects audit/adapter is complete. No fixture bypass substitutes for a production path.
