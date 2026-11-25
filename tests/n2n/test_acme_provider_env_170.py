@@ -109,3 +109,18 @@ def test_unreadable_env_file_is_skipped_without_its_content(lego, caplog):
     (home / "mesh.systemd.env").write_text("CLOUDFLARE_ZONE_API_TOKEN=from-mesh\n")
     assert renew()["env"] == {"CLOUDFLARE_ZONE_API_TOKEN": "from-mesh"}
     assert "secret" not in caplog.text
+
+
+@pytest.mark.parametrize("reader", [None, "def values(text):\n    return {\n"])
+def test_unavailable_env_reader_passes_nothing(lego, monkeypatch, tmp_path, caplog, reader):
+    """P2: a missing or broken env-file reader (`scripts/write-env.py`, absent
+    when protocol-mcp runs outside a full checkout) must not fail renewal."""
+    home, renew = lego
+    (home / ".env").write_text("CLOUDFLARE_DNS_API_TOKEN=from-dotenv\n")
+    path = tmp_path / "write-env.py"
+    if reader is not None:
+        path.write_text(reader)
+    monkeypatch.setattr(acme, "_ENV_WRITER", path)
+    assert renew()["env"] == {}
+    assert "from-dotenv" not in caplog.text
+    assert "env file reader" in caplog.text

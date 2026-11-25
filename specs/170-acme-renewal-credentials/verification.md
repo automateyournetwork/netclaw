@@ -55,3 +55,18 @@ A production renewal by the daemon itself: the certificate is not due until abou
 2027-01-01. Forcing rotation of a not-due certificate makes lego return it unchanged,
 which rotation correctly records as a failure. Providers other than Cloudflare are
 covered by the generic `dnshelp` parsing only.
+
+## T005 follow-up: unavailable env-file reader (2026-11-25)
+
+Found in a code review: `_env_file_values` loaded `scripts/write-env.py` from
+`parents[4]` of `acme.py` without a guard. When protocol-mcp runs outside a full checkout,
+or the reader is broken, the error escaped `_lego_env` and failed `issue()`/`renew()`,
+against P2 ("an unreadable env file passes nothing extra"). Fix: the reader path is the
+module constant `_ENV_WRITER`, and a load failure is logged by exception type only, then
+treated as no values.
+
+Tests first: `tests/n2n/test_acme_provider_env_170.py::test_unavailable_env_reader_passes_nothing`
+(missing file and a file with a syntax error) failed on main 8d641c6c with
+`FileNotFoundError` and `SyntaxError` raised out of `acme.renew`, and passes with the fix.
+The test also checks that no env-file value appears in the log. Results are recorded in
+the PR.

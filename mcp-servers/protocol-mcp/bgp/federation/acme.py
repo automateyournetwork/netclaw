@@ -105,16 +105,23 @@ async def _provider_names(provider: str) -> set:
     return names | {n + "_FILE" for n in names}
 
 
+# The installer's env-file parser; absent when protocol-mcp runs outside a checkout.
+_ENV_WRITER = Path(__file__).resolve().parents[4] / "scripts" / "write-env.py"
+
+
 def _env_file_values() -> dict:
     """Literal assignments from the runtime env files, mesh.systemd.env last
     (the launchers' order). Nothing is expanded or executed."""
     runtime_env = os.environ.get("NETCLAW_RUNTIME_ENV")
     if not runtime_env:
         return {}
-    spec = importlib.util.spec_from_file_location(
-        "_netclaw_env_writer", Path(__file__).resolve().parents[4] / "scripts" / "write-env.py")
-    writer = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(writer)
+    try:
+        spec = importlib.util.spec_from_file_location("_netclaw_env_writer", _ENV_WRITER)
+        writer = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(writer)
+    except Exception as e:  # missing or broken reader: pass nothing extra (P2)
+        logger.warning("acme: cannot load the env file reader: %s", type(e).__name__)
+        return {}
     values = {}
     for path in (Path(runtime_env), Path(runtime_env).with_name("mesh.systemd.env")):
         try:
