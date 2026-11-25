@@ -7,3 +7,6 @@
 - [x] T005 Fix independently reproduced staging-symlink clobber, verify failure
   preservation and correct release verification wording; independent re-review.
   Hosted checks for the resulting commit are tracked on PR #316 before merge.
+- [x] T006 Follow-up (acceptance 2): an `agents.list` entry without a usable `id` is not
+  counted as an agent, so a home with one agent `main` and an id-less entry keeps the
+  unnamed command. Found in a code review of a backport; tests first.

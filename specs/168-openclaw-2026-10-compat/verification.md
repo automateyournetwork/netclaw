@@ -133,3 +133,13 @@ Private review evidence: spec168-review/focused-final.log and
 spec168-review/symlink-probe-final.json under the upgrade evidence directory.
 Hosted checks must pass for the new commit before merging PR316; earlier green
 checks are not evidence for the repaired source.
+
+## T006 follow-up: id-less agent entries (2026-11-25)
+
+Found in a code review: `_member_agent_args` added `a.get("id")` for every `agents.list`
+dict, so `{"list": [{"id": "main"}, {}]}` gave the set `{"main", None}`, counted as two
+agents, and forced `--agent main`, against acceptance 2. Fix: keep only non-empty string
+ids. Tests first: two new cases in
+`tests/n2n/test_gateway_member_agent.py::test_unambiguous_or_unknown_homes_keep_the_unnamed_command`
+(`[{"id":"main"},{}]` and `[{"id":"main"},{"id":""},{"id":null}]`) failed on main 8d641c6c
+(2 failed, 8 passed) and pass with the fix. Results are recorded in the PR.

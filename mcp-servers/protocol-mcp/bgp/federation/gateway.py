@@ -226,6 +226,7 @@ def _member_agent_args() -> list:
             agents = (json.load(f).get("agents") or {})
         ids = set(agents.get("entries") or {})
         ids |= {a.get("id") for a in agents.get("list") or [] if isinstance(a, dict)}
+        ids = {i for i in ids if isinstance(i, str) and i}  # an entry without an id is no agent
     except (OSError, ValueError, AttributeError, TypeError):
         return []
     return ["--agent", "main"] if len(ids) > 1 and "main" in ids else []

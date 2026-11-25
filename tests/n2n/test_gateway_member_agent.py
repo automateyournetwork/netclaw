@@ -53,7 +53,11 @@ def test_agents_list_layout_is_recognised(tmp_path, monkeypatch):
     assert argv[:4] == ["agent", "--local", "--agent", "main"]
 
 
-@pytest.mark.parametrize("agents", [{}, {"entries": {"ops": {}}}, {"entries": {"ops": {}, "alert": {}}}, None])
+@pytest.mark.parametrize("agents", [
+    {}, {"entries": {"ops": {}}}, {"entries": {"ops": {}, "alert": {}}}, None,
+    # A list entry without a usable id is not a second agent.
+    {"list": [{"id": "main"}, {}]}, {"list": [{"id": "main"}, {"id": ""}, {"id": None}]},
+])
 def test_unambiguous_or_unknown_homes_keep_the_unnamed_command(tmp_path, monkeypatch, agents):
     argv = _run(tmp_path, monkeypatch, agents)
     assert "--agent" not in argv
