@@ -10,4 +10,4 @@ AWS uses three distinct Ohio AZs. **True AWS cross-region resilience remains def
 
 Conservative closed allocations: USD 11.53 AWS / USD 9.00 external, with USD 5/USD 1 reserves retained. Zero open resource or execution reservations; delayed bills remain explicit. These are allowances, not final invoices or credit deductions.
 
-Source remains uncommitted on `199-aws-multicloud-ha`; no push, merge or release. Private ledger/evidence: `~/.local/share/netclaw/spec199-stage5-20261126-v1/`. Do not reactivate spent preparations or watchdogs. [Next-session boundary](resume.md).
+The owner authorized source integration into main; see the [integration record](integration-20261126.md). Version/package release remains held. Private ledger/evidence: `~/.local/share/netclaw/spec199-stage5-20261126-v1/`. Do not reactivate spent preparations or watchdogs. [Next-session boundary](resume.md).

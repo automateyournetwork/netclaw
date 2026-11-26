@@ -1,6 +1,6 @@
 # Spec199 verification — closed 2026-11-26
 
-**39/39 tasks complete for the owner-approved Ohio three-AZ scope.** [Final acceptance, exact cleanup, costs and limitations](closure-20261126.md) are authoritative. All27 final cells, native recoveries, late faults,23 exports and83-resource cleanup passed. True AWS cross-region resilience remains deferred. Source is local/uncommitted; no publication.
+**39/39 tasks complete for the owner-approved Ohio three-AZ scope.** [Final acceptance, exact cleanup, costs and limitations](closure-20261126.md) are authoritative. All27 final cells, native recoveries, late faults,23 exports and83-resource cleanup passed. True AWS cross-region resilience remains deferred. Source integration is now owner-authorized and documented in [the integration record](integration-20261126.md); version/package publication remains held.
 
 The dated checkpoints below are historical. Their then-current counts, pending work and activation statements are superseded by the final closure.
 
