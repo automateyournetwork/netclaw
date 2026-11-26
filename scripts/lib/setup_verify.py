@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import time
+import urllib.error
 import urllib.request
 
 from setup_deploy import helper
@@ -21,7 +22,7 @@ def wait_for_readiness(probe,pause,*,timeout=30,clock=time.monotonic):
     while True:
         if pause is not None and pause.is_set():return outcome('unverified','service_unverified')
         result=probe()
-        if result['state']!='unverified' or result['code'] not in ('service_unverified','probe_failed'):
+        if result['state']!='unverified' or result['code'] not in ('service_unverified','probe_failed','probe_timeout'):
             return result
         remaining=deadline-clock()
         if remaining<=0:return result
@@ -35,6 +36,20 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self,*_args,**_kwargs):raise Conflict('verification_redirect_refused')
 
 
+# Seconds per HUD request. /api/hud/management runs `openclaw agents list --json`
+# on every call, which management.js allows 15 s and which can take 10 s or more
+# on slower hosts, so it gets longer than the server's own limit (as the
+# extension's HudClient does). Other routes answer in milliseconds.
+HUD_REQUEST_TIMEOUT=5
+HUD_MANAGEMENT_TIMEOUT=20
+
+
+def timed_out(error):
+    """True when a HUD request failed because it ran out of time."""
+    if isinstance(error,TimeoutError):return True  # includes socket.timeout
+    return isinstance(error,urllib.error.URLError) and isinstance(error.reason,TimeoutError)
+
+
 class HudProbe:
     """Same loopback session/identity contract as the extension's HudClient."""
     def __init__(self,claw,identity):
@@ -43,7 +58,9 @@ class HudProbe:
         self.cookies=http.cookiejar.CookieJar()
         self.opener=urllib.request.build_opener(urllib.request.ProxyHandler({}),NoRedirect(),urllib.request.HTTPCookieProcessor(self.cookies))
 
-    def request(self,route,body=None,*,timeout=5):
+    def request(self,route,body=None,*,timeout=None):
+        if timeout is None:
+            timeout=HUD_MANAGEMENT_TIMEOUT if route=='/api/hud/management' else HUD_REQUEST_TIMEOUT
         request=urllib.request.Request(self.base+route,data=canonical(body) if body is not None else None,
             headers={'Accept':'application/json','Content-Type':'application/json','x-netclaw-installation':self.identity})
         with self.opener.open(request,timeout=timeout) as response:
@@ -70,8 +87,8 @@ class HudProbe:
             # An identity response alone does not prove a running gateway/engine.
             if runtime.get('readiness',{}).get('ready') is not True:return outcome('unverified','service_unverified')
             return outcome('verified','identity_verified')
-        except Exception:
-            return outcome('unverified','probe_failed')
+        except Exception as error:
+            return outcome('unverified','probe_timeout' if timed_out(error) else 'probe_failed')
         finally:
             if list(self.cookies):
                 try:self.request('/api/hud/session/revoke',{})

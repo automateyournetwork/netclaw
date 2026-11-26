@@ -57,6 +57,10 @@ All five user stories are required. Owner authorized implementation, verificatio
 - [x] T030 Record completed tasks, residual qualification limits and local milestone draft in specs/152-workspace-claw-controls/{tasks,verification,milestone-draft}.md; update daily memory and GAIT.
 - [x] T031 Launch the verified source build in a fresh ephemeral VS Code, leave it visible with both isolated connections, and record exact preview/build metadata in specs/152-workspace-claw-controls/verification.md. The owner subsequently authorized package/push for WSL inspection; live deployment remains held.
 
+Follow-up (2026-11-25), outside the original 31 tasks:
+
+- [x] T032 Cache the native `openclaw agents list --json` result behind GET `/api/hud/management` in ui/netclaw-visual/src/hud-server/management.js. Key it on the CLI file, launch CWD/HOME, OpenClaw home, state directory, profile, config path and config-file signature; expire entries after 10 minutes; share concurrent runs; keep no failures; keep only `id`, `isDefault` and `workspace`. Tests in ui/netclaw-visual/src/hud-server/management.test.js; evidence in specs/152-workspace-claw-controls/verification.md.
+
 ## Dependencies and independent acceptance
 
 Foundations precede US1. US2 and US4 build on the shared binding; US3 uses US2's write transaction; US5 requires US2/US3 and US4. Each story has its own tests before integrated editor acceptance. US1 reading can be validated without writes; US2 editing without lifecycle; US3 imports without lifecycle; US4 lifecycle without editing; US5 links verified phases.

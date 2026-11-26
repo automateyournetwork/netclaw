@@ -112,7 +112,30 @@ autosave are off in the ephemeral preview. Markdown is shown as source, so it pe
 no external image/link loading. Committed artifacts contain code and synthetic evidence,
 not real persona/configuration contents.
 
-## Qualification boundaries and WSL next step
+## Follow-up: cached native agent discovery (T032) — 2026-11-25
+
+GET `/api/hud/management` ran `openclaw agents list --json` on every request. On a fresh WSL2 Ubuntu 24.04 install of v1.18.6, the CLI took about 10 s of local CPU work per call, with no network connections. Every management request, including setup's Tier 3 probe, waited that long (issue #371).
+
+T032 keeps the projected result (`id`, `isDefault`, `workspace`) in HUD memory. The cache is keyed on:
+- the CLI file and its signature,
+- the launch CWD and HOME,
+- `OPENCLAW_HOME`, `OPENCLAW_STATE_DIR`, `OPENCLAW_PROFILE` and `OPENCLAW_CONFIG_PATH`,
+- the config file's signature.
+
+Entries are used for at most 10 minutes. Concurrent requests share one run, failed runs are not kept, and a run that started before a config change is not cached under the new key. The CLI invocation is unchanged. Binding still validates the returned workspace, and `expectedWorkspace` is still resolved with `realpath` on every request.
+
+On that claw, three `managementDiscovery` calls in a row with the HUD service's environment and CWD, loading `management.js` from main `3257133` and from this change, gave:
+
+| Source | Call 1 | Call 2 | Call 3 |
+| --- | --- | --- | --- |
+| main | 11.78 s | 10.00 s | 10.19 s |
+| main + T032 | 9.58 s | 0.00 s | 0.00 s |
+
+Limits:
+- The first request after start, after a key change or after expiry still pays the full CLI cost.
+- The key covers the main config file only. A change made only in a JSON5 include or an env file that the native reader processes can take up to 10 minutes to appear, or until the HUD restarts.
+
+
 
 - No live Linux systemd/WSL or Windows-renderer + WSL-host acceptance occurred on this
   Mac. Native Windows helper management is unsupported; use the actual WSL host.
