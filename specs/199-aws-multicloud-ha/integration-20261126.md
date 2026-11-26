@@ -8,7 +8,7 @@ Upstream main includes PR #372 (slow HUD discovery probe timeout) and PR #373 (n
 
 The 107 offline AWS lifecycle tests are added to the existing `n2n` contract-suite paths so CI exercises them with the qualified federation dependencies. This is test registration only; cloud credentials and live activation are not used by these fixtures.
 
-Integration validation is recorded below. The GitHub PR supplies the authoritative final merge status and commit receipt. The separate writeup is a private document, not a website deployment, package release or announcement.
+Integration validation is recorded below. [PR #375](https://github.com/automateyournetwork/netclaw/pull/375) supplies the authoritative final merge status and commit receipt. The separate writeup is a private document, not a website deployment, package release or announcement.
 
 Reconciliation also found the existing tracked `tests/azure` family missing from the suite manifest. It is now registered as an offline Azure documentation/installer parity suite. The installed, untracked HumanRail clone has an unbounded `mcp>=1.0.0` declaration and fails the local dependency scan; its runtime is not changed or qualified by this integration. Source-only reconciliation is verified independently from a clean tracked snapshot, without waiving a declaration gate.
 
@@ -21,3 +21,5 @@ Reconciliation also found the existing tracked `tests/azure` family missing from
 - Changed-file secret-shape review found only an existing, explicitly fake provider key fixture; no added credentials. Whitespace validation passed.
 
 The cloud acceptance is retained from the closed campaign and was not rerun. No new package dependency, MCP integration, installer behavior, client release or Mobile behavior is introduced by the CI registration fixes. Source version remains 1.26.0 under the coordinated roadmap release hold recorded in AGENTS.md.
+
+The accepted source is tracked in [PR #375](https://github.com/automateyournetwork/netclaw/pull/375). After its final-head checks pass, merge it, synchronize main and retire only `199-aws-multicloud-ha`. Keep the detached Spec200 checkout and unrelated historical worktrees. The final GitHub merge receipt and local cleanup verification are retained privately under `~/.local/share/netclaw/spec199-main-integration-20261126/`; do not reactivate the closed campaign.
