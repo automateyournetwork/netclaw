@@ -73,6 +73,8 @@ def _private_ip(value):
 GCE_INTERNAL = re.compile(r'^[a-z]([a-z0-9-]{0,61}[a-z0-9])?\.[a-z][a-z0-9-]*\.c\.[a-z][a-z0-9-]*\.internal$')
 # Spec198: private DNS zone owned by the bounded Azure validation run.
 AZURE_INTERNAL = re.compile(r'^az(?:ca|us|se)\.r10-[0-9]{8}\.azure\.internal$')
+# Spec199: exact run-owned local aliases, pinned to private /32 addresses.
+AWS_INTERNAL = re.compile(r'^nc199-[0-9a-f]{12}-[a-z][a-z0-9]{1,15}\.aws\.internal$')
 
 
 # Spec198 cross-group federation: a Border may dial the PEER group's Borders by their public DNS names on one fixed port.
@@ -92,7 +94,7 @@ def _public_ip(value):
 
 
 def cluster_host(host):
-    return GCE_INTERNAL.fullmatch(host) is not None or AZURE_INTERNAL.fullmatch(host) is not None
+    return any(pattern.fullmatch(host) is not None for pattern in (GCE_INTERNAL, AZURE_INTERNAL, AWS_INTERNAL))
 
 
 def _endpoint(value, port, label):

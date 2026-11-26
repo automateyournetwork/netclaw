@@ -1,11 +1,13 @@
-# Spec199 — AWS handoff
+# Spec199 — Staged AWS qualification
 
-Reserved for AWS. Spec200 is complete for its accepted recorded-illustration scope. Spec198 now has actual Azure/GCP acceptance; see [closure](../198-azure-multicloud-ha/closure-20261124.md) for final cleanup, cost and integration status. No AWS resources or model calls have been started.
+**Complete: 39/39 tasks for the owner-approved Ohio three-AZ scope.** See [acceptance and cleanup](closure-20261126.md), [tasks](tasks.md), [specification](spec.md), [plan](plan.md) and [verification history](verification.md).
 
-Start by confirming AWS authentication, account/region inventory, current prices and a separate exact spend delegation. The Spec198 USD25 ceiling and Genie budget supply no AWS allowance. Select three available regions without collapsing authority/failure domains to fit a gate.
+Executed in order: single AWS Border → physical AWS member → brief CPU Ollama proof and retirement → three-AZ AWS HA → final nine-Border AWS/Azure/GCP mesh → verified teardown.
 
-Carry forward separate three-voter authority, single-group member identity, measured admission/quorum timing, nearest authenticated Border selection, pinned signed peer relay, durable ACK and unknown fencing. Freeze fresh signed preparations for changed source. Validate the actual Linux MCP closure and Unix-socket member relay before paid effects. Never replay spent preparations or restart expired watchdogs.
+The final mesh passed all 27 named paths with 27 native effects, 54 finished single-attempt provider calls, original signed results/durable ACKs, native HUD/Code recovery and late guard/quorum faults. All 83 tracked final cloud resources and nine DNS names are absent; 23 private state archives passed hash verification. Spec200 and owner services are preserved.
 
-Plan explicit acceptance for every ingress in both directions, physical cloud member execution, actual successor completion, native HUD/Code review and GET-only recovery, stopped-guard fail-closed behavior, cost reconciliation, evidence export and immutable-ID verified cleanup. Retain Spec198's explicit manual member recovery/full-artifact replication limits when defining stronger AWS expectations.
+AWS uses three distinct Ohio AZs. **True AWS cross-region resilience remains deferred/unverified**, not simulated acceptance. Azure/GCP retain three distinct regions each; their receiving members in this run are two fresh Mac members. Other qualification limits are in the closure.
 
-Keep `/Users/john.capobianco/netclaw-spec200-genie` detached at97fc1f1a with its private recordings and owner services preserved. Source integration does not authorize client publication, a version release or AWS activation.
+Conservative closed allocations: USD 11.53 AWS / USD 9.00 external, with USD 5/USD 1 reserves retained. Zero open resource or execution reservations; delayed bills remain explicit. These are allowances, not final invoices or credit deductions.
+
+The owner authorized source integration into main; see the [integration record](integration-20261126.md). Version/package release remains held. Private ledger/evidence: `~/.local/share/netclaw/spec199-stage5-20261126-v1/`. Do not reactivate spent preparations or watchdogs. [Next-session boundary](resume.md).

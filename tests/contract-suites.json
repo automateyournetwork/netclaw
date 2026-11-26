@@ -545,7 +545,8 @@
     "n2n": {
       "kind": "pytest",
       "paths": [
-        "tests/n2n"
+        "tests/n2n",
+        "labs/cloud/aws/spec199"
       ],
       "environment": {
         "path": ".contract-test-envs/n2n",
@@ -1019,6 +1020,24 @@
         "prepend_path": false
       },
       "timeout_seconds": 180
+    },
+    "azure": {
+      "kind": "pytest",
+      "paths": [
+        "tests/azure"
+      ],
+      "environment": {
+        "path": ".contract-test-envs/azure",
+        "requirements": [],
+        "packages": [
+          "pytest>=8,<9"
+        ],
+        "required_imports": [
+          "pytest"
+        ],
+        "prepend_path": true
+      },
+      "timeout_seconds": 120
     }
   }
 }

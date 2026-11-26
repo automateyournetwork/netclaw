@@ -8,6 +8,27 @@
 
 ## Preferences
 
+- 2026-11-26 Spec199 closeout: merge all completed Spec199 source into main, reconcile upstream, retire the completed branch, and provide a separate NET CLAW MULTI CLOUD writeup. The approved AWS scope is three real Ohio availability zones; actual cross-region resilience remains deferred. Preserve Spec200 and existing services; no runtime activation or version/package publication requested.
+
+- 2026-11-26 Spec199: owner personally initiated the AWS upgrade/activation,
+  reporting retained credits and no commitment, then requested an access check.
+  Keep the USD100 gross AWS test cap and staged order. No blanket organization
+  policy removal or switch to unrelated accounts is authorized.
+
+- 2026-11-25 Spec199 direction: assess readiness for AWS Border/member execution,
+  a quick Ollama test followed by teardown, regional members, and a nine-Border
+  mesh spanning AWS, Azure and GCP (three Borders per cloud). Owner confirmed
+  three AWS members, one per AWS region, and authorized NetClaw-profile login
+  renewal for read-only readiness checks. Owner explicitly corrected sequencing:
+  single AWS Border first, then AWS member and quick disposable Ollama proof,
+  then three-region AWS qualification; the nine-Border mesh is VERY LAST.
+  Multi-region access is a later activation gate, not a blocker to writing the
+  spec or investigating the single-region stage. Owner subsequently authorized
+  proceeding through SDD with a $100 AWS free budget and a short, small final
+  multi-cloud proof. Use a conservative USD100 gross AWS ceiling, preserve all
+  reservations and price exact stages before activation. Do not treat credit as
+  unlimited/free use or the final small-spend direction as an unlimited allowance.
+
 - 2026-11-22 direction: verify local CML/pyATS/subnet, then investigate pyATS
   Genie to Google Project Genie worlds. Reserve199forAWS and200forGenie. If
   feasible, do200before resuming198Azure/GCP, then199AWS. Preserve unfinished198

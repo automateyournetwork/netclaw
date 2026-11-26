@@ -581,7 +581,8 @@ async def test_revocation_closes_an_established_peer_channel(tmp_path):
         server.close(); await server.wait_closed()
 
 
-def test_generated_peer_config_is_accepted_by_the_loader_byte_for_byte(tmp_path):
+@pytest.mark.parametrize("peer_count", [1, 2])
+def test_generated_peer_config_is_accepted_by_the_loader_byte_for_byte(tmp_path, peer_count):
     import json, sys
     from pathlib import Path
     sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'labs' / 'ha'))
@@ -597,12 +598,23 @@ def test_generated_peer_config_is_accepted_by_the_loader_byte_for_byte(tmp_path)
     (peer_root / 'identity/root.crt').write_text(root_b)
     (peer_root / 'transport/transport-ca.crt').write_text('ca')
     config, files = r10_group.peer_config(local_root, peer_root, 'gcp', members=['*'], tools=['*'], state=str(state))
+    expected = [mb.cluster_id]
+    if peer_count == 2:
+        _, mc, root_c, key_c = two_manifests()
+        other = tmp_path / 'c'
+        (other / 'identity').mkdir(parents=True); (other / 'transport').mkdir()
+        (other / 'summary.json').write_text(json.dumps({'cluster_id': mc.cluster_id, 'generation': mc.generation, 'anchor_key_id': c.key_id(root_c)}))
+        (other / 'identity/manifest.json').write_bytes(c.encode(sign_manifest(mc.value, key_c)))
+        (other / 'identity/root.crt').write_text(root_c)
+        (other / 'transport/transport-ca.crt').write_text('second-ca')
+        config, files = r10_group.merge_peer_configs([(config, files), r10_group.peer_config(local_root, other, 'azure', members=['*'], tools=['*'], state=str(state))])
+        expected.append(mc.cluster_id)
     for name, raw in dict(files, **{'peer-federation.json': c.encode(config)}).items():
         target = state / name; target.parent.mkdir(parents=True, exist_ok=True); target.write_bytes(raw); target.chmod(0o600)
     for name in ('transport/node.crt', 'transport/node.key'):
         target = state / name; target.parent.mkdir(parents=True, exist_ok=True); target.write_text('x'); target.chmod(0o600)
     loaded, registry, listed = fed.load_peer_config(state / 'peer-federation.json', ma)
-    assert list(registry.peers) == [mb.cluster_id]
+    assert list(registry.peers) == expected
     assert registry.peers[mb.cluster_id].grant['actions'] == list(fed.ACTIONS)
 
 
