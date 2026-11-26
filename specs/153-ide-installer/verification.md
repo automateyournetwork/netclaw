@@ -4,6 +4,20 @@
 
 2026-10-18: **8/8 frozen Mac groups passed**. [MAC-COMPLETION.md](MAC-COMPLETION.md) defines exactly what this means and records decisions. Original task count remains **81/84 checked**; T081's Windows/WSL portion, T082 and final cross-platform T084 remain. The October 24 Windows/WSL return is partial, with real-host results and explicit blockers in [SUMMARY.md](../../spec153-wsl-return/SUMMARY.md) and [matrix.json](../../spec153-wsl-return/matrix.json). Packaging, the final recording and owner walkthrough follow readiness reconciliation and affected Mac regression.
 
+## Follow-up: Tier 3 HUD probe timeout (T085) — 2026-11-25
+
+A fresh WSL2 Ubuntu 24.04 install of v1.18.6 (focused OpenClaw claw) passed Tiers 1 and 2 but reported Tier 3 `unverified` / `probe_failed`, which blocked **Save verified connection**. The services were running and the HUD answered with the right identity. `GET /api/hud/management` runs `openclaw agents list --json` and took 10–13 s on that host; the probe gave every request 5 s, and the timeout was reported as `probe_failed`.
+
+T085 gives the management route 20 s (above the HUD server's 15 s CLI limit), keeps 5 s for the other routes, reports timeouts as `probe_timeout` and retries `probe_timeout` while waiting for readiness.
+
+| Check | Before | After |
+| --- | --- | --- |
+| Fake HUD, management route answers after 6 s | `probe_failed` | `identity_verified` |
+| Full `setup-engine.py verify` of the same run on the same claw (v1.18.6 with and without the change) | Tier 3 `probe_failed`, exit 8 | Tier 3 `identity_verified`, exit 0 |
+| `tests/test_setup_verification.py` | new tests fail | all pass |
+
+Three tests were added: a slow management route within its limit verifies; a route past its limit reports `probe_timeout` while a refused connection still reports `probe_failed`; and the verifier's management timeout stays above the limit read from `management.js`. Caching the agent catalog in the HUD would make the route itself fast, but that is a separate change and not part of T085.
+
 ## Windows/WSL return — 2026-10-24
 
 Exact Mac baseline `89627477fb470cd7c293e33e192c5983819d45d4`; fresh ext4 qualification branch `153-ide-installer-wsl-qualification`. Original dirty checkout, owner claws and credentials preserved. New source/host-bound plans and native reviews were used throughout. No archive overlay or Spec Kit regeneration.

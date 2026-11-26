@@ -12,7 +12,7 @@ STATES = frozenset(('verified','failed','configuration_required','skipped','unve
 CODES = frozenset(('artifact_present','artifact_missing','artifact_changed','runtime_unavailable',
     'discovery_verified','discovery_unverified','credentials_required','identity_verified','identity_mismatch',
     'service_unverified','canary_verified','canary_unverified','native_consent_required','not_selected',
-    'channel_unconfigured','channel_verified','network_unconfigured','risk_unverified','risk_verified','probe_failed',
+    'channel_unconfigured','channel_verified','network_unconfigured','risk_unverified','risk_verified','probe_failed','probe_timeout',
     'source_verified','source_changed','effect_unsettled','configured','unsupported','model_verified','model_unverified','network_verified','network_unverified','cleanup_started','certificate_verified'))
 
 COMMS_DIMENSIONS=('configuration','authentication','transport','inbound','outbound')
