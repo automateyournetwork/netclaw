@@ -1,0 +1,13 @@
+# Owner-approved Ohio qualification amendment — 2026-11-26
+
+The owner asked whether three AWS Borders could run in one region, agreed after the distinction between AZ and region was explained, and instructed “good now drive to 100%”. This explicitly supersedes the original AWS three-region acceptance requirement in FR-013, SC-005 and US4/US5. It is a scope revision, not evidence that three-region acceptance passed.
+
+Accepted scope: three real AWS hosts in us-east-2, one Border and separately identified physical member per host, across three directly observed distinct Availability Zone IDs. All nine AWS ingress/member pairs, measured admission, actual leader change and successor completion, native original-result recovery, late faults and evidence-first cleanup remain required. The final stage remains nine Borders: three Ohio AWS AZs plus three Azure regions and three GCP regions, with three separate authorities and 27 real named ingress/group cells including all three AWS members.
+
+Deferred original scope: three distinct AWS regions, regional-outage isolation/recovery, true inter-region network behavior and regional service/control-plane failures. Artificial delay or three logical labels cannot qualify these. A stopped Border also does not prove a complete AZ outage. Completed claims must state the actual fault exercised.
+
+No policy detachment/edit, account change or further upgrade is requested. The browser investigation confirmed “Activation of advanced features complete” in AWS Settings; the owner-selected alternative supersedes further policy navigation. No policy was changed. Denied-region evidence remains retained. Budget remains USD100 gross AWS (pause80/reserve5), conservative USD10 external (reserve1); credits never subtract from reservations. Source/publication holds and owner services/Spec200 preservation remain.
+
+Fresh read-only Ohio preflight at19:37:50UTC: expected account, zero instances/volumes/allocated addresses, three offered AZs us-east-2a/b/c, Standard quota8vCPU, m7i.large2vCPU/8GiB at USD0.1008/hour and verified Canonical Ubuntu24.04 image. This does not prove capacity, launch/cleanup permission, guards or live acceptance. Free Tier plan endpoint remains unavailable after the owner-reported upgrade; remaining credits are unknown.
+
+Implementation plan: keep original strict region validators; add an explicit scope carried through the packet, graph, custody/placement and matrix. Validate aggregate quota and three-host costs. Bind same-region peering orientation to exact nodes/VPCs. Add positive/negative tests before live deployment. Reopen affected source tasks until requalified; keep all other incomplete live tasks open. Prior SDD text is privately preserved under ohio-az-amendment-v1/prior-sdd.

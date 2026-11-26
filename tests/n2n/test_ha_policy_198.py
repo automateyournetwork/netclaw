@@ -128,3 +128,16 @@ def test_validator_refuses_a_hand_edited_federation_rule_with_a_private_or_wrong
         broken['network_policies']['federation-peers']['endpoints'][0][field] = value
         with pytest.raises(pol.PolicyRefused):
             pol.validate_policy(pol.render_yaml(broken))
+
+
+def test_final_mesh_accepts_exactly_six_remote_endpoints():
+    spec = copy.deepcopy(AZ)
+    hosts = ['nne1-' + format(i, '06x') + '.automateyournetwork.com' for i in range(6)]
+    spec['federation_peers'] = [h + ':7445' for h in hosts]
+    spec['resolve'].update({h: '8.8.8.' + str(i + 1) for i, h in enumerate(hosts)})
+    built = pol.build_policy(spec)
+    assert len(built['network_policies']['federation-peers']['endpoints']) == 6
+    pol.validate_policy(pol.render_yaml(built))
+    spec['federation_peers'].append('ew1-123456.automateyournetwork.com:7445')
+    spec['resolve']['ew1-123456.automateyournetwork.com'] = '1.1.1.1'
+    with pytest.raises(pol.PolicyRefused): pol.build_policy(spec)

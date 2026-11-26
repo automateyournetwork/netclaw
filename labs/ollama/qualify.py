@@ -32,15 +32,16 @@ LABEL = 'netclaw.spec=176'
 
 def owner_spec(args):
     value = getattr(args, 'owner_spec', 176)
-    need(type(value) is int and value in (176, 179), 'owner_spec_refused')
+    need(type(value) is int and value in (176, 179, 199), 'owner_spec_refused')
     return value
 
 
 def owner_labels(args):
     spec = owner_spec(args)
     name = getattr(args, 'owner_name', None)
-    need(name is None or isinstance(name, str) and re.fullmatch(r'netclaw-r08-[a-z0-9_.-]+', name), 'owner_name_refused')
-    need(spec != 179 or name is not None, 'owner_name_required')
+    pattern = r'netclaw-r08-r199-[a-f0-9]{12}-[a-f0-9]{6}' if spec == 199 else r'netclaw-r08-[a-z0-9_.-]+'
+    need(name is None or isinstance(name, str) and re.fullmatch(pattern, name), 'owner_name_refused')
+    need(spec not in (179, 199) or name is not None, 'owner_name_required')
     return ['--label', 'netclaw.spec=' + str(spec)] + (['--label', 'netclaw.owner=' + name] if name else [])
 
 
@@ -95,14 +96,17 @@ def selected_profile(args):
 
 
 def create_model_args(profile, network, *, owner=176, owner_name=None):
-    need(type(owner) is int and owner in (176, 179), 'owner_spec_refused')
+    need(type(owner) is int and owner in (176, 179, 199), 'owner_spec_refused')
+    if owner == 199:
+        need(isinstance(owner_name,str) and re.fullmatch(r'netclaw-r08-r199-[a-f0-9]{12}-[a-f0-9]{6}',owner_name)
+             and profile['model_container']==owner_name+'-model','owner_name_refused')
     bound = model.limits(profile)
     return ['create', '--name', profile['model_container'], '--network', network, '--read-only',
         '--cap-drop', 'ALL', '--security-opt', 'no-new-privileges', '--user', str(profile['model_uid']),
         '--pids-limit', '256', '--memory', '2048m', '--memory-swap', '2048m',
         '--cpus', str(bound['model_cpu_millicores']//1000), '--label', 'netclaw.spec='+str(owner),
         *(['--label', 'netclaw.owner='+owner_name] if owner_name else []),
-        *(['--log-driver', 'json-file', '--log-opt', 'max-file=1'] if owner == 179 else []),
+        *(['--log-driver', 'json-file', '--log-opt', 'max-file=1'] if owner in (179, 199) else []),
         '--tmpfs', '/tmp:rw,noexec,nosuid,size=128m',
         '--mount', 'type=bind,src='+profile['model_store']+',dst=/models,readonly',
         *[item for key,value in model.model_environment(profile).items() for item in ('--env', key+'='+value)],
@@ -182,11 +186,18 @@ def owned_container(inspected, image, name, identity=None, *, owner=176, owner_n
     return inspected['Id']
 
 
+def owned_name(spec, name, owner_name):
+    if spec == 199:
+        return (isinstance(owner_name,str) and re.fullmatch(r'netclaw-r08-r199-[a-f0-9]{12}-[a-f0-9]{6}',owner_name)
+                and name==owner_name+'-model')
+    return isinstance(name,str) and re.fullmatch('netclaw-r'+('08' if spec==179 else '05')+'-[a-z0-9_.-]+',name)
+
+
 def prepare(args):
     os.umask(0o077)
     profile=selected_profile(args);model.validate_profile(profile)
     spec=owner_spec(args); labels=owner_labels(args)
-    need(re.fullmatch('netclaw-r'+('08' if spec==179 else '05')+'-[a-z0-9_.-]+',args.name),'owned_name_refused')
+    need(owned_name(spec,args.name,getattr(args,'owner_name',None)),'owned_name_refused')
     need(args.guard_uid==os.getuid(),'guard_uid_must_be_operator')
     model.verify_store(profile)
     state=Path(args.state_dir).absolute();need(state==state.resolve() and state.parent.is_dir(),'state_path_invalid')
@@ -281,7 +292,7 @@ def inspect(args):
     owner_labels(args)
     container=docker.inspect(profile['model_container_id'])
     owned_container(container,profile['model_image'],profile['model_container'],profile['model_container_id'],owner=owner_spec(args),owner_name=manifest.get('owner_name'))
-    if owner_spec(args) == 179:
+    if owner_spec(args) in (179, 199):
         need(container['HostConfig'].get('LogConfig') == {'Type':'json-file', 'Config':{'max-file':'1'}},
              'owned_log_rotation_unqualified')
     networks=container['NetworkSettings']['Networks'];need(len(networks)==1,'model_network_changed')
@@ -299,7 +310,7 @@ def stop(args):
     path=model.private_path(state/'owned.json');manifest=json.loads(path.read_bytes())
     spec=owner_spec(args);owner_labels(args)
     need(manifest.get('schema_version')==1 and manifest.get('owner_spec',176)==spec and manifest.get('owner_name')==getattr(args,'owner_name',None) and
-         re.fullmatch('netclaw-r'+('08' if spec==179 else '05')+'-[a-z0-9_.-]+',manifest.get('model_name','')),'owned_manifest_invalid')
+         owned_name(spec,manifest.get('model_name',''),manifest.get('owner_name')),'owned_manifest_invalid')
     stopped=[]
     for name_key,id_key in (('probe_name','probe_id'),('model_name','model_id')):
         identity=manifest.get(id_key)
@@ -316,7 +327,7 @@ def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__);commands=parser.add_subparsers(dest='action',required=True)
     for action in ('prepare','inspect','stop'):
         sub=commands.add_parser(action);sub.add_argument('--docker',required=True);sub.add_argument('--docker-host',required=True);sub.add_argument('--state-dir',required=True)
-        sub.add_argument('--owner-spec',type=int,choices=(176,179),default=176)
+        sub.add_argument('--owner-spec',type=int,choices=(176,179,199),default=176)
         sub.add_argument('--owner-name')
         if action=='prepare':
             sub.add_argument('--image',required=True);sub.add_argument('--model-store',required=True);sub.add_argument('--name',required=True)

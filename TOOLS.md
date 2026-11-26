@@ -1,5 +1,13 @@
 # TOOLS.md — Local Infrastructure Notes
 
+## Spec199 closed for the owner-approved Ohio scope — 2026-11-26
+
+39/39 tasks complete; all five stages accepted and retired. Final nine-Border mesh passed27 named cells, original result/ACK verification, native recovery and late guard/quorum faults. All83 tracked final cloud resources/DNS and final local operation containers/networks are absent;23 private archives are verified. True AWS cross-region resilience remains deferred; AWS qualification is three distinct Ohio AZs. Azure/GCP retain three regions each.
+
+Read `specs/199-aws-multicloud-ha/closure-20261126.md`. Authoritative ledger/evidence: `~/.local/share/netclaw/spec199-stage5-20261126-v1/`; zero open reservations, conservative allocationsUSD11.53 AWS/USD9.00 external plus protectedUSD5/USD1 reserves. Billing lag is explicit. The finite guard is unloaded. Never replay spent actions or restart retired guards. The owner authorized Spec199 source reconciliation, commit/push/merge, completed-branch retirement and a separate NET CLAW MULTI CLOUD writeup on 2026-11-26. See `specs/199-aws-multicloud-ha/integration-20261126.md`. Version/package publication remains held. Preserve detached Spec20097fc1f1a, recordings, owner services and private evidence. Earlier199 checkpoints are historical and superseded.
+
+Spec199 cleanup lesson: Azure Network Watcher ETags are mutable revisions. Verify the original creation chain, unchanged configuration and empty child inventories; retain Activity Log lag and lack of an atomic incarnation precondition. See the closure for the narrow repair.
+
 Skills define *how* tools work. This file is for *your* specifics — the environment details that are unique to your deployment.
 
 ## Threat intelligence
@@ -1792,3 +1800,44 @@ names, non-replayable watchdog setup and serialized ledger writes were repaired.
 ### Spec198 Linux member relay qualification — 2026-11-24
 
 Fresh Linux OpenClaw member preparations must validate the executor's lazy MCP imports and immutable dependency closure. The inherited Mac Docker Desktop TCP host alias is unavailable on the qualified GCP Linux host; a fresh identity using the same immutable relay image over a Unix socket and a short private state path completed the real NetBox read. Never mutate a spent member contract or replay its unknown/refused operation. Three-region admission was qualified with a freshly signed9000ms window and manifest-derived RPC wait; nearest authenticated attachment selection does not remove quorum latency. See `specs/198-azure-multicloud-ha/closure-20261124.md`.
+
+## Spec199 AWS regional preparation — 2026-11-25
+
+Actual region reads under the selected NetClaw profile permit only Ohio among
+all17enabled regions;16OrganizationsSCPdenials persist at21:09UTC. US1–US3
+resources are retired; consult specs/199-aws-multicloud-ha/resume.md.
+VPC peering tags are region-local, so the offline regional draft separately
+tags accepter-side connections and checks exact directional route bindings.
+The existing OpenShell policy now supports narrow run-owned aliases
+nc199-<12hex>-<code>.aws.internal with pinned private/32 addresses. This is
+source validation, not live regional connectivity qualification.
+
+November26 continuation: NetClaw login renewed with the owner's existing
+authorization; all17enabled-region DescribeVpcs reads still permit only Ohio.
+The three-region lifecycle is implemented separately in regional_run.py, with
+region-bound custody, both-side peering absence and unknown-launch guard retention.
+The full39resource/six-route graph is fixture-tested only. Current Cost Explorer
+read succeeds but remains estimated/account-wide; retain conservative allowances.
+Use the latest ledger path in Spec199 resume.md, not the prior Stage3 budget copy.
+The generic r10 federation test interpreter has no MCP client package; use the
+existing isolated pyATS runtime for pyats_list_devices. The source testbed still
+fails its upstream schema at R1.connections.defaults.arguments; no successful
+inventory or device-state claim follows from MCP isError=false.
+
+Region-policy diagnostic correction: AWS's new project signup manages an
+organization/SCP that restricts each project to its selected region. AWS Settings
+(https://settings.aws.com), Projects → Actions → Explore advanced features is
+the supported review entry. Current account behavior is consistent with this,
+but p-mcrtphfx remains unreadable, so treat it as an inference. Advanced activation
+requires Paid Plan upgrade, is irreversible and removes project spend limits;
+it can leave regional policy edits necessary. Do not imply the owner necessarily
+needs an external organization administrator or that normal region opt-in fixes
+the denial. No upgrade/activation is authorized by a request for a link.
+
+Post-owner-upgrade check19:23UTC: STS matches NetClaw; Ohio DescribeVpcs succeeds
+and16other enabled regions deny under new SCPp-k4i7ky66. DescribeOrganization
+confirms FeatureSetALL and a different management account. NetClaw cannot
+DescribePolicy/ListPoliciesForTarget. GetAccountPlanState returns Missing data/
+ResourceNotFound; do not call it verified PAID/ACTIVE or zero credits. Receipts:
+spec199-readiness-20261126/post-upgrade-20261126T192347Z. No new resources,
+policy changes or cost allocation. Management-policy review is next.

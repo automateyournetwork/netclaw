@@ -20,6 +20,12 @@ LIMITS = {'approved_operations': 10, 'inferences': 20, 'native_effects': 10,
 SURFACES = ('runner', 'hud', 'vscode', 'mobile')
 
 
+def aggregate_limits(operations):
+    need(type(operations) is int and 1 <= operations <= 32, 'invalid_aggregate_budget')
+    return dict(LIMITS, approved_operations=operations, inferences=operations * 2,
+                native_effects=operations)
+
+
 class RehearsalRefused(ValueError):
     pass
 
@@ -120,12 +126,18 @@ def validate_claim(claim, *, operation_id, client_nonce, review_digest, surface,
 
 
 class Budget:
-    def __init__(self, root, *, run_id=None, create=False, clock_ms=None):
+    def __init__(self, root, *, run_id=None, create=False, clock_ms=None, max_operations=None):
         self.root = private_directory(root)
         self.path = self.root / 'real-budget.sqlite3'
         self.clock_ms = clock_ms or (lambda: int(time.time() * 1000))
+        pin = self.root / 'real-budget-limits.json'
+        if max_operations is not None:
+            aggregate_limits(max_operations)
         if create:
             uuid_value(run_id)
+            limits = aggregate_limits(10 if max_operations is None else max_operations)
+            need(not self.path.exists(), 'existing_budget_cannot_be_enlarged')
+            write_new(pin, {'run_id': run_id, 'limits': limits})
             write_new(self.path, b'')
             with self.connection() as db:
                 db.executescript('''CREATE TABLE budget (singleton INTEGER PRIMARY KEY CHECK(singleton=1), run_id TEXT NOT NULL, limits_json TEXT NOT NULL);
@@ -133,13 +145,22 @@ class Budget:
                     client_nonce TEXT NOT NULL UNIQUE, claim_json TEXT NOT NULL, state TEXT NOT NULL,
                     sender TEXT, receipt_sha256 TEXT, actual_inferences INTEGER, actual_native_effects INTEGER);
                   CREATE TABLE event (id INTEGER PRIMARY KEY, claim_id TEXT NOT NULL, kind TEXT NOT NULL, at_ms INTEGER NOT NULL, detail TEXT NOT NULL);''')
-                db.execute('INSERT INTO budget VALUES(1,?,?)', (run_id, canonical(LIMITS).decode()))
+                db.execute('INSERT INTO budget VALUES(1,?,?)', (run_id, canonical(limits).decode()))
         else:
             read_private(self.path, 16 * 1024 * 1024)
         with self.connection() as db:
             row = db.execute('SELECT run_id,limits_json FROM budget WHERE singleton=1').fetchone()
-            need(row and json.loads(row[1]) == LIMITS and (run_id is None or row[0] == run_id), 'budget_identity_changed')
+            need(row and (run_id is None or row[0] == run_id), 'budget_identity_changed')
+            limits = json.loads(row[1])
+            need(limits == aggregate_limits(limits.get('approved_operations')), 'budget_identity_changed')
+            if pin.exists():
+                need(json.loads(read_private(pin)) == {'run_id': row[0], 'limits': limits}, 'budget_limits_changed')
+            else:
+                # Historical ledgers had only the fixed ten-operation contract.
+                need(limits == LIMITS, 'budget_limits_pin_required')
+            need(max_operations is None or max_operations == limits['approved_operations'], 'budget_limits_changed')
             self.run_id = row[0]
+            self.limits = limits
 
     @contextmanager
     def connection(self):
@@ -174,7 +195,10 @@ class Budget:
                             (operation_id, client_nonce)).fetchone() is None, 'operation_already_reserved')
             need(db.execute("SELECT 1 FROM reservation WHERE state!='settled'").fetchone() is None, 'unresolved_operation_retained')
             used = db.execute('SELECT count(*) FROM reservation').fetchone()[0]
-            need(used < 10 and used * 2 + 2 <= 20, 'real_budget_exhausted')
+            need(json.loads(db.execute('SELECT limits_json FROM budget WHERE singleton=1').fetchone()[0]) == self.limits,
+                 'budget_limits_changed')
+            need(used < self.limits['approved_operations'] and used * 2 + 2 <= self.limits['inferences'],
+                 'real_budget_exhausted')
             db.execute('INSERT INTO reservation(claim_id,operation_id,client_nonce,claim_json,state) VALUES(?,?,?,?,?)',
                        (claim['claim_id'], operation_id, client_nonce, canonical(claim).decode(), 'reserved'))
             self._event(db, claim['claim_id'], 'reserved', {'cumulative_operations': used + 1,
@@ -203,7 +227,9 @@ class Budget:
     def refused(self, claim, *, evidence_sha256):
         """Terminal state for a definitive pre-dispatch refusal proven by an independent
         status read. The reservation still counts in full; only the active slot is released.
-        Callers must have verified review_pending, attempt_count 0 and may_have_executed false."""
+        Callers must have verified review_pending (approval never committed) or
+        revoked (a committed approval can no longer dispatch), attempt_count 0
+        and may_have_executed false. A refused HTTP response alone is insufficient."""
         sha_value(evidence_sha256)
         with self.connection() as db:
             row = db.execute('SELECT claim_json,state FROM reservation WHERE claim_id=?', (claim['claim_id'],)).fetchone()
@@ -229,7 +255,7 @@ class Budget:
     def snapshot(self):
         with self.connection() as db:
             rows = db.execute('SELECT claim_json,state,sender,receipt_sha256,actual_inferences,actual_native_effects FROM reservation ORDER BY rowid').fetchall()
-        return {'schema_version': 1, 'run_id': self.run_id, 'limits': LIMITS,
+        return {'schema_version': 1, 'run_id': self.run_id, 'limits': dict(self.limits),
                 'reserved': {'operations': len(rows), 'inferences': len(rows) * 2, 'native_effects': len(rows)},
                 'reservations': [{'claim': json.loads(r[0]), 'state': r[1], 'sender': r[2], 'receipt_sha256': r[3],
                                   'actual_inferences': r[4], 'actual_native_effects': r[5]} for r in rows]}

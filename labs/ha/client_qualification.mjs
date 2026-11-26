@@ -10,7 +10,7 @@ export async function runBrowser(configFile) {
  const run=String(Date.now()),out=config.evidence_directory;
  const original=['original_once','prepare_review'].includes(config.phase);if(original)claimOriginal(context);
  // Persistent, dedicated profile preserves this origin's own monotone sent markers.
- const connected=config.browser_cdp_url?await chromium.connectOverCDP(config.browser_cdp_url):null;
+ const connected=config.browser_cdp_url?await chromium.connectOverCDP(config.browser_cdp_url,{noDefaults:true}):null;
  const browser=connected?connected.contexts()[0]:await chromium.launchPersistentContext(config.profile_directory,{executablePath:config.browser_executable,headless:config.headless!==false,viewport:{width:1440,height:1100},ignoreHTTPSErrors:false,args:['--disable-background-networking','--disable-component-update','--disable-sync','--no-first-run']});
  assert.ok(browser);const page=browser.pages().find(p=>p.url().startsWith(config.origin+'/'))||await browser.newPage();page.setDefaultTimeout(20000);
  const expected=config.phase==='stale_review'?bundle.stale:bundle.completed;let observed,prepared,decisionReady=false,prepareSent=false,decisionSent=false;

@@ -100,3 +100,32 @@ def test_stop_requires_actual_stopped_state_preserves_unknown(tmp_path,monkeypat
 def test_qualification_cli_is_stdlib_and_does_not_start_at_help():
     result=subprocess.run([sys.executable,'-S',str(SOURCE/'labs/ollama/qualify.py'),'--help'],capture_output=True,check=False)
     assert result.returncode==0 and b'prepare' in result.stdout and b'no public deployment' not in result.stderr
+
+
+def test_spec199_requires_exact_campaign_member_owner(tmp_path):
+    name='netclaw-r08-r199-012345abcdef-12abcd'
+    args=arguments(tmp_path);args.owner_spec=199;args.owner_name=name;args.name=name+'-model'
+    assert q.owner_labels(args)==['--label','netclaw.spec=199','--label','netclaw.owner='+name]
+    profile=q.selected_profile(args);q.model.validate_profile(profile);command=q.create_model_args(profile,args.name+'-net',owner=199,owner_name=name)
+    assert 'netclaw.spec=199' in command and 'netclaw.owner='+name in command and '--log-driver' in command
+    for invalid in (None,'netclaw-r08-other','netclaw-r08-r199-anything','netclaw-r08-r199-012345abcdef-foreign'):
+        args.owner_name=invalid
+        with pytest.raises(q.QualificationRefused):q.owner_labels(args)
+    assert not q.owned_name(199,'netclaw-r08-other-model',name)
+    assert not q.owned_name(199,name+'-model','netclaw-r08-r199-012345abcdef-ffffff')
+
+
+def test_spec199_stop_preserves_exact_objects_until_separate_exported_removal(tmp_path,monkeypatch):
+    args=arguments(tmp_path);args.owner_spec=199;args.owner_name='netclaw-r08-r199-012345abcdef-12abcd';args.name=args.owner_name+'-model'
+    state=Path(args.state_dir);state.mkdir(mode=0o700)
+    q.write(state/'owned.json',{'schema_version':1,'owner_spec':199,'owner_name':args.owner_name,'image':args.image,
+        'model_name':args.name,'model_id':'b'*64,'network_id':'c'*64,'probe_name':args.name+'-peer','probe_id':None})
+    calls=[]
+    class Docker:
+        def __init__(self,*_,**__):pass
+        def inspect(self,_):return {'Id':'b'*64,'Image':args.image,'Name':'/'+args.name,
+            'Config':{'Labels':{'netclaw.spec':'199','netclaw.owner':args.owner_name}},'State':{'Running':False}}
+        def call(self,*argv,**kwargs):calls.append(argv);return b''
+    monkeypatch.setattr(q,'Docker',Docker)
+    receipt=q.stop(args)
+    assert not calls and receipt['objects_and_evidence_preserved'] and receipt['network_retained']=='c'*64

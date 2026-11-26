@@ -11,6 +11,7 @@ Node order is the manifest order and the leader-preference order (first two are 
 """
 import argparse
 import hashlib
+import ipaddress
 import json
 import os
 from pathlib import Path
@@ -169,7 +170,7 @@ def prepare(args):
         'key_id': c.key_id(n['crt']), 'certificate': n['crt'], 'role': 'border',
         'endpoints': {
             'cluster': {'host': n.get('iname') or n['internal'], 'port': PORTS['cluster'], 'server_name': n['dns']},
-            'in2n': {'host': n['public'], 'port': PORTS['in2n'], 'server_name': n['dns']},
+            'in2n': {'host': member_endpoint(n, getattr(args,'private_member_endpoints',False)), 'port': PORTS['in2n'], 'server_name': n['dns']},
             'https': f"https://{n['dns']}", 'wss': f"wss://{n['dns']}/mobile/ws"}} for n in nodes]
     value = {'schema_version': 1, 'cluster_id': cluster_id, 'generation': generation,
              'organization': organization, 'revision': 1, 'nodes': manifest_nodes, 'limits': LIMITS}
@@ -300,6 +301,15 @@ def prepare(args):
     return json.loads((root / 'summary.json').read_text())
 
 
+def member_endpoint(node, private=False):
+    """Freeze the selected member route into the signed manifest before enrollment."""
+    if not private:return node['public']
+    address=ipaddress.ip_address(node['internal'])
+    need(any(address in ipaddress.ip_network(cidr) for cidr in ('10.0.0.0/8','172.16.0.0/12','192.168.0.0/16')),
+         'private_member_endpoint_requires_rfc1918')
+    return str(address)
+
+
 def refreeze(args):
     """Re-freeze the source closure into an existing root: new manifest/tar, bundle contract templates, tarballs."""
     root = Path(args.root).absolute()
@@ -327,6 +337,7 @@ def main():
     p.add_argument('--witness', help='code=internal_ip[,public_ip]: etcd-only third voter host')
     p.add_argument('--state-dir', default=VM_STATE, help='state directory the node sees (sandbox: /sandbox/nc182)')
     p.add_argument('--sandbox', action='store_true', help='emit the loopback listen block for OpenShell sandboxes')
+    p.add_argument('--private-member-endpoints', action='store_true', help='sign RFC1918 member routes; HTTPS remains public')
     p.add_argument('--organization', default='nc182-r09')
     p.add_argument('--days', type=int, default=7)
     r = sub.add_parser('refreeze')

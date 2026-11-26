@@ -53,6 +53,48 @@ def test_cumulative_budget_is_not_refunded_by_settlement(tmp_path):
     with pytest.raises(RehearsalRefused, match='budget_exhausted'): reserve(value)
 
 
+def test_fresh_matrix_cap_survives_restart_and_cannot_be_enlarged(tmp_path):
+    root = private_directory(tmp_path / 'matrix', create=True)
+    value = Budget(root, run_id=identity(), create=True, max_operations=27)
+    for _ in range(27):
+        value = Budget(root, max_operations=27)
+        claim = reserve(value); value.claim_send(claim, surface='runner')
+        value.settle(claim, receipt_sha256='b' * 64, inferences=0, native_effects=0)
+    assert value.snapshot()['limits']['inferences'] == 54
+    assert value.snapshot()['reserved'] == {'operations': 27, 'inferences': 54, 'native_effects': 27}
+    with pytest.raises(RehearsalRefused, match='budget_exhausted'): reserve(Budget(root))
+    with pytest.raises(RehearsalRefused, match='limits_changed'): Budget(root, max_operations=28)
+    with pytest.raises(RehearsalRefused, match='existing_budget'): Budget(root, create=True, run_id=identity(), max_operations=28)
+    with sqlite3.connect(value.path) as db:
+        changed = dict(value.limits, approved_operations=28, inferences=56, native_effects=28)
+        db.execute('UPDATE budget SET limits_json=?', (json.dumps(changed),))
+    with pytest.raises(RehearsalRefused, match='limits_changed'): Budget(root)
+
+
+@pytest.mark.parametrize('cap', [True, 0, 33, 27.0, '27'])
+def test_invalid_matrix_cap_refused_before_creation(tmp_path, cap):
+    root = private_directory(tmp_path / 'matrix', create=True)
+    with pytest.raises(RehearsalRefused, match='invalid_aggregate_budget'):
+        Budget(root, create=True, run_id=identity(), max_operations=cap)
+    assert not list(root.iterdir())
+
+
+def test_custom_budget_final_slot_is_atomic_and_unknown_blocks_every_surface(tmp_path):
+    root = private_directory(tmp_path / 'matrix', create=True)
+    value = Budget(root, run_id=identity(), create=True, max_operations=2)
+    claim = reserve(value); value.claim_send(claim, surface='runner')
+    value.settle(claim, receipt_sha256='b' * 64, inferences=0, native_effects=0)
+    def last(_):
+        try: return reserve(Budget(root))
+        except RehearsalRefused: return None
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        claims = [c for c in pool.map(last, range(4)) if c]
+    assert len(claims) == 1
+    value.claim_send(claims[0], surface='runner'); value.unknown(claims[0]['claim_id'])
+    for surface in ('runner', 'hud', 'vscode', 'mobile'):
+        with pytest.raises(RehearsalRefused, match='unresolved'): reserve(Budget(root), surface)
+
+
 def test_concurrent_senders_have_exactly_one_reservation_and_send(tmp_path):
     value = budget(tmp_path)
     def claim(_):

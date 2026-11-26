@@ -502,3 +502,12 @@ def test_member_topology_accepts_two_borders_plus_witness():
     text = (Path(__file__).resolve().parents[2] / 'scripts/lib/protected_role.py').read_text()
     # spec 198 deliberately widened the member validator to the one-Border lab phase (the signed manifest schema allows 1..3)
     assert "1 <= len(value['nodes']) <= 3" in text and "len(value['nodes']) == 3" not in text
+
+
+def test_native_subnet_selection_preserves_hosted_ipv4_and_qualified_amd64_ipv6():
+    assert m.subnet_tool_selection({'mcp':{'tool':'subnet_calculator'}})==('subnet_calculator',{'cidr':'192.0.2.0/26'})
+    assert m.subnet_tool_selection({'ollama':{'family':6},'mcp':{'tool':'subnet_calculator_v6'}})==('subnet_calculator_v6',{'cidr':'2001:db8::/64'})
+    for runtime in ({'ollama':{'family':6},'mcp':{'tool':'subnet_calculator'}},
+                    {'ollama':{'family':True},'mcp':{'tool':'subnet_calculator'}},
+                    {'ollama':{'family':5},'mcp':{'tool':'subnet_calculator_v6'}}):
+        with pytest.raises(m.MemberRefused):m.subnet_tool_selection(runtime)

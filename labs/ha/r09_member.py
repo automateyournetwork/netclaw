@@ -790,7 +790,7 @@ def cmd_artifacts(args):
     from bgp.federation.protected_calculator import SUMMARY_SOURCE_SHA256
     template = json.loads(Path(args.template or R05 / 'runtime-template.json').read_text())
     runtime = copy.deepcopy(template['runtime'])
-    need(runtime['mcp']['kind'] == 'subnet_summary' and runtime['ollama']['family'] == 4, 'qualified_native_template_required')
+    need(runtime['mcp']['kind'] == 'subnet_summary' and runtime['ollama']['family'] in (4, 6), 'qualified_native_template_required')
     artifacts = private_dir(root / 'artifacts')
     # Guard configuration is a public pinned file; the guard secret is fresh and never reused from R05.
     guard_config = Path(runtime['guard']['config_file']).read_bytes()
@@ -834,12 +834,20 @@ def cmd_artifacts(args):
     command = [env_python, '-B', str(root / 'source/labs/ollama/qualify.py'), 'prepare', '--docker', docker,
                '--docker-host', docker_host, '--state-dir', str(root / 'model'), '--owner-spec', '179',
                '--owner-name', state['name'], '--image', new_model['model_image'], '--model-store', str(artifacts / 'models'),
-               '--name', state['name'] + '-model', '--family', '4', '--guard-uid', str(os.getuid()),
+               '--name', state['name'] + '-model', '--family', str(new_model['family']), '--guard-uid', str(os.getuid()),
                '--model-uid', str(new_model['model_uid'])]
     return {'artifacts': str(artifacts), 'model_start_command_owner_runs': command}
 
 
 # -------------------------------------------------------------------------------------------- materialize
+def subnet_tool_selection(runtime):
+    family = runtime.get('ollama', {}).get('family', 4)
+    need(type(family) is int and family in (4, 6), 'qualified_native_family_required')
+    tool = 'subnet_calculator' if family == 4 else 'subnet_calculator_v6'
+    need(runtime['mcp']['tool'] == tool, 'native_tool_family_changed')
+    return tool, {'cidr': '192.0.2.0/26' if family == 4 else '2001:db8::/64'}
+
+
 def cmd_materialize(args):
     root, state = load_state(args.root)
     flavor = state.get('flavor', 'ollama')
@@ -873,11 +881,11 @@ def cmd_materialize(args):
                 'inventory_revision': runtime['pyats']['testbed_sha256'], 'endpoint_sha256': runtime['pyats']['endpoint_sha256'],
                 'limits': dict(PYATS_TOOL_LIMITS)}
     else:
-        arguments = dict(NETBOX_ARGUMENTS) if netbox else {'cidr': '192.0.2.0/26'}
-        tool = {'tool': 'netbox_get_object_by_id' if netbox else 'subnet_calculator',
+        selected_tool, arguments = ('netbox_get_object_by_id', dict(NETBOX_ARGUMENTS)) if netbox else subnet_tool_selection(runtime)
+        tool = {'tool': selected_tool,
                 'tool_schema_sha256': bindings['tool_schema_sha256'], 'arguments': arguments,
                 'arguments_sha256': sha(canonical(arguments)),
-                'device_ref': 'dcim.device:%d' % arguments['object_id'] if netbox else '192.0.2.0/26',
+                'device_ref': 'dcim.device:%d' % arguments['object_id'] if netbox else arguments['cidr'],
                 'inventory_revision': runtime['mcp']['selection_sha256'], 'endpoint_sha256': runtime['mcp']['endpoint_sha256'],
                 'limits': dict(TOOL_LIMITS)}
     catalog = {'member': binding, 'model_profiles': [runtime['model_profile']], 'tools': [tool]}

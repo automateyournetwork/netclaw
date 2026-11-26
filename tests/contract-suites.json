@@ -545,7 +545,8 @@
     "n2n": {
       "kind": "pytest",
       "paths": [
-        "tests/n2n"
+        "tests/n2n",
+        "labs/cloud/aws/spec199"
       ],
       "environment": {
         "path": ".contract-test-envs/n2n",

@@ -1,5 +1,11 @@
 # NetClaw Operating Instructions
 
+## Spec199 closed for the owner-approved Ohio scope — 2026-11-26
+
+39/39 tasks complete; all five stages accepted and retired. Final nine-Border mesh passed27 named cells, original result/ACK verification, native recovery and late guard/quorum faults. All83 tracked final cloud resources/DNS and final local operation containers/networks are absent;23 private archives are verified. True AWS cross-region resilience remains deferred; AWS qualification is three distinct Ohio AZs. Azure/GCP retain three regions each.
+
+Read `specs/199-aws-multicloud-ha/closure-20261126.md`. Authoritative ledger/evidence: `~/.local/share/netclaw/spec199-stage5-20261126-v1/`; zero open reservations, conservative allocationsUSD11.53 AWS/USD9.00 external plus protectedUSD5/USD1 reserves. Billing lag is explicit. The finite guard is unloaded. Never replay spent actions or restart retired guards. The owner authorized committing, pushing, reconciling and merging Spec199 into main on 2026-11-26, retiring the completed branch and preparing a separate NET CLAW MULTI CLOUD writeup. Integration verification is recorded in `specs/199-aws-multicloud-ha/integration-20261126.md`. Version, package and client publication remain held. Preserve detached Spec20097fc1f1a, recordings, owner services and private evidence. Earlier199 checkpoints are historical and superseded.
+
 ## Verified Spec198 completion — 2026-11-24
 
 Spec198 actual acceptance and owned cleanup are complete. PR #368 merged
@@ -258,6 +264,8 @@ When unsure about severity or approach: escalate. Say "I'd recommend verifying t
 - Private etcd bounded metadata plus member SQLite claims and immutable signed artifacts;0700directories/0600private files. No credentials in frontend state. (179-border-ha-authority)
 - Spec200 planned: JavaScript ESM on repository-supported Node >=24.19 <25 or >=26.1; isolated Python3.12 for existing pyATS/Genie only. + Isolated @google/genai3.6.1 worker package; existing ws8.x, Node HTTP and browser Canvas. Separate wrapper package using the repository-qualified official MCP SDK; no React/FastAPI/media service. (200-genie-network-worlds)
 - Spec200 planned: Private owner-scoped SQLite ledger and bounded artifacts,0700 directories/0600 files; existing GAIT. Reuse qualified private atomic-write/ownership conventions, not federation authority tables. (200-genie-network-worlds)
+- Python3.10+ stdlib host tooling; isolated Python3.12 federation; existing Node24.19/React/TypeScript clients. + Existing AWS CLI2.35.24, NCFED/FastMCP/MCP, SQLite, OpenShell/DefenseClaw, Docker, pinned OpenClaw/Sonnet and Ollama reference closures; external etcd3.6.16. No new Python dependency/MCP server/UI framework. (199-aws-multicloud-ha)
+- Private0700 campaign directory;0600 packets, ledgers, consistent SQLite exports and credentials; secret-free source examples. (199-aws-multicloud-ha)
 
 - Spec 148 implementation: JavaScript ESM/Express/React HUD; HUD Node >=24.19 <25 or >=26.1; isolated bridge/tool Python 3.12 and companion Python 3.14; official MCP Node client 2.3.1 and isolated FastMCP 4.0.11/MCP Python SDK 2.3.0. General OpenClaw installer Node policy remains >=24.16 <25 or >=26.1.
 - Qualified Hermes baseline: v0.21.6, source 818c13be1dc4fd28987e1e881a9408224afd4535. Private MCP bridge/protected companion, schema-2 owned HUD bindings, SQLite admission/evidence records and installation-scoped browser storage. Mac and Ubuntu 26.04 WSL live/browser qualification is recorded in specs/148-hermes-hud-integration/closure.md; broader tool and platform qualification is not implied.
