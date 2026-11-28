@@ -403,7 +403,7 @@ NOTIFICATION nuance) are documentation-only and are not repeated here.
 - **Remaining hardening (optional):** a startup check that fails loudly when a granted or scoped skill is not loaded,
   so a future cap breach is not silent.
 
-### H23. Border leaves a completed member task at `submitted` — *OPEN (pull-only status, not H13)*
+### H23. Border leaves a completed member task at `submitted` — *RESOLVED on production (PR #376 deployed 2026-11-28, not yet merged)*
 - **Reality (§13.2):** production delegated task `1a5ec57f-18d6-4e74-9421-de66259ab806` (skill
   `threejs-network-viz`) to the `byrns-risk/viz` member at 2026-11-22T23:22:43Z. The member completed it at 23:23:26Z
   and stored the result (the tool itself failed, a separate issue). The Border's `delegated_task` row stayed
@@ -419,5 +419,13 @@ NOTIFICATION nuance) are documentation-only and are not repeated here.
   states (H13's re-announce). The draft should state whether a submitter must poll or may expect a completion notice.
 - **Production reconcile (2026-11-23T01:39:09Z, evidence §13.4):** one `GET /n2n/tasks/1a5ec57f…` closed the row as
   `completed`, but left `completed_at` empty: members send no `completed_at` and the Border stores None.
-- **Fix:** upstream PR #376 (reconcile on member reconnect and on a 60 s loop; Border-clock `completed_at` fallback).
-  Open until merged and deployed.
+- **Fix:** upstream PR #376 at `2acfd739`. The Border reconciles its non-terminal outbound iN2N tasks when a member
+  reconnects and on a 60 s loop (`N2N_MEMBER_TASK_RECONCILE_S`). Members now send `completed_at`, and the Border keeps
+  it when it is a valid ISO UTC time that isn't in the future; otherwise it uses its own clock.
+- **Deployed (2026-11-28, evidence §13.5):** the five members restarted, then the mesh. The reconcile closed all 40
+  Border rows stuck at `submitted`, each with the member's own completion time; none got the deploy-day clock.
+- **Remaining:**
+  - Merge #376 upstream.
+  - 163 rows that were already terminal still have an empty `completed_at`, including `1a5ec57f…`. The reconcile
+    doesn't touch terminal rows.
+  - Still to decide: whether the draft says a submitter must poll or may expect a completion notice.
