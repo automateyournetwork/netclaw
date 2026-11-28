@@ -10,6 +10,7 @@ import asyncio
 import json
 import logging
 import os
+import re
 import secrets
 import time
 from typing import Dict, Optional
@@ -28,6 +29,19 @@ logger = logging.getLogger("n2n.service")
 def _tasks_now():
     from .tasks import _now
     return _now()
+
+
+_ISO_UTC = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z\Z")
+
+
+def _member_completed_at(resp) -> str:
+    """H23: a member's own end time for a task when it sends a well-formed,
+    non-future one; else the Border's clock (older member code omits it)."""
+    now = _tasks_now()
+    value = (resp or {}).get("completed_at")
+    if isinstance(value, str) and _ISO_UTC.match(value) and value <= now:
+        return value
+    return now
 
 
 def _env_int(name: str, default: int) -> int:
@@ -2731,7 +2745,7 @@ class FederationService:
         if kind == "result" and resp.get("state") in ("completed", "failed", "cancelled"):
             ref = self.audit.store_result(task_id, resp)
             self.tasks._set(task_id, state=resp["state"], result_ref=ref,
-                            completed_at=resp.get("completed_at") or _tasks_now())
+                            completed_at=_member_completed_at(resp))
         return {"member_id": member_id, **resp}
 
     # Member states that end a task. outcome_unknown / interrupted are what a
@@ -2766,7 +2780,7 @@ class FederationService:
             if state in self._MEMBER_TERMINAL:
                 ref = self.audit.store_result(task_id, resp)
                 self.tasks._set(task_id, state=state, result_ref=ref,
-                                completed_at=resp.get("completed_at") or _tasks_now())
+                                completed_at=_member_completed_at(resp))
                 done.append(task_id)
             elif state == "working":
                 self.tasks._set(task_id, state="working")

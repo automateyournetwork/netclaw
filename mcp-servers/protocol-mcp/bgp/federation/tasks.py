@@ -41,6 +41,9 @@ def gateway_provenance(run_id):
         return ExternalProvenance(*current, run_id)
 
 
+TERMINAL_STATES = ("completed", "failed", "cancelled", "outcome_unknown", "interrupted")
+
+
 def _now() -> str:
     return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
@@ -216,11 +219,16 @@ class TaskManager:
         if owner is not None and not self._owns(task_id, owner):
             return {"task_id": task_id, "state": "unknown"}
         row = self.manager._conn.execute(
-            "SELECT state, result_ref, tokens_used,usage_available FROM delegated_task WHERE task_id=?",
+            "SELECT state, result_ref, tokens_used,usage_available,completed_at,updated_at FROM delegated_task WHERE task_id=?",
             (task_id,)).fetchone()
         if not row:
             return {"task_id": task_id, "state": "unknown"}
         out = {"task_id": task_id, "state": row["state"], "tokens_used": row["tokens_used"] if row['usage_available'] else None, 'usage_available':bool(row['usage_available'])}
+        if row["state"] in TERMINAL_STATES:
+            # H23: say when the task actually ended, so a Border closing it out
+            # later records that time, not its own clock. Rows marked
+            # interrupted at restart carry only updated_at.
+            out["completed_at"] = row["completed_at"] or row["updated_at"]
         out['external_sources'] = self.external_sources(task_id)
         if row['state']=='outcome_unknown':out.update(may_have_executed=True,error='Execution outcome is unknown. Check status; do not resubmit.')
         elif row['state']=='interrupted':out.update(may_have_executed=False,error='Request interrupted before execution.')

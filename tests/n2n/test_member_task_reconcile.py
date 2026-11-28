@@ -110,3 +110,49 @@ def test_periodic_loop_reconciles(tmp_path, monkeypatch):
             server.close()
         border.manager.close(); member.manager.close()
     asyncio.run(run())
+
+
+def test_reconcile_keeps_member_completion_time(tmp_path, monkeypatch):
+    """The Border records when the member finished, not when it noticed."""
+    async def run():
+        border, member, server = await _stand_up_risk(tmp_path, ["cml-lab-lifecycle"], monkeypatch)
+        try:
+            task_id = await _delegate_and_finish(border, member)
+            member.manager._conn.execute(
+                "UPDATE delegated_task SET completed_at='2026-07-21T10:00:00Z' WHERE task_id=?",
+                (task_id,))
+            assert member.tasks.result(task_id)["completed_at"] == "2026-07-21T10:00:00Z"
+            await border.reconcile_member_tasks()
+            assert _row(border, task_id)["completed_at"] == "2026-07-21T10:00:00Z"
+        finally:
+            server.close()
+        border.manager.close(); member.manager.close()
+    asyncio.run(run())
+
+
+def test_interrupted_member_row_reports_updated_at(tmp_path, monkeypatch):
+    async def run():
+        border, member, server = await _stand_up_risk(tmp_path, ["cml-lab-lifecycle"], monkeypatch)
+        try:
+            task_id = await _delegate_and_finish(border, member)
+            member.manager._conn.execute(
+                "UPDATE delegated_task SET state='interrupted', completed_at=NULL, "
+                "updated_at='2026-08-02T03:04:05Z' WHERE task_id=?", (task_id,))
+            await border.reconcile_member_tasks()
+            row = _row(border, task_id)
+            assert row["state"] == "interrupted"
+            assert row["completed_at"] == "2026-08-02T03:04:05Z"
+        finally:
+            server.close()
+        border.manager.close(); member.manager.close()
+    asyncio.run(run())
+
+
+def test_member_completed_at_validation():
+    from bgp.federation.service import _member_completed_at, _tasks_now
+    assert _member_completed_at({"completed_at": "2026-07-21T10:00:00Z"}) == "2026-07-21T10:00:00Z"
+    for bad in (None, "", "yesterday", "2026-07-21 10:00:00", "2026-07-21T10:00:00Z; DROP",
+                "9999-01-01T00:00:00Z", 12345):
+        got = _member_completed_at({"completed_at": bad})
+        assert got != bad and got <= _tasks_now()
+    assert _member_completed_at({}) and _member_completed_at(None)
