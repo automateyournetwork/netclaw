@@ -10,6 +10,7 @@ import asyncio
 import json
 import logging
 import os
+import re
 import secrets
 import time
 from typing import Dict, Optional
@@ -23,6 +24,24 @@ from .inventory import InventoryBuilder
 from .audit import Auditor
 
 logger = logging.getLogger("n2n.service")
+
+
+def _tasks_now():
+    from .tasks import _now
+    return _now()
+
+
+_ISO_UTC = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z\Z")
+
+
+def _member_completed_at(resp) -> str:
+    """H23: a member's own end time for a task when it sends a well-formed,
+    non-future one; else the Border's clock (older member code omits it)."""
+    now = _tasks_now()
+    value = (resp or {}).get("completed_at")
+    if isinstance(value, str) and _ISO_UTC.match(value) and value <= now:
+        return value
+    return now
 
 
 def _env_int(name: str, default: int) -> int:
@@ -140,6 +159,9 @@ class FederationService:
         self.health: Dict[str, dict] = {}   # ident -> {state, attempts, next_retry_at, last_seen}
         self.transport_observations = {}  # registry ID -> bounded local observation
         self._supervisor_task = None
+        self._member_reconcile_task = None
+        self._reconcile_once = set()
+        self._member_reconcile_s = _env_int("N2N_MEMBER_TASK_RECONCILE_S", 60)
         self._backoff_min = _env_int("N2N_RECONNECT_BACKOFF_MIN_S", 5)
         self._backoff_max = _env_int("N2N_RECONNECT_BACKOFF_MAX_S", 60)
         self._unreachable_after = _env_int("N2N_RECONNECT_UNREACHABLE_AFTER", 5)
@@ -1141,6 +1163,8 @@ class FederationService:
         if self._supervisor_task is None:
             self._supervisor_task = asyncio.create_task(self._reconnect_supervisor())
             logger.info("N2N reconnect supervisor started")
+        if self._member_reconcile_task is None and self._member_reconcile_s > 0:
+            self._member_reconcile_task = asyncio.create_task(self._member_reconcile_loop())
 
     async def _reconnect_supervisor(self):
         """For each federated peer with no live channel, re-dial with bounded
@@ -1499,6 +1523,14 @@ class FederationService:
             ch.authority_current = current
             self.observe_transport(ch.registry_id, ch.registry_revision, 'admitted')
         self.member_channels[member_id] = ch
+        # H23: task status is pull-only, so a (re)connected member may hold
+        # results the Border never fetched. Reconcile them now.
+        try:
+            t = asyncio.get_running_loop().create_task(self.reconcile_member_tasks(member_id))
+            self._reconcile_once.add(t)            # keep a strong ref until done
+            t.add_done_callback(self._reconcile_once.discard)
+        except RuntimeError:
+            pass   # no running loop (sync caller) — the periodic loop covers it
 
     async def _in2n_on_enroll(self, channel, params):
         """First-time enrollment: verify token + proof-of-possession, pin key."""
@@ -2715,8 +2747,58 @@ class FederationService:
         if kind == "result" and resp.get("state") in ("completed", "failed", "cancelled"):
             ref = self.audit.store_result(task_id, resp)
             self.tasks._set(task_id, state=resp["state"], result_ref=ref,
-                            completed_at=resp.get("completed_at"))
+                            completed_at=_member_completed_at(resp))
         return {"member_id": member_id, **resp}
+
+    # Member states that end a task. outcome_unknown / interrupted are what a
+    # member reports for work cut off by its own restart.
+    _MEMBER_TERMINAL = ("completed", "failed", "cancelled", "outcome_unknown", "interrupted")
+
+    async def reconcile_member_tasks(self, member_id: str = None) -> dict:
+        """Border side (H23): close out outbound iN2N tasks still recorded as
+        submitted/working by asking each CONNECTED member for the result.
+
+        iN2N task status is pull-only — a member never announces completion —
+        so without this the Border row stays 'submitted' unless someone polls.
+        Never cold-starts a member; unreachable members are left for the next
+        pass. Returns {"checked": n, "reconciled": [task_id, ...]}."""
+        rows = self.manager._conn.execute(
+            "SELECT task_id, peer_identity FROM delegated_task WHERE direction='outbound' "
+            "AND state IN ('submitted','working')").fetchall()
+        checked, done = 0, []
+        for task_id, peer in rows:
+            if member_id is not None and peer != member_id:
+                continue
+            ch = self.member_channels.get(peer)
+            if ch is None or not self.is_member_task(peer):
+                continue
+            checked += 1
+            try:
+                resp = await ch.call("n2n/tasks/result", {"task_id": task_id}, timeout=30.0)
+            except Exception as e:
+                logger.debug("iN2N reconcile %s on %s: %s", task_id, peer, e)
+                continue
+            state = (resp or {}).get("state")
+            if state in self._MEMBER_TERMINAL:
+                ref = self.audit.store_result(task_id, resp)
+                self.tasks._set(task_id, state=state, result_ref=ref,
+                                completed_at=_member_completed_at(resp))
+                done.append(task_id)
+            elif state == "working":
+                self.tasks._set(task_id, state="working")
+        if done:
+            logger.info("iN2N reconcile: closed %d member task(s): %s", len(done), ", ".join(done))
+        return {"checked": checked, "reconciled": done}
+
+    async def _member_reconcile_loop(self):
+        while True:
+            await asyncio.sleep(self._member_reconcile_s)
+            try:
+                await self.reconcile_member_tasks()
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                logger.exception("iN2N member task reconcile pass failed")
 
     def is_member_task(self, peer_identity: str) -> bool:
         """True if a delegated_task's peer_identity is one of our risk members
