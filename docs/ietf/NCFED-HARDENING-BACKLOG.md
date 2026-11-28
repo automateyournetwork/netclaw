@@ -417,3 +417,7 @@ NOTIFICATION nuance) are documentation-only and are not repeated here.
 - **Plan:** the Border reconciles its own non-terminal outbound iN2N tasks: on member channel (re-)establish and
   periodically for rows past a deadline, using `n2n/tasks/result`. Optionally the executor also announces terminal
   states (H13's re-announce). The draft should state whether a submitter must poll or may expect a completion notice.
+- **Production reconcile (2026-11-23T01:39:09Z, evidence §13.4):** one `GET /n2n/tasks/1a5ec57f…` closed the row as
+  `completed`, but left `completed_at` empty: members send no `completed_at` and the Border stores None.
+- **Fix:** upstream PR #376 (reconcile on member reconnect and on a 60 s loop; Border-clock `completed_at` fallback).
+  Open until merged and deployed.

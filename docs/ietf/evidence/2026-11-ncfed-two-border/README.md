@@ -274,6 +274,7 @@ on production (0600, SQLite backup API, `integrity_check` ok, sha256 `f0554c15�
 | 10 | 22:54:59 | `skills.limits` raised to the spec-188 policy in all five iN2N member configs (`~/.openclaw-byrns-risk-{cml,guardian-claw,pyats,secops,viz}/openclaw.json`); backups `openclaw.json.bak-skilllimits-20261122T225459Z` beside each (§11) | **Active** (no restart; read by each new per-task agent process) |
 | 11 | 2026-11-23 00:57:53 | Deleted the stale, pre-existing peer row `as65123-203.0.113.99` (`not_federated`, transport ngrok, created 2026-07-18; not part of this run); backup `federation.db.pre-delete-as65123-20261123T005753Z` (§13) | **Done** (no restart) |
 | 12 | 2026-11-23 01:01:07 | Deleted its 7 leftover `budget_counter` rows (days 2026-11-13, -14, -15, -17, -19, -21, -22; all 0 requests and 0 tokens); backup `federation.db.pre-delete-as65123-budget-20261123T010107Z` (§13) | **Done** (no restart) |
+| 13 | 2026-11-23 01:39:09 | H23 reconcile: one `GET /n2n/tasks/1a5ec57f-18d6-4e74-9421-de66259ab806` on the loopback operator API moved the Border's outbound `delegated_task` row from `submitted` to `completed` (result stored); `completed_at` was left empty, a Border bug fixed in upstream PR #376; backup `federation.db.pre-h23-reconcile-20261123T013904Z` (§13.4) | **Done** (no restart) |
 | — | 20:44 / 20:49 | `/tmp/ncfed_wire_probe.py`, `/tmp/ncfed_api.sh` copied to production | `/tmp/ncfed_api.sh` removed from both hosts 22:05 (§11); `/tmp/ncfed_wire_probe.py` removed at teardown (§13) |
 
 Automatic side effects on production: audit/GAIT entries for every probe and invoke; `federation_peer`/
@@ -295,6 +296,8 @@ The HUD, mobile enrollment, BGP config and Stage 8 checks were not touched. John
   scripts are gone from `/tmp`. The deliberate repairs (changes 3–4, 6, 8 and 10) remain active.
 - Production federation peers: `as64512`, `as65001`, `as65007` and `as65010` are `severed`; `as65099-10.255.255.1`
   is `not_federated`. The stale `as65123` row was removed (changes 11–12).
+- Production's outbound row for the viz task `1a5ec57f…` is `completed` after the H23 reconcile (change 13), but its
+  `completed_at` is empty (§13.4).
 - Mesh daemon PID 852849 and gateway PID 833981 are unchanged since §11; nothing in §13 needed a restart.
 
 ## 8. Teardown and full production revert
@@ -517,7 +520,8 @@ To confirm that the raised `skills.limits` (change 10) reach an iN2N member, pro
   failed to resolve during the execution attempt". The member's tool config is `null`, so it runs on defaults; no
   visualization was produced. Not diagnosed further.
 - **Border status mismatch**: the member finished the task, but production's `delegated_task` row stayed `submitted`
-  (progress `None`, `updated_at` 23:22:43Z). The Border does not pull the member's result back. Candidate backlog item.
+  (progress `None`, `updated_at` 23:22:43Z). The Border does not pull the member's result back. Tracked as H23 and
+  reconciled by hand in §13.4.
 
 Result: change 10 is confirmed for skill visibility only. Skill execution on the viz member is not demonstrated.
 
@@ -527,3 +531,37 @@ The peer `as65123-203.0.113.99` predates this run (created 2026-07-18, transport
 together with its 7 empty `budget_counter` rows, after a backup each time (see §6). Neither deletion needed a restart;
 daemon PID 852849 is unchanged. Rollback: restore the matching `federation.db.pre-delete-as65123-*` backup with the daemon
 stopped.
+
+### 13.4 H23 Border task record reconcile (change 13)
+
+**Cause.** iN2N task status is pull-only. A member never announces that a task has finished, and the Border updates its
+outbound `delegated_task` row only in `poll_member_task`, which runs when something calls `GET /n2n/tasks/{id}`. Nothing
+polled task `1a5ec57f…` after 23:22:43Z, so the row stayed `submitted` although the member had completed it (H23 in
+[`../../NCFED-HARDENING-BACKLOG.md`](../../NCFED-HARDENING-BACKLOG.md)).
+
+**Backup.** `~/.local/state/ncfed-two-border-20261122/federation.db.pre-h23-reconcile-20261123T013904Z` (SQLite backup
+API, `integrity_check` ok). In the backup the row is `submitted`.
+
+**Reconcile.** One read call on production's loopback operator API (`127.0.0.1`), at 01:39:09Z:
+`GET /n2n/tasks/1a5ec57f-18d6-4e74-9421-de66259ab806`. It returned HTTP 200 with state `completed` and `tokens_used`
+132186. The call made the Border poll the member, and it wrote the row.
+
+| Field | Before | After |
+|---|---|---|
+| `state` | `submitted` | `completed` |
+| `updated_at` | 2026-11-22T23:22:43Z | 2026-11-23T01:39:09Z |
+| result | none | stored |
+| `completed_at` | None | **None** |
+
+**Second defect: `completed_at` stays empty.** A member's result reply carries no `completed_at`, and
+`poll_member_task` stores the value it receives, so a reconciled row is terminal with no completion time. The row was
+left as it is; no hand-written timestamp was added.
+
+**Fix (not deployed).** Upstream PR [#376](https://github.com/automateyournetwork/netclaw/pull/376) makes the Border
+reconcile its own non-terminal outbound iN2N tasks: when a member channel registers or reconnects, and on a 60 s loop
+(`N2N_MEMBER_TASK_RECONCILE_S`). It only checks members that are already connected and never cold-starts one. It also
+falls back to the Border's clock for `completed_at`. Four tests cover it (`tests/n2n/test_member_task_reconcile.py`).
+Deploying it needs a `netclaw-mesh.service` restart, which has not been done.
+
+The daemon was not restarted for the reconcile (PID 852849 unchanged). Rollback: restore
+`federation.db.pre-h23-reconcile-*` with the daemon stopped.
