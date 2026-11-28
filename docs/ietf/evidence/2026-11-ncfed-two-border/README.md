@@ -275,6 +275,9 @@ on production (0600, SQLite backup API, `integrity_check` ok, sha256 `f0554c15�
 | 11 | 2026-11-23 00:57:53 | Deleted the stale, pre-existing peer row `as65123-203.0.113.99` (`not_federated`, transport ngrok, created 2026-07-18; not part of this run); backup `federation.db.pre-delete-as65123-20261123T005753Z` (§13) | **Done** (no restart) |
 | 12 | 2026-11-23 01:01:07 | Deleted its 7 leftover `budget_counter` rows (days 2026-11-13, -14, -15, -17, -19, -21, -22; all 0 requests and 0 tokens); backup `federation.db.pre-delete-as65123-budget-20261123T010107Z` (§13) | **Done** (no restart) |
 | 13 | 2026-11-23 01:39:09 | H23 reconcile: one `GET /n2n/tasks/1a5ec57f-18d6-4e74-9421-de66259ab806` on the loopback operator API moved the Border's outbound `delegated_task` row from `submitted` to `completed` (result stored); `completed_at` was left empty, a Border bug fixed in upstream PR #376; backup `federation.db.pre-h23-reconcile-20261123T013904Z` (§13.4) | **Done** (no restart) |
+| 14 | 2026-11-28 05:07:37 | Before deploying #376: backed up `service.py` and `tasks.py` as `*.bak-h23v2-20261128T050737Z` beside each file, and the Border database and all five member databases as `*-federation.db.bak-h23v2-20261128T050737Z` in `~/.local/state/ncfed-two-border-20261122/` (§13.5) | **Done** |
+| 15 | 2026-11-28 05:07 | Applied PR #376 at its head `2acfd739` (`service.py`, `tasks.py`, +92/−2) to the production working tree (§13.5) | **Active** |
+| 16 | 2026-11-28 05:07–05:08 | Restarted the five member services `netclaw-member-byrns-risk-{viz,pyats,cml,secops,guardian-claw}`, then `netclaw-mesh.service` (PID 852849 → 3524885). On startup the reconcile closed 40 Border rows stuck at `submitted` (§13.5) | done |
 | — | 20:44 / 20:49 | `/tmp/ncfed_wire_probe.py`, `/tmp/ncfed_api.sh` copied to production | `/tmp/ncfed_api.sh` removed from both hosts 22:05 (§11); `/tmp/ncfed_wire_probe.py` removed at teardown (§13) |
 
 Automatic side effects on production: audit/GAIT entries for every probe and invoke; `federation_peer`/
@@ -298,7 +301,9 @@ The HUD, mobile enrollment, BGP config and Stage 8 checks were not touched. John
   is `not_federated`. The stale `as65123` row was removed (changes 11–12).
 - Production's outbound row for the viz task `1a5ec57f…` is `completed` after the H23 reconcile (change 13), but its
   `completed_at` is empty (§13.4).
-- Mesh daemon PID 852849 and gateway PID 833981 are unchanged since §11; nothing in §13 needed a restart.
+- Mesh daemon PID 852849 and gateway PID 833981 are unchanged since §11; nothing in §13.1–13.4 needed a restart.
+- **Update 2026-11-28:** PR #376 is deployed (changes 14–16, §13.5). The mesh daemon is now PID 3524885, the
+  gateway PID is unchanged, and the Border has no outbound tasks left at `submitted`.
 
 ## 8. Teardown and full production revert
 
@@ -557,11 +562,70 @@ API, `integrity_check` ok). In the backup the row is `submitted`.
 `poll_member_task` stores the value it receives, so a reconciled row is terminal with no completion time. The row was
 left as it is; no hand-written timestamp was added.
 
-**Fix (not deployed).** Upstream PR [#376](https://github.com/automateyournetwork/netclaw/pull/376) makes the Border
+**Fix (deployed 2026-11-28, §13.5).** Upstream PR [#376](https://github.com/automateyournetwork/netclaw/pull/376) makes the Border
 reconcile its own non-terminal outbound iN2N tasks: when a member channel registers or reconnects, and on a 60 s loop
 (`N2N_MEMBER_TASK_RECONCILE_S`). It only checks members that are already connected and never cold-starts one. It also
 falls back to the Border's clock for `completed_at`. Four tests cover it (`tests/n2n/test_member_task_reconcile.py`).
-Deploying it needs a `netclaw-mesh.service` restart, which has not been done.
+Deploying it needs a `netclaw-mesh.service` restart; this was done on 2026-11-28 (§13.5).
 
 The daemon was not restarted for the reconcile (PID 852849 unchanged). Rollback: restore
 `federation.db.pre-h23-reconcile-*` with the daemon stopped.
+
+### 13.5 PR #376 production deploy (changes 14–16)
+
+**Completion-time fix first.** Before deploying, #376 was changed so a reconciled row keeps the member's own
+completion time rather than the Border's clock. The member's `TaskManager.result()` now returns `completed_at` for
+terminal tasks, or `updated_at` for rows marked `interrupted` at restart. The Border accepts the value only if it is
+an ISO UTC timestamp (`YYYY-MM-DDTHH:MM:SSZ`) that isn't in the future; otherwise it uses its own clock
+(`_member_completed_at()` in `service.py`). Three more tests cover this. #376 head `2acfd739` passed all 40 CI checks.
+
+**Pre-checks (05:07Z).** The production tree was at `a5e7c3a3`. Apart from the §11 `gateway_ws.py` patch it had no
+changes, and `service.py` and `tasks.py` still matched the base. `git apply --check` passed. The mesh daemon was PID
+852849. No member had a task at `submitted` or `working`, so restarting them cut nothing off.
+
+**Backups (change 14).** These were taken with the SQLite backup API, are private (0600), and all pass
+`integrity_check`:
+
+- Source: `service.py.bak-h23v2-20261128T050737Z`, `tasks.py.bak-h23v2-20261128T050737Z`.
+- Databases: the Border's `~/.openclaw/n2n/federation.db` and each member's
+  `~/.openclaw-byrns-risk-<m>/n2n/federation.db`, as `<name>-federation.db.bak-h23v2-20261128T050737Z` in
+  `~/.local/state/ncfed-two-border-20261122/`.
+
+The Border backup holds the 40 rows at `submitted`.
+
+**Apply and restart (changes 15–16).** The patch applied cleanly. The members restarted first, so the reconcile would
+run against members already on the new code. Starting the mesh before them would have reconnected members still
+running the old code, and the reconcile would have stamped those rows with the Border's clock. All five member
+services restarted with return code 0, then `netclaw-mesh.service` restarted (PID 852849 → 3524885).
+
+**Result.** About a second after the members registered, the reconcile closed all 40 rows:
+
+| Member | Rows closed | Final state | `completed_at` stored |
+|---|---|---|---|
+| guardian-claw | 23 | `completed` | 2026-07-21T05:00:54Z to 2026-07-25T23:58:52Z |
+| guardian-claw | 13 | `interrupted` | 2026-10-23T05:26:39Z (member `updated_at`) |
+| guardian-claw | 1 | `failed` | 2026-11-01T16:58:19Z |
+| cml, pyats, viz | 1 each | `failed` | 2026-11-01T16:57:55Z–16:57:56Z |
+
+| Border task states | Before | After |
+|---|---|---|
+| `submitted` | 40 | 0 |
+| `completed` | 173 | 196 |
+| `failed` | 23 | 27 |
+| `interrupted` | 0 | 13 |
+| `cancelled` / `outcome_unknown` | 1 / 1 | 1 / 1 |
+
+None of the 40 rows got a deploy-day timestamp. All six services were active afterwards, with no tracebacks in the
+mesh log.
+
+**Not changed.** The reconcile only touches rows that aren't yet terminal. Rows that were already terminal with an
+empty `completed_at` stay empty: 163 of them, including the §13.4 viz row `1a5ec57f…`. No hand-written timestamp was
+added.
+
+**Rollback.**
+
+1. Stop the mesh.
+2. Copy the `*.bak-h23v2-*` source files back over `service.py` and `tasks.py`.
+3. Restart the five members.
+4. To return the 40 rows to `submitted`, restore the Border database from its `bak-h23v2` copy.
+5. Start the mesh.
